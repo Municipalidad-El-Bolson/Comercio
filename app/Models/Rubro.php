@@ -6,17 +6,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class Rubro extends Model
 {
+    protected $table = 'rubros';      
+    protected $primaryKey = 'id';     
 
     protected $fillable = [
-        'id',
         'rubro_madre',
-        'subrubro'
+        'subrubro',
     ];
+
+    public $timestamps = false;
 
     public function ubicaciones()
     {
         return $this->hasMany(Ubicacion::class);
     }
-    // Si deseas deshabilitar los timestamps en el modelo
-    public $timestamps = false;
 }

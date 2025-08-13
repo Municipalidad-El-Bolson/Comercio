@@ -30,7 +30,7 @@ class Ubicaciones extends AdminComponent
 
     public function mount()
     {
-        $this->rubros = Rubro::orderBy('rubro')->get();
+        $this->rubros = Rubro::orderBy('rubro_madre', 'asc')->get();
     }
 
     public function updatingSearchTerm()
