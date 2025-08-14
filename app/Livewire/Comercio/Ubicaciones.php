@@ -69,78 +69,165 @@ class Ubicaciones extends AdminComponent
         $this->reset('state', 'ubicacion');
 
         $this->state = [
-            'estado' => 'normal',
-            'tipo' => '<i class="fas fa-store"></i>',
+            'persona_tipo' => 'fisica',
+            'estado' => 'vigente',
+            'documentos' => [
+                // Generales
+                'doc_libre_deuda_municipal' => false,
+                'doc_planeamiento_urbano' => false,
+                'doc_solicitud_habilitacion_pago' => false,
+                // Físicas
+                'doc_afip_constancia_fisica' => false,
+                'doc_fotocopia_dni' => false,
+                'doc_constancia_recaudacion' => false,
+                // Jurídicas
+                'doc_afip_constancia_juridica' => false,
+                'doc_acta_constitucion' => false,
+                'doc_contrato_societario' => false,
+                'doc_docs_representantes' => false,
+                // Otros
+                'doc_comprobante_uso_local' => false,
+            ],
         ];
-
         $this->showEditModal = false;
-
-        $this->dispatch('show-form'); // muestra el modal (lo mismo que con editar)
+        $this->dispatch('show-form');
     }
 
     public function createCliente()
     {
-        $validatedData = Validator::make($this->state, [
-            'razon_social' => 'required|string',
-            'apellido'     => 'required|string',
-            'nombres'      => 'required|string',
-            'dni'          => 'required|integer',
-            'direccion'    => 'required|string',
-            'rubro_id'     => 'required|exists:rubros,id',
-            'tipo'         => 'required|string',
-            'estado'       => 'required|in:normal,irregular,faltadoc',
-        ])->validate();
+        $rules = [
+            'persona_tipo'          => 'required|in:fisica,juridica',
+            'apellido'              => 'nullable|string',
+            'nombres'               => 'nullable|string',
+            'razon_social'          => 'nullable|string',
+            'dni_cuit'              => 'required|string',
+            'rubro_id'              => 'required|exists:rubros,id',
+            'domicilio_responsable' => 'required|string',
+            'correo'                => 'nullable|email',
+            'telefono'              => 'nullable|string',
+            'nombre_comercial'      => 'nullable|string',
+            'domicilio_comercio'    => 'required|string',
+            'nomenclatura'          => 'nullable|string',
+            'observaciones'         => 'nullable|string',
+            'estado'                => 'required|in:vigente,irregular,entramite',
 
-        // Formateo de campos capitalizables
-        foreach (['razon_social', 'direccion', 'apellido', 'nombres'] as $campo) {
-            if (isset($validatedData[$campo])) {
-                $validatedData[$campo] = Str::title($validatedData[$campo]);
+            // Documentos (boolean)
+            'documentos.doc_libre_deuda_municipal'   => 'boolean',
+            'documentos.doc_planeamiento_urbano'     => 'boolean',
+            'documentos.doc_solicitud_habilitacion_pago' => 'boolean',
+            'documentos.doc_afip_constancia_fisica'  => 'boolean',
+            'documentos.doc_fotocopia_dni'           => 'boolean',
+            'documentos.doc_constancia_recaudacion'  => 'boolean',
+            'documentos.doc_afip_constancia_juridica'=> 'boolean',
+            'documentos.doc_acta_constitucion'       => 'boolean',
+            'documentos.doc_contrato_societario'     => 'boolean',
+            'documentos.doc_docs_representantes'     => 'boolean',
+            'documentos.doc_comprobante_uso_local'   => 'boolean',
+        ];
+
+        // Validación condicional:
+        if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
+            $rules['apellido'] = 'required|string';
+            $rules['nombres']  = 'required|string';
+            // 'razon_social' puede ser null
+        } else { // juridica
+            $rules['razon_social'] = 'required|string';
+            // Apellido/Nombres pueden ser null
+        }
+
+        $validated = Validator::make($this->state, $rules)->validate();
+
+        // Formateos (opcional)
+        foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $campo) {
+            if (!empty($validated[$campo])) {
+                $validated[$campo] = \Illuminate\Support\Str::title($validated[$campo]);
             }
         }
 
-        $validatedData['direccion'] = Str::title($validatedData['direccion']) . ', R8430 El Bolsón, Río Negro';
+        // Crear Ubicacion
+        $documentos = $validated['documentos'] ?? [];
+        unset($validated['documentos']);
 
-        // Crear nuevo registro
-        Ubicacion::create($validatedData);
+        $ubic = \App\Models\Ubicacion::create($validated);
 
-        // Refrescar listado
-        $this->resetPage(); // vuelve a la página 1 si estás paginando
+        // Crear checklist documentos
+        $ubic->documentos()->create($documentos);
+
+        // Reset UI
+        $this->resetPage();
         $this->reset('state');
         $this->dispatch('hide-form', ['message' => 'Comercio creado correctamente.']);
     }
 
-
     public function updateComercio()
     {
-        $validatedData = Validator::make($this->state, [
-            'razon_social' => 'required|string',
-            'apellido'     => 'required|string',
-            'nombres'      => 'required|string',
-            'dni'          => 'required|integer',
-            'direccion'    => 'required|string',
-            'rubro_id'     => 'required|exists:rubros,id',
-        ])->validate();
+        $rules = [
+            'persona_tipo'          => 'required|in:fisica,juridica',
+            'apellido'              => 'nullable|string',
+            'nombres'               => 'nullable|string',
+            'razon_social'          => 'nullable|string',
+            'dni_cuit'              => 'required|string',
+            'rubro_id'              => 'required|exists:rubros,id',
 
-        $validatedData['razon_social'] = Str::title($validatedData['razon_social']);
+            'domicilio_responsable' => 'required|string',
+            'correo'                => 'nullable|email',
+            'telefono'              => 'nullable|string',
+            'nombre_comercial'      => 'nullable|string',
+            'domicilio_comercio'    => 'required|string',
+            'nomenclatura'          => 'nullable|string',
+            'observaciones'         => 'nullable|string',
+
+            'estado'                => 'required|in:vigente,irregular,entramite',
+            'situacion'             => 'required|in:alta,baja',
+            'fecha_alta'            => 'nullable|date',
+            'fecha_baja'            => 'nullable|date',
+        ];
+
+        // Condiciones extra
+        if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
+            $rules['apellido'] = 'required|string';
+            $rules['nombres']  = 'required|string';
+        } else {
+            $rules['razon_social'] = 'required|string';
+        }
+
+        if (($this->state['situacion'] ?? 'alta') === 'baja') {
+            $rules['fecha_baja'] = 'required|date';
+        } else {
+            $rules['fecha_alta'] = 'required|date';
+        }
+
+        $validatedData = Validator::make($this->state, $rules)->validate();
+
+        // Formateo de mayúsculas/minúsculas
+        if (!empty($validatedData['razon_social'])) {
+            $validatedData['razon_social'] = Str::title($validatedData['razon_social']);
+        }
+        if (!empty($validatedData['apellido'])) {
+            $validatedData['apellido'] = Str::title($validatedData['apellido']);
+        }
+        if (!empty($validatedData['nombres'])) {
+            $validatedData['nombres'] = Str::title($validatedData['nombres']);
+        }
+
+        // Sufijo para domicilio del comercio
         $sufijo = ', R8430 El Bolsón, Río Negro';
-        $direccion = Str::title($validatedData['direccion']);
-        $validatedData['direccion'] = Str::endsWith($direccion, $sufijo)
+        $direccion = Str::title($validatedData['domicilio_comercio']);
+        $validatedData['domicilio_comercio'] = Str::endsWith($direccion, $sufijo)
             ? $direccion
             : $direccion . $sufijo;
-        $validatedData['apellido'] = Str::title($validatedData['apellido']);
-        $validatedData['nombres'] = Str::title($validatedData['nombres']);
 
+        // Actualizar registro
         $this->ubicacion->update($validatedData);
 
+        // Recargar listado
         $this->ubicaciones = Ubicacion::where('razon_social', 'like', '%' . $this->searchTerm . '%')
             ->orderBy('razon_social', 'asc')
             ->get();
 
-
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
-
-        // $this->dispatch('toast', ['type' => 'error','message' => '❌ No se pudo actualizar el cliente']);
     }
+
 
     public function resetForm()
     {
