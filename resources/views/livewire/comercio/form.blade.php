@@ -194,7 +194,19 @@
 
                     {{-- Documentación (checkboxes) --}}
                     <div class="border rounded p-2 mt-2">
-                    <h6 class="mb-2">Documentación</h6>
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="mb-0">Documentación</h6>
+                        <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-success"
+                                wire:click="marcarTodosLosDocs(true)">
+                            Presentó toda la documentación
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary"
+                                wire:click="marcarTodosLosDocs(false)">
+                            Limpiar
+                        </button>
+                        </div>
+                    </div>
 
                     <div class="row">
                         {{-- Generales --}}
@@ -220,41 +232,61 @@
                             <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_comprobante_uso_local">
                             <span class="form-check-label">Comprobante de uso del local</span>
                         </label>
-                        </div>
 
-                        {{-- Físicas --}}
-                        @if(($state['persona_tipo'] ?? 'fisica') === 'fisica')
-                        <div class="col-md-6">
-                            <strong class="d-block mb-1">Personas Físicas</strong>
+                        <label class="form-check mb-1">
+                            <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_afip_constancia">
+                            <span class="form-check-label">Constancia de inscripción emitida por AFIP</span>
+                        </label>
 
-                            <label class="form-check mb-1">
-                            <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_afip_constancia_fisica">
-                            <span class="form-check-label">Constancia AFIP</span>
-                            </label>
+                        <label class="form-check mb-1">
+                            <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_recaudacion_rn">
+                            <span class="form-check-label">Constancia de inscripción emitida por Agencia de Recaudación Tributaria de Río Negro</span>
+                        </label>
 
-                            <label class="form-check mb-1">
+                        <label class="form-check mb-1">
                             <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_fotocopia_dni">
-                            <span class="form-check-label">Fotocopia DNI</span>
-                            </label>
+                            <span class="form-check-label">Fotocopia del DNI</span>
+                        </label>
 
-                            <label class="form-check mb-1">
-                            <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_constancia_recaudacion">
-                            <span class="form-check-label">Constancia de recaudación</span>
-                            </label>
+                        <label class="form-check mb-1">
+                            <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_comprobante_uso_inmueble">
+                            <span class="form-check-label">Comprobante que acredite el uso del inmueble a destinar a comercio</span>
+                        </label>
+
+                        <label class="form-check mb-1">
+                            <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_libre_deuda_tasas_inmueble">
+                            <span class="form-check-label">Libre deuda de tasas municipales de la propiedad</span>
+                        </label>
+
+                        <label class="form-check mb-1">
+                            <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_aptitud_tecnica_local">
+                            <span class="form-check-label">Certificado de aptitud técnica del local a habilitar</span>
+                        </label>
+
+                        <label class="form-check mb-1">
+                            <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_cocap_rhi">
+                            <span class="form-check-label">Certificado de CO.CA.P.R.HI</span>
+                        </label>
+
+                        <label class="form-check mb-1">
+                            <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_nota_carteleria_obras">
+                            <span class="form-check-label">Nota a Obras Públicas declarando cartelería usada como publicidad</span>
+                        </label>
+
+                        <label class="form-check mb-1">
+                            <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_libro_actas_100">
+                            <span class="form-check-label">Libro de actas de 100 hojas</span>
+                        </label>
                         </div>
-                        @else
-                        {{-- Jurídicas --}}
+
+                        {{-- Documentación adicional para Jurídicas --}}
+                        @if(($state['persona_tipo'] ?? 'fisica') === 'juridica')
                         <div class="col-md-6">
                             <strong class="d-block mb-1">Personas Jurídicas</strong>
 
                             <label class="form-check mb-1">
-                            <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_afip_constancia_juridica">
-                            <span class="form-check-label">Constancia AFIP</span>
-                            </label>
-
-                            <label class="form-check mb-1">
                             <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_acta_constitucion">
-                            <span class="form-check-label">Acta de constitución</span>
+                            <span class="form-check-label">Acta de constitución de sociedad u organización</span>
                             </label>
 
                             <label class="form-check mb-1">
@@ -264,12 +296,13 @@
 
                             <label class="form-check mb-1">
                             <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_docs_representantes">
-                            <span class="form-check-label">Docs. de representantes</span>
+                            <span class="form-check-label">Documentación de sus representantes</span>
                             </label>
                         </div>
                         @endif
                     </div>
                     </div>
+
                 </div>
 
                 <div class="modal-footer py-2 px-3">

@@ -11,26 +11,41 @@ use Livewire\WithPagination;
 
 class Ubicaciones extends AdminComponent
 {
-
     use WithPagination;
 
     public $searchTerm = '';
-
     public $state = [];
-
     public $ubicacion = null;
-
     public $showEditModal = false;
-
-    public $count = 2;
-
-    public $variable = Null;
-
     public $rubros = [];
+
+    /** Documentos booleanos soportados (clave => default) */
+    protected array $docDefaults = [
+        // Generales
+        'doc_libre_deuda_municipal'      => false,
+        'doc_planeamiento_urbano'        => false,
+        'doc_solicitud_habilitacion_pago'=> false,
+        'doc_comprobante_uso_local'      => false,
+        'doc_afip_constancia'            => false,
+        'doc_recaudacion_rn'             => false,
+        'doc_fotocopia_dni'              => false,
+        'doc_comprobante_uso_inmueble'   => false,
+        'doc_libre_deuda_tasas_inmueble' => false,
+        'doc_aptitud_tecnica_local'      => false,
+        'doc_cocap_rhi'                  => false,
+        'doc_nota_carteleria_obras'      => false,
+        'doc_libro_actas_100'            => false,
+        // Jurídicas
+        'doc_acta_constitucion'          => false,
+        'doc_contrato_societario'        => false,
+        'doc_docs_representantes'        => false,
+    ];
 
     public function mount()
     {
-        $this->rubros = Rubro::orderBy('rubro_madre', 'asc')->get();
+        // Para el combo de Rubro en el modal
+        $this->rubros = Rubro::select('id','rubro_madre','subrubro')
+            ->orderBy('rubro_madre')->orderBy('subrubro')->get();
     }
 
     public function updatingSearchTerm()
@@ -38,61 +53,57 @@ class Ubicaciones extends AdminComponent
         $this->resetPage();
     }
 
-    public function editaComercio(Ubicacion $ubicacion)
-    {
-        $this->showEditModal = true;
-
-        $this->ubicacion = $ubicacion;
-
-        $this->state = $ubicacion->toArray();
-
-        // dd($this->state);
-
-        $this->dispatch('show-form');
-    }
-
     public function render()
     {
-        $ubicaciones = Ubicacion::where('razon_social', 'like', '%' . $this->searchTerm . '%')
-            ->orderBy('razon_social', 'asc')
+        // Eager load del rubro para el mapa/listado
+        $ubicaciones = Ubicacion::with('rubro')
+            ->where('razon_social', 'like', '%' . $this->searchTerm . '%')
+            ->orWhere('apellido', 'like', '%' . $this->searchTerm . '%')
+            ->orWhere('nombres', 'like', '%' . $this->searchTerm . '%')
+            ->orderBy('razon_social')
             ->paginate(10);
 
         return view('livewire.comercio.ubicaciones', [
-            'ubicaciones' => $ubicaciones,
             'ubicaciones' => $ubicaciones,
             'rubros'      => $this->rubros,
         ])->layout('admin.layouts.app');
     }
 
+    /** Botón "Nuevo Comercio" */
     public function nuevoComercio()
     {
         $this->reset('state', 'ubicacion');
 
         $this->state = [
-            'persona_tipo' => 'fisica',
-            'estado' => 'vigente',
-            'documentos' => [
-                // Generales
-                'doc_libre_deuda_municipal' => false,
-                'doc_planeamiento_urbano' => false,
-                'doc_solicitud_habilitacion_pago' => false,
-                // Físicas
-                'doc_afip_constancia_fisica' => false,
-                'doc_fotocopia_dni' => false,
-                'doc_constancia_recaudacion' => false,
-                // Jurídicas
-                'doc_afip_constancia_juridica' => false,
-                'doc_acta_constitucion' => false,
-                'doc_contrato_societario' => false,
-                'doc_docs_representantes' => false,
-                // Otros
-                'doc_comprobante_uso_local' => false,
-            ],
+            'persona_tipo'       => 'fisica',   // fisica | juridica
+            'estado'             => 'vigente',  // vigente | irregular | entramite
+            'situacion'          => 'alta',     // alta | baja
+            'fecha_alta'         => null,
+            'fecha_baja'         => null,
+            // otros campos se completan en el form...
+            'documentos'         => $this->docDefaults,
         ];
+
         $this->showEditModal = false;
         $this->dispatch('show-form');
     }
 
+    /** Editar Comercio (abre modal con datos + documentos) */
+    public function editaComercio(Ubicacion $ubicacion)
+    {
+        $this->showEditModal = true;
+        $this->ubicacion = $ubicacion->loadMissing('documentos');
+
+        // Pasar a array el modelo y fusionar los docs con defaults (por si faltan claves)
+        $this->state = $this->ubicacion->toArray();
+        $docs = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
+        $soloDocs = array_intersect_key($docs, $this->docDefaults);
+        $this->state['documentos'] = array_merge($this->docDefaults, $soloDocs);
+
+        $this->dispatch('show-form');
+    }
+
+    /** Crear */
     public function createCliente()
     {
         $rules = [
@@ -102,6 +113,7 @@ class Ubicaciones extends AdminComponent
             'razon_social'          => 'nullable|string',
             'dni_cuit'              => 'required|string',
             'rubro_id'              => 'required|exists:rubros,id',
+
             'domicilio_responsable' => 'required|string',
             'correo'                => 'nullable|email',
             'telefono'              => 'nullable|string',
@@ -109,49 +121,60 @@ class Ubicaciones extends AdminComponent
             'domicilio_comercio'    => 'required|string',
             'nomenclatura'          => 'nullable|string',
             'observaciones'         => 'nullable|string',
-            'estado'                => 'required|in:vigente,irregular,entramite',
 
-            // Documentos (boolean)
-            'documentos.doc_libre_deuda_municipal'   => 'boolean',
-            'documentos.doc_planeamiento_urbano'     => 'boolean',
-            'documentos.doc_solicitud_habilitacion_pago' => 'boolean',
-            'documentos.doc_afip_constancia_fisica'  => 'boolean',
-            'documentos.doc_fotocopia_dni'           => 'boolean',
-            'documentos.doc_constancia_recaudacion'  => 'boolean',
-            'documentos.doc_afip_constancia_juridica'=> 'boolean',
-            'documentos.doc_acta_constitucion'       => 'boolean',
-            'documentos.doc_contrato_societario'     => 'boolean',
-            'documentos.doc_docs_representantes'     => 'boolean',
-            'documentos.doc_comprobante_uso_local'   => 'boolean',
+            'estado'                => 'required|in:vigente,irregular,entramite',
+            'situacion'             => 'required|in:alta,baja',
+            'fecha_alta'            => 'nullable|date',
+            'fecha_baja'            => 'nullable|date',
         ];
 
-        // Validación condicional:
+        // Validación condicional (identidad)
         if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
             $rules['apellido'] = 'required|string';
             $rules['nombres']  = 'required|string';
-            // 'razon_social' puede ser null
-        } else { // juridica
+        } else {
             $rules['razon_social'] = 'required|string';
-            // Apellido/Nombres pueden ser null
+        }
+
+        // Condicional (situación)
+        if (($this->state['situacion'] ?? 'alta') === 'baja') {
+            $rules['fecha_baja'] = 'required|date';
+        } else {
+            $rules['fecha_alta'] = 'required|date';
+        }
+
+        // Reglas booleanas para todos los docs
+        foreach (array_keys($this->docDefaults) as $key) {
+            $rules["documentos.$key"] = 'boolean';
         }
 
         $validated = Validator::make($this->state, $rules)->validate();
 
-        // Formateos (opcional)
+        // Normalizar nombres propios / direcciones
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $campo) {
             if (!empty($validated[$campo])) {
-                $validated[$campo] = \Illuminate\Support\Str::title($validated[$campo]);
+                $validated[$campo] = Str::title($validated[$campo]);
             }
         }
 
-        // Crear Ubicacion
+        // Identidad coherente: null donde no aplica
+        $esFisica = ($validated['persona_tipo'] ?? 'fisica') === 'fisica';
+        if ($esFisica) {
+            $validated['razon_social'] = $validated['razon_social'] ?? null;
+        } else {
+            $validated['apellido'] = $validated['apellido'] ?? null;
+            $validated['nombres']  = $validated['nombres']  ?? null;
+        }
+
+        // Documento checklist
         $documentos = $validated['documentos'] ?? [];
         unset($validated['documentos']);
 
-        $ubic = \App\Models\Ubicacion::create($validated);
+        // Crear Ubicacion
+        $ubic = Ubicacion::create($validated);
 
-        // Crear checklist documentos
-        $ubic->documentos()->create($documentos);
+        // Crear/guardar checklist de documentos (hasOne)
+        $ubic->documentos()->create(array_merge($this->docDefaults, $documentos));
 
         // Reset UI
         $this->resetPage();
@@ -159,6 +182,7 @@ class Ubicaciones extends AdminComponent
         $this->dispatch('hide-form', ['message' => 'Comercio creado correctamente.']);
     }
 
+    /** Actualizar */
     public function updateComercio()
     {
         $rules = [
@@ -183,7 +207,6 @@ class Ubicaciones extends AdminComponent
             'fecha_baja'            => 'nullable|date',
         ];
 
-        // Condiciones extra
         if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
             $rules['apellido'] = 'required|string';
             $rules['nombres']  = 'required|string';
@@ -197,37 +220,59 @@ class Ubicaciones extends AdminComponent
             $rules['fecha_alta'] = 'required|date';
         }
 
-        $validatedData = Validator::make($this->state, $rules)->validate();
-
-        // Formateo de mayúsculas/minúsculas
-        if (!empty($validatedData['razon_social'])) {
-            $validatedData['razon_social'] = Str::title($validatedData['razon_social']);
-        }
-        if (!empty($validatedData['apellido'])) {
-            $validatedData['apellido'] = Str::title($validatedData['apellido']);
-        }
-        if (!empty($validatedData['nombres'])) {
-            $validatedData['nombres'] = Str::title($validatedData['nombres']);
+        foreach (array_keys($this->docDefaults) as $key) {
+            $rules["documentos.$key"] = 'boolean';
         }
 
-        // Sufijo para domicilio del comercio
-        $sufijo = ', R8430 El Bolsón, Río Negro';
-        $direccion = Str::title($validatedData['domicilio_comercio']);
-        $validatedData['domicilio_comercio'] = Str::endsWith($direccion, $sufijo)
-            ? $direccion
-            : $direccion . $sufijo;
+        $validated = Validator::make($this->state, $rules)->validate();
 
-        // Actualizar registro
-        $this->ubicacion->update($validatedData);
+        // Formateos
+        foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $campo) {
+            if (!empty($validated[$campo])) {
+                $validated[$campo] = Str::title($validated[$campo]);
+            }
+        }
 
-        // Recargar listado
-        $this->ubicaciones = Ubicacion::where('razon_social', 'like', '%' . $this->searchTerm . '%')
-            ->orderBy('razon_social', 'asc')
-            ->get();
+        // Identidad coherente
+        $esFisica = ($validated['persona_tipo'] ?? 'fisica') === 'fisica';
+        if ($esFisica) {
+            $validated['razon_social'] = $validated['razon_social'] ?? null;
+        } else {
+            $validated['apellido'] = $validated['apellido'] ?? null;
+            $validated['nombres']  = $validated['nombres']  ?? null;
+        }
+
+        // Sufijo para domicilio del comercio (si lo seguís usando)
+        if (!empty($validated['domicilio_comercio'])) {
+            $sufijo = ', R8430 El Bolsón, Río Negro';
+            $dir = $validated['domicilio_comercio'];
+            $validated['domicilio_comercio'] = Str::endsWith($dir, $sufijo) ? $dir : $dir . $sufijo;
+        }
+
+        // Separar documentos
+        $documentos = $validated['documentos'] ?? [];
+        unset($validated['documentos']);
+
+        // Guardar Ubicación
+        $this->ubicacion->update($validated);
+
+        // Guardar checklist (crea si no existe)
+        $this->ubicacion->documentos()->updateOrCreate([], array_merge($this->docDefaults, $documentos));
+
+        // Refrescar listado (opcional: mantener paginación)
+        $this->resetPage();
 
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
     }
 
+    /** Botón "Presentó toda la documentación" / "Limpiar" */
+    public function marcarTodosLosDocs(bool $valor = true): void
+    {
+        $this->state['documentos'] = $this->state['documentos'] ?? [];
+        foreach ($this->docDefaults as $k => $def) {
+            $this->state['documentos'][$k] = $valor;
+        }
+    }
 
     public function resetForm()
     {
@@ -241,3 +286,4 @@ class Ubicaciones extends AdminComponent
         $this->dispatch('abrirModalMovimientos', $id);
     }
 }
+
