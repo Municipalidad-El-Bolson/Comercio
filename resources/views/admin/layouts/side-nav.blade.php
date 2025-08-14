@@ -14,7 +14,7 @@
                 <img src="/admin/dist/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">
             </div> --}}
             <div class="info">
-                <a href="#" class="d-block">M.E.B.</a>
+                <a href="#" class="d-block">Municipalidad de El Bolson</a>
             </div>
         </div>
 
@@ -44,9 +44,22 @@
                 </li>
                 <li class="nav-item">
                     <a href="{{ route('mapas') }}" class="nav-link">
-                        <i class="nav-icon fas fa-copy"></i>
-                        <p>Hab. Comerciales Mapas</p>
+                        <i class="nav-icon	fas fa-map-marked-alt"></i>
+                        <p>Mapa</p>
                     </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('historial') }}" class="nav-link">
+                        <i class="nav-icon fas fa-book-open"></i>
+                        <p>Historial</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('reportes') }}" class="nav-link">
+                        <i class="nav-icon far fa-calendar-check"></i>
+                        <p>Reportes</p>
+                    </a>
+                </li>
                     {{-- <ul class="nav nav-treeview">
                         <li class="nav-item">
                             <a href="pages/layout/top-nav.html" class="nav-link">
