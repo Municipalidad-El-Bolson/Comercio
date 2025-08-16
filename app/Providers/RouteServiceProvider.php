@@ -1,0 +1,18 @@
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
+
+class RouteServiceProvider extends ServiceProvider
+{
+    public const HOME = '/comercios';
+
+    /**
+     * Define your route model bindings, pattern filters, and other route settings.
+     */
+    public function boot(): void
+    {
+        //
+    }
+}

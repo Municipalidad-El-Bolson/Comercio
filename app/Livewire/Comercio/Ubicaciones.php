@@ -72,6 +72,8 @@ class Ubicaciones extends AdminComponent
     /** Botón "Nuevo Comercio" */
     public function nuevoComercio()
     {
+        abort_unless(auth()->user()->can('ubicaciones.create'), 403);
+
         $this->reset('state', 'ubicacion');
 
         $this->state = [
@@ -91,6 +93,8 @@ class Ubicaciones extends AdminComponent
     /** Editar Comercio (abre modal con datos + documentos) */
     public function editaComercio(Ubicacion $ubicacion)
     {
+        abort_unless(auth()->user()->can('ubicaciones.update'), 403);
+
         $this->showEditModal = true;
         $this->ubicacion = $ubicacion->loadMissing('documentos');
 
@@ -106,6 +110,8 @@ class Ubicaciones extends AdminComponent
     /** Crear */
     public function createCliente()
     {
+        abort_unless(auth()->user()->can('ubicaciones.create'), 403);
+
         $rules = [
             'persona_tipo'          => 'required|in:fisica,juridica',
             'apellido'              => 'nullable|string',
@@ -180,11 +186,22 @@ class Ubicaciones extends AdminComponent
         $this->resetPage();
         $this->reset('state');
         $this->dispatch('hide-form', ['message' => 'Comercio creado correctamente.']);
+
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($ubic)
+            ->event('created')
+            ->withProperties([
+                'campos' => $validated,  // o Arr::only(...) si querés menos
+            ])
+            ->log('Creó una ubicación');
     }
 
     /** Actualizar */
     public function updateComercio()
     {
+        abort_unless(auth()->user()->can('ubicaciones.update'), 403);
+
         $rules = [
             'persona_tipo'          => 'required|in:fisica,juridica',
             'apellido'              => 'nullable|string',
@@ -263,6 +280,15 @@ class Ubicaciones extends AdminComponent
         $this->resetPage();
 
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
+    
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($this->ubicacion)
+            ->withProperties([
+                'datos' => $validatedData
+            ])
+            ->log('Editó un comercio');
+    
     }
 
     /** Botón "Presentó toda la documentación" / "Limpiar" */
@@ -283,7 +309,17 @@ class Ubicaciones extends AdminComponent
 
     public function mostrarMovimientos($id)
     {
+        abort_unless(auth()->user()->can('movimientos.create'), 403);
+
         $this->dispatch('abrirModalMovimientos', $id);
+
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($mov)
+            ->withProperties([
+                'detalle' => $this->detalle
+            ])
+            ->log('Cargó un movimiento');
     }
 }
 

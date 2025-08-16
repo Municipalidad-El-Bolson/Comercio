@@ -43,12 +43,14 @@
                         <p>Mapa</p>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('historial') }}" class="nav-link">
-                        <i class="nav-icon fas fa-book-open"></i>
-                        <p>Historial</p>
-                    </a>
-                </li>
+                @can('historial.view')
+                    <li class="nav-item">
+                        <a href="{{ route('historial') }}" class="nav-link">
+                            <i class="nav-icon fas fa-history"></i>
+                            <p>Historial</p>
+                        </a>
+                    </li>
+                @endcan
                 <li class="nav-item">
                     <a href="{{ route('reportes') }}" class="nav-link">
                         <i class="nav-icon far fa-calendar-check"></i>

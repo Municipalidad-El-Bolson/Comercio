@@ -23,9 +23,11 @@
         <div class="card">
             <div class="d-flex justify-content-between mb-2 p-2">
                 <div></div>
-                <button class="btn btn-primary btn-sm" wire:click="nuevoComercio">
-                    <i class="fa fa-plus mr-1"></i> Nuevo
-                </button>
+               @can('ubicaciones.create')
+                    <button class="btn btn-primary btn-sm" wire:click="nuevoComercio">
+                        <i class="fa fa-plus mr-1"></i> Nuevo
+                    </button>
+                @endcan
             </div>
 
             <x-search-input wire:model.live="searchTerm" />
@@ -90,12 +92,14 @@
                                     @endif
                                 </td>
                                 <td class="small text-center">
-                                    <a href="#" wire:click.prevent="editaComercio({{ $ubicacion->id }})">
-                                        <i class="fa fa-edit text-info mr-2" data-toggle="tooltip" title="Editar Registro"></i>
-                                    </a>
-                                    <a href="#" wire:click="mostrarMovimientos({{ $ubicacion->id }})">
-                                        <i class="fas fa-clipboard-list text-success" data-toggle="tooltip" title="Ver Movimientos"></i>
-                                    </a>
+                                    @can('movimientos.create')
+                                        <a href="#" wire:click.prevent="editaComercio({{ $ubicacion->id }})" title="Editar">
+                                            <i class="fa fa-edit text-info"></i>
+                                        </a>
+                                        <a href="#" wire:click="mostrarMovimientos({{ $ubicacion->id }})" title="Movimientos">
+                                            <i class="fas fa-clipboard-list text-success"></i>
+                                        </a>
+                                    @endcan
                                 </td>
                             </tr>
                         @empty

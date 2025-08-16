@@ -309,13 +309,23 @@
                     <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">
                     <i class="fa fa-times mr-1"></i> Cerrar
                     </button>
-                    <button type="submit" class="btn btn-sm btn-primary">
-                    <i class="fa fa-save mr-1"></i>
-                    {{ $showEditModal ? 'Guardar Cambios' : 'Grabar' }}
+                    @php 
+                        $soloLectura = !auth()->user()->can($showEditModal ? 'ubicaciones.update' : 'ubicaciones.create');
+                    @endphp
+                    <div class="flex-grow-1 mr-2">
+                        <input type="text"
+                            class="form-control form-control-sm"
+                            wire:model.defer="state.nombre_comercial"
+                            placeholder="Nombre Comercial"
+                            @disabled($soloLectura)>
+                        </div>
+                    <button type="submit" 
+                        class="btn btn-primary btn-sm" 
+                        @disabled($soloLectura)>
+                        <i class="fa fa-save mr-1"></i> Guardar
                     </button>
                 </div>
-                </div>
-
+            </div>
         </form>
     </div>
 </div>
