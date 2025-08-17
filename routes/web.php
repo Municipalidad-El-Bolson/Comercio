@@ -7,6 +7,7 @@ use App\Livewire\Comercio\ComercioMapa;
 use App\Livewire\Comercio\Historial;
 use App\Livewire\Comercio\Reportes;
 use App\Livewire\Comercio\ComercioData;
+use Illuminate\Support\Facades\Storage;
 
 // Route::get('/', function () {
 //     return view('admin.index');
@@ -17,3 +18,8 @@ Route::get('historial', Historial::class)->name('historial');
 Route::get('reportes', Reportes::class)->name('reportes');
 Route::get('/', Ubicaciones::class)->name('ubicaciones');
 Route::get('/comercios/{ubicacion}', ComercioData::class)->name('comercio.data');
+
+Route::get('/files/{path}', function (string $path) {
+    abort_unless(Storage::disk('public')->exists($path), 404);
+    return Storage::disk('public')->response($path);
+})->where('path', '.*')->name('files.show');

@@ -8,14 +8,20 @@ class Movimiento extends Model
 {
     protected $fillable = [
         'ubicacion_id',
-        'tipo',         // 'timeline' | 'acta'
+        'tipo',
         'titulo',
         'descripcion',
-        'etapa',
-        'fecha',
         'estado',
         'archivo',
+        'etapa',
+        'fecha',
         'observacion',
+    ];
+
+    protected $casts = [
+        'fecha'       => 'datetime',
+        'created_at'  => 'datetime',
+        'updated_at'  => 'datetime',
     ];
 
     public function ubicacion()

@@ -6,6 +6,7 @@ use App\Models\Movimiento;
 use App\Models\Ubicacion;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class MovimientoModal extends Component
@@ -15,16 +16,16 @@ class MovimientoModal extends Component
     public $ubicacion;
     public $movimientos = [];
 
-    public $titulo, $descripcion, $estado, $archivo;
+    public $titulo, $descripcion, $estado = 'En Proceso', $archivo;
 
     protected $rules = [
         'titulo'      => 'required|string',
         'descripcion' => 'nullable|string',
-        'estado'      => 'nullable|string',
+        'estado'      => 'required|string',
         'archivo'     => 'nullable|file|max:2048',
     ];
 
-    protected $listeners = ['abrirModalMovimientos', 'deleteConfirmed' => 'deleteConfirmed'];
+    protected $listeners = ['abrirModalMovimientos'];
 
     public function render()
     {
@@ -34,14 +35,12 @@ class MovimientoModal extends Component
     public function abrirModalMovimientos($ubicacionId)
     {
         $this->ubicacion = Ubicacion::findOrFail($ubicacionId);
-        $this->movimientos = $this->ubicacion->movimientos()
-            ->where('tipo', 'acta')
-            ->latest()
-            ->get();
-
-        $this->reset(['titulo', 'descripcion', 'estado', 'archivo']);
+        $this->reset(['titulo', 'descripcion', 'archivo']);
         $this->estado = 'En Proceso';
 
+        $this->cargarMovimientos();
+
+        // abre el modal
         $this->dispatch('mostrar-modal-movimientos');
     }
 
@@ -49,41 +48,59 @@ class MovimientoModal extends Component
     {
         $this->validate();
 
+        // subir archivo al disco 'public'
         $archivoPath = null;
         if ($this->archivo) {
             $nombreLimpio = Str::slug($this->titulo);
-            $extension = $this->archivo->getClientOriginalExtension();
-            $nombreFinal = "ubicacion_{$this->ubicacion->id}_{$nombreLimpio}.".$extension;
-            $archivoPath = $this->archivo->storeAs('movimientos', $nombreFinal, 'public');
+            $extension    = $this->archivo->getClientOriginalExtension();
+            $nombreFinal  = "ubicacion_{$this->ubicacion->id}_{$nombreLimpio}.".$extension;
+            $archivoPath  = $this->archivo->storeAs('movimientos', $nombreFinal, 'public');
         }
 
-        $titulo = Str::title($this->titulo);
-        $descripcion = $this->descripcion ? Str::title($this->descripcion) : '';
-
-        $this->ubicacion->movimientos()->create([
-            'tipo'        => 'acta',
-            'titulo'      => $titulo,
-            'descripcion' => $descripcion,
-            'estado'      => $this->estado,
-            'archivo'     => $archivoPath,
-            // si tenés columna fecha y querés guardar “hoy”:
-            // 'fecha'    => now()->toDateString(),
+        // crear movimiento (acta)
+        Movimiento::create([
+            'ubicacion_id' => $this->ubicacion->id,
+            'tipo'         => 'acta', // distingue de timeline
+            'titulo'       => Str::title($this->titulo),
+            'descripcion'  => $this->descripcion ? Str::title($this->descripcion) : '',
+            'estado'       => $this->estado,
+            'archivo'      => $archivoPath, // ej: movimientos/archivo.jpg
+            'fecha'        => now(),        // guarda fecha y hora
         ]);
 
-        // Refrescar listado
-        $this->abrirModalMovimientos($this->ubicacion->id);
+        // limpiar formulario y refrescar tabla
+        $this->reset(['titulo', 'descripcion', 'archivo']);
+        $this->estado = 'En Proceso';
+        $this->cargarMovimientos();
 
-        // Toast
+        // toast opcional
         $this->dispatch('hide-form', ['message' => 'Movimiento guardado con éxito.']);
     }
 
-    public function deleteConfirmed()
+    protected function cargarMovimientos(): void
     {
-        $this->dispatchBrowserEvent('eliminado', ['message' => 'Articulo Eliminado - ']);
+        if (!$this->ubicacion) return;
+
+        $this->movimientos = $this->ubicacion->movimientos()
+            ->where('tipo', 'acta')
+            ->latest()
+            ->get();
     }
 
-    public function showConfirmation($id)
+    public function eliminarMovimiento(int $movId)
     {
-        $this->dispatch('show-delete-confirmation');
+        $mov = Movimiento::where('id', $movId)
+            ->where('ubicacion_id', $this->ubicacion->id)
+            ->firstOrFail();
+
+        if ($mov->archivo) {
+            Storage::disk('public')->delete($mov->archivo);
+        }
+
+        $mov->delete();
+
+        $this->cargarMovimientos();
+
+        $this->dispatch('toast', type: 'success', message: 'Movimiento eliminado');
     }
 }
