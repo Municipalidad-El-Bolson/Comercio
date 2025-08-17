@@ -49,9 +49,15 @@
                     </thead>
                     <tbody>
                         @forelse ($ubicaciones as $ubicacion)
-                            <tr>
+                            <tr class="position-relative">
+                                    
+                                </td>
                                 <td class="text-sm text-center">
                                     {{ ucfirst($ubicacion->persona_tipo) }}
+                                    <a wire:navigate
+                                        href="{{ route('comercio.data', $ubicacion) }}"
+                                        class="stretched-link">
+                                    </a>
                                 </td>
                                 <td class="text-sm">
                                     {{ $ubicacion->razon_social }}

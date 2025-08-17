@@ -61,7 +61,7 @@ class MovimientoModal extends Component
         $this->descripcion = Str::title($this->descripcion);
 
         $this->ubicacion->movimientos()->create([
-            'titulo' => $this->titulo,
+            'titulo' => $this->etapaActual ?? 'Etapa sin título',
             'descripcion' => $this->descripcion,
             'estado' => $this->estado,
             'archivo' => $archivoPath,
