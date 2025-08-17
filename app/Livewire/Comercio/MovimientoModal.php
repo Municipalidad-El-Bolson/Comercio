@@ -18,14 +18,13 @@ class MovimientoModal extends Component
     public $titulo, $descripcion, $estado, $archivo;
 
     protected $rules = [
-        'titulo' => 'required|string',
+        'titulo'      => 'required|string',
         'descripcion' => 'nullable|string',
-        'estado' => 'nullable|string',
-        'archivo' => 'nullable|file|max:2048',
+        'estado'      => 'nullable|string',
+        'archivo'     => 'nullable|file|max:2048',
     ];
 
     protected $listeners = ['abrirModalMovimientos', 'deleteConfirmed' => 'deleteConfirmed'];
-
 
     public function render()
     {
@@ -35,12 +34,15 @@ class MovimientoModal extends Component
     public function abrirModalMovimientos($ubicacionId)
     {
         $this->ubicacion = Ubicacion::findOrFail($ubicacionId);
-        $this->movimientos = $this->ubicacion->movimientos()->latest()->get();
+        $this->movimientos = $this->ubicacion->movimientos()
+            ->where('tipo', 'acta')
+            ->latest()
+            ->get();
 
         $this->reset(['titulo', 'descripcion', 'estado', 'archivo']);
-        $this->estado = 'En Proceso'; // valor por defecto
+        $this->estado = 'En Proceso';
 
-        $this->dispatch('mostrar-modal-movimientos'); // este evento se captura con JS para abrir el modal
+        $this->dispatch('mostrar-modal-movimientos');
     }
 
     public function guardarMovimiento()
@@ -48,29 +50,30 @@ class MovimientoModal extends Component
         $this->validate();
 
         $archivoPath = null;
-
         if ($this->archivo) {
-            $nombreLimpio = Str::slug($this->titulo); // ej: "certificado-inscripcion"
+            $nombreLimpio = Str::slug($this->titulo);
             $extension = $this->archivo->getClientOriginalExtension();
-            $nombreFinal = "ubicacion_{$this->ubicacion->id}_{$nombreLimpio}." . $extension;
-
+            $nombreFinal = "ubicacion_{$this->ubicacion->id}_{$nombreLimpio}.".$extension;
             $archivoPath = $this->archivo->storeAs('movimientos', $nombreFinal, 'public');
         }
 
-        $this->titulo = Str::title($this->titulo);
-        $this->descripcion = Str::title($this->descripcion);
+        $titulo = Str::title($this->titulo);
+        $descripcion = $this->descripcion ? Str::title($this->descripcion) : '';
 
         $this->ubicacion->movimientos()->create([
-            'titulo' => $this->etapaActual ?? 'Etapa sin título',
-            'descripcion' => $this->descripcion,
-            'estado' => $this->estado,
-            'archivo' => $archivoPath,
+            'tipo'        => 'acta',
+            'titulo'      => $titulo,
+            'descripcion' => $descripcion,
+            'estado'      => $this->estado,
+            'archivo'     => $archivoPath,
+            // si tenés columna fecha y querés guardar “hoy”:
+            // 'fecha'    => now()->toDateString(),
         ]);
 
-        // Refrescar el listado de movimientos
+        // Refrescar listado
         $this->abrirModalMovimientos($this->ubicacion->id);
 
-        // Mensaje visual
+        // Toast
         $this->dispatch('hide-form', ['message' => 'Movimiento guardado con éxito.']);
     }
 
@@ -81,7 +84,6 @@ class MovimientoModal extends Component
 
     public function showConfirmation($id)
     {
-
         $this->dispatch('show-delete-confirmation');
     }
 }

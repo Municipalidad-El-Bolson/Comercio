@@ -2,16 +2,15 @@
 
 namespace App\Livewire\Comercio;
 
-use App\Models\Ubicacion;
-use App\Models\Movimiento; // ya lo tenías en tu proyecto
-use Illuminate\Support\Carbon;
 use Livewire\Component;
+use App\Models\Movimiento;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class Timeline extends Component
 {
     public int $ubicacionId;
 
-    /** Orden y rótulos de las etapas del circuito */
     public array $etapas = [
         'comercio_inicio'   => 'Comercio',
         'legales'           => 'Legales',
@@ -22,20 +21,25 @@ class Timeline extends Component
         'comercio_final'    => 'Comercio (final)',
     ];
 
-    public ?string $etapaActual = null;   // key de la etapa actual
-    public ?string $fecha = null;         // fecha del cambio (opcional)
-    public ?string $obs = null;           // observación (opcional)
+    public ?string $etapaActual = null;
+    public ?string $fecha = null;
+    public ?string $obs = null;
+
+    protected bool $tieneFecha = false;
 
     public function mount(int $ubicacionId)
     {
         $this->ubicacionId = $ubicacionId;
+        $this->tieneFecha = Schema::hasColumn('movimientos', 'fecha');
 
-        // tomar último movimiento como "etapa actual"
         $ultimo = Movimiento::where('ubicacion_id', $this->ubicacionId)
-            ->orderByDesc('fecha')->orderByDesc('id')->first();
+            ->where('tipo', 'timeline')
+            ->when($this->tieneFecha, fn($q) => $q->orderByDesc('fecha'))
+            ->orderByDesc('id')
+            ->first();
 
         $this->etapaActual = $ultimo?->etapa ?? array_key_first($this->etapas);
-        $this->fecha = Carbon::now()->format('Y-m-d');
+        $this->fecha = Carbon::now()->toDateString();
     }
 
     public function marcarEtapa()
@@ -46,12 +50,22 @@ class Timeline extends Component
             return;
         }
 
-        Movimiento::create([
+        $titulo = $this->etapas[$this->etapaActual] ?? ucfirst(str_replace('_', ' ', $this->etapaActual));
+        $descripcion = $this->obs ?: $titulo;
+
+        $data = [
+            'tipo'         => 'timeline',
             'ubicacion_id' => $this->ubicacionId,
+            'titulo'       => $titulo,
+            'descripcion'  => $descripcion,
             'etapa'        => $this->etapaActual,
-            'fecha'        => $this->fecha ?: now()->format('Y-m-d'),
             'observacion'  => $this->obs,
-        ]);
+        ];
+        if ($this->tieneFecha) {
+            $data['fecha'] = $this->fecha ?: Carbon::now()->toDateString();
+        }
+
+        Movimiento::create($data);
 
         $this->dispatch('toast', type: 'success', message: 'Etapa actualizada');
     }
@@ -67,15 +81,15 @@ class Timeline extends Component
 
     public function render()
     {
-        // historial por etapa (última fecha vista)
         $hist = Movimiento::where('ubicacion_id', $this->ubicacionId)
+            ->where('tipo', 'timeline')
             ->whereIn('etapa', array_keys($this->etapas))
-            ->orderBy('fecha')->get()
+            ->when($this->tieneFecha, fn($q) => $q->orderBy('fecha'))
+            ->orderBy('id')
+            ->get()
             ->groupBy('etapa')
             ->map->last();
 
-        return view('livewire.comercio.timeline', [
-            'historial' => $hist, // etapa => Movimiento
-        ]);
+        return view('livewire.comercio.timeline', ['historial' => $hist]);
     }
 }
