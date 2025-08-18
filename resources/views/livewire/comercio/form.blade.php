@@ -118,23 +118,53 @@
                     </div>
                     </div>
 
-                    {{-- Rubro + Estado del trámite --}}
-                    <div class="form-row">
-                    <div class="form-group col-md-6 mb-2">
-                        <label class="mb-1" for="rubro_id">Rubro</label>
-                        <select id="rubro_id" wire:model.defer="state.rubro_id"
-                        class="form-control form-control-sm @error('state.rubro_id') is-invalid @enderror">
-                        <option value="">-- Seleccione Rubro --</option>
-                        @foreach ($rubros as $rubro)
-                            <option value="{{ $rubro->id }}">
-                            {{ $rubro->rubro_madre }} — {{ $rubro->subrubro }}
-                            </option>
-                        @endforeach
-                        </select>
-                        @error('state.rubro_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
+                    {{-- Rubro: madre + subrubro (dependiente) --}}
+                        <div class="form-row">
+                        <div class="form-group col-md-6 mb-2">
+                            <label class="mb-1">Rubro</label>
+                            @php
+                            // Lista única de madres (ordenadas)
+                            $madres = collect($rubros ?? [])
+                                        ->pluck('rubro_madre')
+                                        ->filter()
+                                        ->unique()
+                                        ->sort()
+                                        ->values();
 
-                    <div class="form-group col-md-6 mb-2">
+                            // mapa madre(lower) => [{id, sub}]
+                            $mapaSub = collect($rubros ?? [])
+                                        ->groupBy(fn($r) => strtolower($r->rubro_madre))
+                                        ->map(fn($g) => $g->map(fn($r) => ['id'=>$r->id,'sub'=>$r->subrubro])->values());
+                            // rubro_id actual (para precargar en edición)
+                            $rubroIdActual = (int)($state['rubro_id'] ?? 0);
+                            @endphp
+
+                            <select id="rubro-madre"
+                                    class="form-control form-control-sm">
+                            <option value="">-- Seleccione Rubro Madre --</option>
+                            @foreach($madres as $madre)
+                                <option value="{{ strtolower($madre) }}">{{ $madre }}</option>
+                            @endforeach
+                            </select>
+                        </div>
+
+                        <div class="form-group col-md-6 mb-2">
+                            <label class="mb-1">Subrubro</label>
+                            <select id="rubro-sub"
+                                    class="form-control form-control-sm @error('state.rubro_id') is-invalid @enderror"
+                                    wire:model.defer="state.rubro_id"
+                                    disabled>
+                            <option value="">-- Seleccione Subrubro --</option>
+                            </select>
+                            @error('state.rubro_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        </div>
+
+                    {{-- Situación (alta/baja) + fechas --}}
+                    <div class="form-row">
+                    <div class="form-group col-md-4 mb-2">
                         <label class="mb-1" for="estado">Estado</label>
                         <select id="estado" wire:model.defer="state.estado"
                         class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
@@ -143,19 +173,6 @@
                         <option value="entramite">En Trámite</option>
                         </select>
                         @error('state.estado') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
-                    </div>
-
-                    {{-- Situación (alta/baja) + fechas --}}
-                    <div class="form-row">
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1" for="situacion">Situación</label>
-                        <select id="situacion" wire:model.defer="state.situacion"
-                        class="form-control form-control-sm @error('state.situacion') is-invalid @enderror">
-                        <option value="alta">Alta</option>
-                        <option value="baja">Baja</option>
-                        </select>
-                        @error('state.situacion') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
                     @if(($state['situacion'] ?? 'alta') === 'baja')
@@ -339,5 +356,49 @@
         Livewire.on('hide-form', () => {
             $('#form').modal('hide');
         });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+    const mapa    = @json($mapaSub, JSON_UNESCAPED_UNICODE);
+    const madreEl = document.getElementById('rubro-madre');
+    const subEl   = document.getElementById('rubro-sub');
+
+    // Para preseleccionar en edición
+    const currentRubroId = {{ $rubroIdActual }};
+    const idToMadre = {};
+    Object.keys(mapa).forEach(key => {
+        (mapa[key] || []).forEach(it => { idToMadre[it.id] = key; });
+    });
+
+    function poblarSubrubros(madreKey) {
+        subEl.innerHTML = '<option value="">-- Seleccione Subrubro --</option>';
+        if (!madreKey || !mapa[madreKey] || mapa[madreKey].length === 0) {
+        subEl.disabled = true;
+        return;
+        }
+        (mapa[madreKey] || []).forEach(it => {
+        const opt = document.createElement('option');
+        opt.value = it.id;
+        opt.textContent = it.sub || '(Sin subrubro)';
+        subEl.appendChild(opt);
+        });
+        subEl.disabled = false;
+    }
+
+    madreEl.addEventListener('change', () => {
+        poblarSubrubros(madreEl.value);
+        // al cambiar madre, si subrubro estaba seteado, lo reseteamos
+        if (subEl.value) subEl.value = '';
+    });
+
+    // Precarga en modo edición (si ya hay rubro_id)
+    if (currentRubroId) {
+        const mk = idToMadre[currentRubroId];
+        if (mk) {
+        madreEl.value = mk;
+        poblarSubrubros(mk);
+        subEl.value = String(currentRubroId);
+        }
+    }
     });
 </script>

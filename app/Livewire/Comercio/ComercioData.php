@@ -7,12 +7,14 @@ use App\Models\Ubicacion;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
+use App\Models\Rubro;
 
 class ComercioData extends Component
 {
     public Ubicacion $ubicacion;
 
     public $showEditModal = false;
+    public $rubros;
     public $state = [];
     public array $docDefaults = [
         'doc_libre_deuda_municipal' => false,
@@ -37,6 +39,10 @@ class ComercioData extends Component
     public function mount(Ubicacion $ubicacion)
     {
         $this->ubicacion = $ubicacion->load('rubro','documentos','movimientos');
+        $this->rubros = Rubro::select('id','rubro_madre','subrubro')
+            ->orderBy('rubro_madre')
+            ->orderBy('subrubro')
+            ->get();
     }
 
         public function editaComercio(Ubicacion $ubicacion)
@@ -120,7 +126,8 @@ class ComercioData extends Component
 
         return view('livewire.comercio.comercio-data', [
         'ubicacion' => $this->ubicacion,
-        'historial' => $historial
+        'historial' => $historial,
+        'rubros' => $this->rubros
         ])->layout('admin.layouts.app');
     }
 }
