@@ -17,24 +17,35 @@ class ComercioData extends Component
     public $rubros;
     public $state = [];
     public array $docDefaults = [
-        'doc_libre_deuda_municipal' => false,
-        'doc_planeamiento_urbano' => false,
+        'doc_libre_deuda_municipal'       => false,
+        'doc_planeamiento_urbano'         => false,
         'doc_solicitud_habilitacion_pago' => false,
-        'doc_comprobante_uso_local' => false,
-        'doc_afip_constancia_fisica' => false,
-        'doc_constancia_recaudacion' => false,
-        'doc_afip_constancia_juridica' => false,
-        'doc_acta_constitucion' => false,
-        'doc_contrato_societario' => false,
-        'doc_docs_representantes' => false,
-        'doc_fotocopia_dni' => false,
-        'doc_comprobante_uso_inmueble' => false,
-        'doc_libre_deuda_tasas_inmueble' => false,
-        'doc_aptitud_tecnica_local' => false,
-        'doc_cocap_rhi' => false,
-        'doc_nota_carteleria_obras' => false,
-        'doc_libro_actas_100' => false,
+        'doc_comprobante_uso_local'       => false,
+        'doc_afip_constancia'             => false,
+        'doc_recaudacion_rn'              => false,
+        'doc_fotocopia_dni'               => false,
+        'doc_comprobante_uso_inmueble'    => false,
+        'doc_libre_deuda_tasas_inmueble'  => false,
+        'doc_aptitud_tecnica_local'       => false,
+        'doc_cocap_rhi'                   => false,
+        'doc_nota_carteleria_obras'       => false,
+        'doc_libro_actas_100'             => false,
+        // Jurídicas:
+        'doc_acta_constitucion'           => false,
+        'doc_contrato_societario'         => false,
+        'doc_docs_representantes'         => false,
     ];
+
+    public function marcarTodosLosDocs(bool $valor = true): void
+    {
+        // Asegurá que exista el array
+        $this->state['documentos'] = $this->state['documentos'] ?? [];
+
+        // Setear todas las claves conocidas
+        foreach ($this->docDefaults as $k => $def) {
+            $this->state['documentos'][$k] = $valor;
+        }
+    }
 
     public function mount(Ubicacion $ubicacion)
     {

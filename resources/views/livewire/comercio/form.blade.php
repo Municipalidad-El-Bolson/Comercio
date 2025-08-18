@@ -123,7 +123,7 @@
                         <div class="form-group col-md-6 mb-2">
                             <label class="mb-1">Rubro</label>
                             @php
-                            // Lista única de madres (ordenadas)
+
                             $madres = collect($rubros ?? [])
                                         ->pluck('rubro_madre')
                                         ->filter()
@@ -131,11 +131,10 @@
                                         ->sort()
                                         ->values();
 
-                            // mapa madre(lower) => [{id, sub}]
                             $mapaSub = collect($rubros ?? [])
                                         ->groupBy(fn($r) => strtolower($r->rubro_madre))
                                         ->map(fn($g) => $g->map(fn($r) => ['id'=>$r->id,'sub'=>$r->subrubro])->values());
-                            // rubro_id actual (para precargar en edición)
+
                             $rubroIdActual = (int)($state['rubro_id'] ?? 0);
                             @endphp
 
@@ -162,7 +161,7 @@
                         </div>
                         </div>
 
-                    {{-- Situación (alta/baja) + fechas --}}
+                    {{-- Estado + fecha --}}
                     <div class="form-row">
                     <div class="form-group col-md-4 mb-2">
                         <label class="mb-1" for="estado">Estado</label>
@@ -175,21 +174,17 @@
                         @error('state.estado') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    @if(($state['situacion'] ?? 'alta') === 'baja')
-                        <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1" for="fecha_baja">Fecha de baja</label>
-                        <input type="date" id="fecha_baja" wire:model.defer="state.fecha_baja"
-                            class="form-control form-control-sm @error('state.fecha_baja') is-invalid @enderror">
-                        @error('state.fecha_baja') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                    @else
-                        <div class="form-group col-md-4 mb-2">
+                    <div class="form-group col-md-4 mb-2">
                         <label class="mb-1" for="fecha_alta">Fecha de alta</label>
                         <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta"
                             class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
-                        @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                    @endif
+                            @error('state.fecha_alta') 
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div> 
+                            @enderror
+                    </div>
+                    
 
                     <div class="form-group col-md-4 mb-2">
                         <label class="mb-1" for="monto_pagar">Monto a pagar (opcional)</label>
