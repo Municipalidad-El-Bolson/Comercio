@@ -332,4 +332,12 @@
             });
         }
     });
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('show-form', () => {
+            $('#form').modal('show');
+        });
+        Livewire.on('hide-form', () => {
+            $('#form').modal('hide');
+        });
+    });
 </script>

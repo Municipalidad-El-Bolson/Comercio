@@ -328,5 +328,6 @@
         @endif
       </div>
     </div>
+    @include('livewire.comercio.form')
   </div>
 </div>

@@ -263,6 +263,7 @@ class Ubicaciones extends AdminComponent
             'situacion'             => 'required|in:alta,baja',
             'fecha_alta'            => 'nullable|date',
             'fecha_baja'            => 'nullable|date',
+            'documentos' => 'array',
         ];
 
         if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
@@ -278,9 +279,21 @@ class Ubicaciones extends AdminComponent
             $rules['fecha_alta'] = 'required|date';
         }
 
-        foreach (array_keys($this->docDefaults) as $key) {
-            $rules["documentos.$key"] = 'boolean';
-        }
+        // Separar documentos del resto
+        $documentos = $validated['documentos'] ?? [];
+        unset($validated['documentos']);
+
+        // Guardar Ubicacion
+        $this->ubicacion->update($validated);
+
+        // Guardar/actualizar Documentos (solo claves válidas)
+        $permitidos = array_intersect_key($documentos, $this->docDefaults);
+
+        $this->ubicacion->documentos()
+            ->updateOrCreate(
+                ['ubicacion_id' => $this->ubicacion->id],
+                $permitidos
+            );
 
         $validated = Validator::make($this->state, $rules)->validate();
 
