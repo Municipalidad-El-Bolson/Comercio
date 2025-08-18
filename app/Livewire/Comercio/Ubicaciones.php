@@ -8,6 +8,8 @@ use App\Models\Ubicacion;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Livewire\WithPagination;
+use App\Models\UbicacionDocumento;
+
 
 class Ubicaciones extends AdminComponent
 {
@@ -127,6 +129,24 @@ class Ubicaciones extends AdminComponent
             'fecha_alta'            => 'nullable|date',
             'fecha_baja'            => 'nullable|date',
         ];
+        $rulesDocs = [
+            'documentos.doc_libre_deuda_municipal'   => 'boolean',
+            'documentos.doc_planeamiento_urbano'     => 'boolean',
+            'documentos.doc_solicitud_habilitacion_pago' => 'boolean',
+            'documentos.doc_comprobante_uso_local'   => 'boolean',
+            'documentos.doc_fotocopia_dni'           => 'boolean',
+            'documentos.doc_constancia_recaudacion'  => 'boolean',
+            // Si en la UI usas la genérica, valida esa:
+            'documentos.doc_afip_constancia'         => 'boolean',
+            // Y si ya usas las dos, valida estas:
+            'documentos.doc_afip_constancia_fisica'  => 'boolean',
+            'documentos.doc_afip_constancia_juridica'=> 'boolean',
+            // Jurídicas:
+            'documentos.doc_acta_constitucion'       => 'boolean',
+            'documentos.doc_contrato_societario'     => 'boolean',
+            'documentos.doc_docs_representantes'     => 'boolean',
+        ];
+
 
         // Validación condicional (identidad)
         if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
@@ -166,12 +186,50 @@ class Ubicaciones extends AdminComponent
             $validated['nombres']  = $validated['nombres']  ?? null;
         }
 
+        $validated['fecha_alta'] = $this->state['fecha_alta'] ?? null;
+        $validated['fecha_baja'] = $this->state['situacion'] === 'baja'
+            ? ($this->state['fecha_baja'] ?? null)
+            : null;
+
+        // NO enviar campos legacy:
+        unset($validated['dni'], $validated['direccion'], $validated['tipo']);
+
         // Documento checklist
         $documentos = $validated['documentos'] ?? [];
         unset($validated['documentos']);
 
         // Crear Ubicacion
         $ubic = Ubicacion::create($validated);
+
+         if (array_key_exists('doc_afip_constancia', $documentos)) {
+            if (($this->state['persona_tipo'] ?? 'fisica') === 'juridica') {
+                $documentos['doc_afip_constancia_juridica'] = (bool)$documentos['doc_afip_constancia'];
+            } else {
+                $documentos['doc_afip_constancia_fisica'] = (bool)$documentos['doc_afip_constancia'];
+            }
+            unset($documentos['doc_afip_constancia']);
+        }
+
+        // Si tu UI manda 'doc_recaudacion_rn', mapea a la columna real:
+        if (array_key_exists('doc_recaudacion_rn', $documentos)) {
+            $documentos['doc_constancia_recaudacion'] = (bool)$documentos['doc_recaudacion_rn'];
+            unset($documentos['doc_recaudacion_rn']);
+        }
+
+        // Elimina llaves que no existan en la tabla para evitar el 1054
+        $permitidos = array_flip((new UbicacionDocumento)->getFillable());
+        $documentos = array_intersect_key($documentos, $permitidos);
+
+        // Defaults a false si no vienen
+        foreach ($permitidos as $campo => $_) {
+            $documentos[$campo] = (bool)($documentos[$campo] ?? false);
+        }
+
+        // Setear el FK
+        $documentos['ubicacion_id'] = $ubic->id;
+
+        // Crear checklist
+        $ubic->documentos()->create($documentos);
 
         // Crear/guardar checklist de documentos (hasOne)
         $ubic->documentos()->create(array_merge($this->docDefaults, $documentos));
@@ -248,6 +306,14 @@ class Ubicaciones extends AdminComponent
             $dir = $validated['domicilio_comercio'];
             $validated['domicilio_comercio'] = Str::endsWith($dir, $sufijo) ? $dir : $dir . $sufijo;
         }
+
+        $validated['fecha_alta'] = $this->state['fecha_alta'] ?? null;
+        $validated['fecha_baja'] = $this->state['situacion'] === 'baja'
+            ? ($this->state['fecha_baja'] ?? null)
+            : null;
+
+        // NO enviar campos legacy:
+        unset($validated['dni'], $validated['direccion'], $validated['tipo']);
 
         // Separar documentos
         $documentos = $validated['documentos'] ?? [];
