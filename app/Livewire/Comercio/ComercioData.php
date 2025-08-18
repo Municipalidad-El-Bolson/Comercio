@@ -4,6 +4,7 @@ namespace App\Livewire\Comercio;
 
 use Livewire\Component;
 use App\Models\Ubicacion;
+use Livewire\Attributes\Layout;
 
 class ComercioData extends Component
 {
@@ -16,7 +17,14 @@ class ComercioData extends Component
 
     public function render()
     {
-        return view('livewire.comercio.comercio-data')
-            ->layout('admin.layouts.app');
+        $historial = $this->ubicacion
+        ->movimientos()
+        ->get()
+        ->keyBy('etapa'); // o el campo que uses como clave
+
+        return view('livewire.comercio.comercio-data', [
+        'ubicacion' => $this->ubicacion,
+        'historial' => $historial
+        ])->layout('admin.layouts.app');
     }
 }

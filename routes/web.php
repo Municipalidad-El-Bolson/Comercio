@@ -20,6 +20,7 @@ Route::get('/', Ubicaciones::class)->name('ubicaciones');
 Route::get('/comercios/{ubicacion}', ComercioData::class)->name('comercio.data');
 
 Route::get('/files/{path}', function (string $path) {
+    $path = ltrim($path, '/');
     abort_unless(Storage::disk('public')->exists($path), 404);
     return Storage::disk('public')->response($path);
 })->where('path', '.*')->name('files.show');

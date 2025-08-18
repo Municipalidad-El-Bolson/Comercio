@@ -4,12 +4,15 @@ namespace App\Livewire\Comercio;
 
 use Livewire\Component;
 use App\Models\Movimiento;
+use App\Models\Ubicacion;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Schema;
 
 class Timeline extends Component
 {
     public int $ubicacionId;
+
+    /** Recibe created-at desde Blade (puede venir Carbon o string o null) */
+    public $createdAt = null;
 
     public array $etapas = [
         'comercio_inicio'   => 'Comercio',
@@ -24,22 +27,28 @@ class Timeline extends Component
     public ?string $etapaActual = null;
     public ?string $fecha = null;
     public ?string $obs = null;
+    public bool $colapsado = false;
 
-    protected bool $tieneFecha = false;
-
-    public function mount(int $ubicacionId)
+    public function mount(int $ubicacionId, $createdAt = null)
     {
         $this->ubicacionId = $ubicacionId;
-        $this->tieneFecha = Schema::hasColumn('movimientos', 'fecha');
 
+        // Normalizo createdAt -> string YYYY-MM-DD
+        if ($createdAt instanceof Carbon) {
+            $this->createdAt = $createdAt->toDateString();
+        } elseif (is_string($createdAt) && $createdAt !== '') {
+            $this->createdAt = Carbon::parse($createdAt)->toDateString();
+        } else {
+            // fallback: lo leo de la ubicación si no vino
+            $this->createdAt = optional(Ubicacion::find($ubicacionId))->created_at?->toDateString();
+        }
+
+        // Etapa actual = último movimiento (o primera etapa)
         $ultimo = Movimiento::where('ubicacion_id', $this->ubicacionId)
-            ->where('tipo', 'timeline')
-            ->when($this->tieneFecha, fn($q) => $q->orderByDesc('fecha'))
-            ->orderByDesc('id')
-            ->first();
+            ->orderByDesc('fecha')->orderByDesc('id')->first();
 
         $this->etapaActual = $ultimo?->etapa ?? array_key_first($this->etapas);
-        $this->fecha = Carbon::now()->toDateString();
+        $this->fecha = now()->toDateString();
     }
 
     public function marcarEtapa()
@@ -50,46 +59,41 @@ class Timeline extends Component
             return;
         }
 
-        $titulo = $this->etapas[$this->etapaActual] ?? ucfirst(str_replace('_', ' ', $this->etapaActual));
-        $descripcion = $this->obs ?: $titulo;
-
-        $data = [
-            'tipo'         => 'timeline',
+        $titulo = $this->etapas[$this->etapaActual];
+        Movimiento::create([
             'ubicacion_id' => $this->ubicacionId,
             'titulo'       => $titulo,
-            'descripcion'  => $descripcion,
             'etapa'        => $this->etapaActual,
             'observacion'  => $this->obs,
-        ];
-        if ($this->tieneFecha) {
-            $data['fecha'] = $this->fecha ?: Carbon::now()->toDateString();
-        }
-
-        Movimiento::create($data);
+            'fecha'        => $this->fecha ?: now()->toDateString(),
+        ]);
 
         $this->dispatch('toast', type: 'success', message: 'Etapa actualizada');
     }
 
     public function avanzar()
     {
-        $keys = array_values(array_keys($this->etapas));
+       // Primero guarda la etapa actual…
+        $this->marcarEtapa();
+
+        // …y luego mueve el selector al siguiente paso
+        $keys = array_keys($this->etapas);
         $idx  = array_search($this->etapaActual, $keys, true);
         $next = $idx === false ? 0 : min($idx + 1, count($keys) - 1);
         $this->etapaActual = $keys[$next];
-        $this->marcarEtapa();
     }
 
     public function render()
     {
-        $hist = Movimiento::where('ubicacion_id', $this->ubicacionId)
-            ->where('tipo', 'timeline')
+        $historial = Movimiento::where('ubicacion_id', $this->ubicacionId)
             ->whereIn('etapa', array_keys($this->etapas))
-            ->when($this->tieneFecha, fn($q) => $q->orderBy('fecha'))
-            ->orderBy('id')
-            ->get()
+            ->orderBy('fecha')->get()
             ->groupBy('etapa')
             ->map->last();
 
-        return view('livewire.comercio.timeline', ['historial' => $hist]);
+        return view('livewire.comercio.timeline', [
+            'historial' => $historial,
+            'createdAt' => $this->createdAt,
+        ]);
     }
 }
