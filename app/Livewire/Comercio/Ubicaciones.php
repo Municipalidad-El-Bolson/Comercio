@@ -22,32 +22,40 @@ class Ubicaciones extends AdminComponent
     public $rubros = [];
 
     /** Documentos booleanos soportados (clave => default) */
-    protected array $docDefaults = [
-        // Generales
-        'doc_libre_deuda_municipal'      => false,
-        'doc_planeamiento_urbano'        => false,
-        'doc_solicitud_habilitacion_pago'=> false,
-        'doc_comprobante_uso_local'      => false,
-        'doc_afip_constancia'            => false,
-        'doc_recaudacion_rn'             => false,
-        'doc_fotocopia_dni'              => false,
-        'doc_comprobante_uso_inmueble'   => false,
-        'doc_libre_deuda_tasas_inmueble' => false,
-        'doc_aptitud_tecnica_local'      => false,
-        'doc_cocap_rhi'                  => false,
-        'doc_nota_carteleria_obras'      => false,
-        'doc_libro_actas_100'            => false,
-        // Jurídicas
-        'doc_acta_constitucion'          => false,
-        'doc_contrato_societario'        => false,
-        'doc_docs_representantes'        => false,
+   // 1) Listas de claves
+    protected array $docKeysGeneral = [
+        'doc_libre_deuda_municipal',
+        'doc_planeamiento_urbano',
+        'doc_solicitud_habilitacion_pago',
+        'doc_comprobante_uso_local',
+        'doc_afip_constancia',
+        'doc_recaudacion_rn',
+        'doc_fotocopia_dni',
+        'doc_comprobante_uso_inmueble',
+        'doc_libre_deuda_tasas_inmueble',
+        'doc_aptitud_tecnica_local',
+        'doc_cocap_rhi',
+        'doc_nota_carteleria_obras',
+        'doc_libro_actas_100',
     ];
+
+    protected array $docKeysJuridica = [
+        'doc_acta_constitucion',
+        'doc_contrato_societario',
+        'doc_docs_representantes',
+    ];
+
+    // 2) Defaults (usa las mismas claves que tu formulario y tu tabla)
+    protected array $docDefaults = [];
 
     public function mount()
     {
+        $this->docDefaults = array_fill_keys(
+            array_merge($this->docKeysGeneral, $this->docKeysJuridica),
+            false
+        );
         // Para el combo de Rubro en el modal
-        $this->rubros = Rubro::select('id','rubro_madre','subrubro')
-            ->orderBy('rubro_madre')->orderBy('subrubro')->get();
+        $this->rubros = Rubro::select('id','rubro_madre','subrubro')->orderBy('rubro_madre')->orderBy('subrubro')->get();
     }
 
     public function updatingSearchTerm()
@@ -347,9 +355,31 @@ class Ubicaciones extends AdminComponent
     /** Botón "Presentó toda la documentación" / "Limpiar" */
     public function marcarTodosLosDocs(bool $valor = true): void
     {
-        $this->state['documentos'] = $this->state['documentos'] ?? [];
-        foreach ($this->docDefaults as $k => $def) {
-            $this->state['documentos'][$k] = $valor;
+        $docs = $this->state['documentos'] ?? [];
+
+        // generales siempre
+        foreach ($this->docKeysGeneral as $k) {
+            $docs[$k] = $valor;
+        }
+
+        // jurídicas solo si corresponde
+        if (($this->state['persona_tipo'] ?? 'fisica') === 'juridica') {
+            foreach ($this->docKeysJuridica as $k) {
+                $docs[$k] = $valor;
+            }
+        }
+
+        // merge final (no se pierden claves existentes)
+        $this->state['documentos'] = array_merge($this->docDefaults, $docs);
+    }
+
+    public function updatedStatePersonaTipo($tipo): void
+    {
+        if ($tipo === 'fisica') {
+            $this->state['documentos'] = $this->state['documentos'] ?? [];
+            foreach ($this->docKeysJuridica as $k) {
+                $this->state['documentos'][$k] = false;
+            }
         }
     }
 
