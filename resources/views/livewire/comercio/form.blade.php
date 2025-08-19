@@ -1,6 +1,6 @@
 <!-- Modal -->
 <div class="modal fade" id="form" tabindex="-1" role="dialog" aria-hidden="true" wire:ignore.self>
-  <div class="modal-dialog modal-lg" role="document" style="margin-top:150px;max-width:800px;">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
     <form autocomplete="off" wire:submit.prevent="{{ $showEditModal ? 'updateComercio' : 'createCliente' }}" class="modal-content">
       <div class="modal-header bg-primary text-white py-2">
         <h6 class="modal-title mb-0">{{ $showEditModal ? 'Editar Comercio' : 'Nuevo Comercio' }}</h6>
@@ -341,3 +341,15 @@
     }
   });
 </script>
+
+<style>
+  @media (max-width: 576px) {
+    .modal-dialog {
+      max-width: 98vw !important;
+      margin: 1.75rem auto;
+    }
+    .modal-content {
+      padding: 0.5rem;
+    }
+  }
+</style>
