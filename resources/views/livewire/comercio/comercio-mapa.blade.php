@@ -33,14 +33,14 @@
                             @endphp
                             @foreach ($ubicaciones as $ubicacion)
                                 @php
-                                    $normalizedRubro = strtolower(trim($ubicacion->rubro->rubro));
+                                    $normalizedRubro = strtolower(trim($ubicacion->rubro->subrubro));
                                 @endphp
                                 @if (!in_array($normalizedRubro, $uniqueRubros))
                                     <div class="form-check form-check-inline">
                                         <input class="form-check-input rubro-checkbox" type="checkbox"
                                             id="rubro-{{ $normalizedRubro }}" value="{{ $normalizedRubro }}" checked>
                                         <label class="form-check-label"
-                                            for="rubro-{{ $normalizedRubro }}">{{ $ubicacion->rubro->rubro }}</label>
+                                            for="rubro-{{ $normalizedRubro }}">{{ $ubicacion->rubro->subrubro }}</label>
                                     </div>
                                     @php
                                         $uniqueRubros[] = $normalizedRubro;
@@ -78,7 +78,9 @@
                             });
                         });
 
-                        const ubicaciones = @json($ubicaciones);
+                        // const ubicaciones = @json($ubicaciones);
+                        const ubicaciones = @json($ubicaciones->items());
+
                         const markers = [];
 
                         function updateMarkers() {
@@ -88,9 +90,9 @@
                             markers.forEach(marker => marker.remove());
 
                             ubicaciones.forEach(record => {
-                                if (selectedRubros.includes(record.rubro.rubro.toLowerCase().trim())) {
+                                if (selectedRubros.includes(record.rubro.subrubro.toLowerCase().trim())) {
                                     let geocodeURL =
-                                        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(record.direccion)}&key=${googleApiKey}`;
+                                        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(record.domicilio_comercio)}&key=${googleApiKey}`;
 
                                     fetch(geocodeURL)
                                         .then(response => response.json())
@@ -99,10 +101,11 @@
                                                 var localizacion = georreferencia.results[0].geometry.location;
 
                                                 const el = document.createElement('div');
-                                                el.className = `${record.rubro.rubro}` == 'Inmobiliaria' ?
+                                                el.className = `${record.rubro.subrubro}` == 'Inmobiliaria' ?
                                                     'text-info font-weight-bold h4' : 'text-danger font-weight-bold h4';
                                                 el.innerHTML = `${record.tipo}`;
-                                                el.title = `${record.razon_social}\n${record.direccion}\n${record.rubro.rubro}`;
+                                                el.title =
+                                                    `${record.razon_social}\n${record.domicilio_comercio}\n${record.rubro.subrubro}`;
 
                                                 const marker = new mapboxgl.Marker(el)
                                                     .setLngLat([localizacion.lng, localizacion.lat])
@@ -113,8 +116,8 @@
                                                     })
                                                     .setHTML(`
                                                 <h3>${record.razon_social}</h3>
-                                                <p><strong>Dirección:</strong> ${record.direccion}</p>
-                                                <p><strong>Rubro:</strong> ${record.rubro.rubro}</p>
+                                                <p><strong>Dirección:</strong> ${record.domicilio_comercio}</p>
+                                                <p><strong>Rubro:</strong> ${record.rubro.subrubro}</p>
                                                 `);
 
                                                 marker.setPopup(popup);

@@ -22,7 +22,7 @@ class Ubicaciones extends AdminComponent
     public $rubros = [];
 
     /** Documentos booleanos soportados (clave => default) */
-   // 1) Listas de claves
+    // 1) Listas de claves
     protected array $docKeysGeneral = [
         'doc_libre_deuda_municipal',
         'doc_planeamiento_urbano',
@@ -55,7 +55,7 @@ class Ubicaciones extends AdminComponent
             false
         );
         // Para el combo de Rubro en el modal
-        $this->rubros = Rubro::select('id','rubro_madre','subrubro')->orderBy('rubro_madre')->orderBy('subrubro')->get();
+        $this->rubros = Rubro::select('id', 'rubro_madre', 'subrubro')->orderBy('rubro_madre')->orderBy('subrubro')->get();
     }
 
     public function updatingSearchTerm()
@@ -72,6 +72,7 @@ class Ubicaciones extends AdminComponent
             ->orWhere('nombres', 'like', '%' . $this->searchTerm . '%')
             ->orderBy('razon_social')
             ->paginate(10);
+
 
         return view('livewire.comercio.ubicaciones', [
             'ubicaciones' => $ubicaciones,
@@ -148,7 +149,7 @@ class Ubicaciones extends AdminComponent
             'documentos.doc_afip_constancia'         => 'boolean',
             // Y si ya usas las dos, valida estas:
             'documentos.doc_afip_constancia_fisica'  => 'boolean',
-            'documentos.doc_afip_constancia_juridica'=> 'boolean',
+            'documentos.doc_afip_constancia_juridica' => 'boolean',
             // Jurídicas:
             'documentos.doc_acta_constitucion'       => 'boolean',
             'documentos.doc_contrato_societario'     => 'boolean',
@@ -179,7 +180,7 @@ class Ubicaciones extends AdminComponent
         $validated = Validator::make($this->state, $rules)->validate();
 
         // Normalizar nombres propios / direcciones
-        foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $campo) {
+        foreach (['razon_social', 'apellido', 'nombres', 'domicilio_responsable', 'nombre_comercial', 'domicilio_comercio'] as $campo) {
             if (!empty($validated[$campo])) {
                 $validated[$campo] = Str::title($validated[$campo]);
             }
@@ -209,7 +210,7 @@ class Ubicaciones extends AdminComponent
         // Crear Ubicacion
         $ubic = Ubicacion::create($validated);
 
-         if (array_key_exists('doc_afip_constancia', $documentos)) {
+        if (array_key_exists('doc_afip_constancia', $documentos)) {
             if (($this->state['persona_tipo'] ?? 'fisica') === 'juridica') {
                 $documentos['doc_afip_constancia_juridica'] = (bool)$documentos['doc_afip_constancia'];
             } else {
@@ -306,7 +307,7 @@ class Ubicaciones extends AdminComponent
         $validated = Validator::make($this->state, $rules)->validate();
 
         // Formateos
-        foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $campo) {
+        foreach (['razon_social', 'apellido', 'nombres', 'domicilio_responsable', 'nombre_comercial', 'domicilio_comercio'] as $campo) {
             if (!empty($validated[$campo])) {
                 $validated[$campo] = Str::title($validated[$campo]);
             }
@@ -395,4 +396,3 @@ class Ubicaciones extends AdminComponent
         $this->dispatch('abrirModalMovimientos', $id);
     }
 }
-

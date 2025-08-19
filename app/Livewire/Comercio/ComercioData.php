@@ -49,14 +49,14 @@ class ComercioData extends Component
 
     public function mount(Ubicacion $ubicacion)
     {
-        $this->ubicacion = $ubicacion->load('rubro','documentos','movimientos');
-        $this->rubros = Rubro::select('id','rubro_madre','subrubro')
+        $this->ubicacion = $ubicacion->load('rubro', 'documentos', 'movimientos');
+        $this->rubros = Rubro::select('id', 'rubro_madre', 'subrubro')
             ->orderBy('rubro_madre')
             ->orderBy('subrubro')
             ->get();
     }
 
-        public function editaComercio(Ubicacion $ubicacion)
+    public function editaComercio(Ubicacion $ubicacion)
     {
         $this->showEditModal = true;
         $this->ubicacion = $ubicacion->loadMissing('documentos');
@@ -108,7 +108,7 @@ class ComercioData extends Component
 
         $validated = Validator::make($this->state, $rules)->validate();
 
-        foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $campo) {
+        foreach (['razon_social', 'apellido', 'nombres', 'domicilio_responsable', 'nombre_comercial', 'domicilio_comercio'] as $campo) {
             if (!empty($validated[$campo])) {
                 $validated[$campo] = Str::title($validated[$campo]);
             }
@@ -131,14 +131,14 @@ class ComercioData extends Component
     public function render()
     {
         $historial = $this->ubicacion
-        ->movimientos()
-        ->get()
-        ->keyBy('etapa'); // o el campo que uses como clave
+            ->movimientos()
+            ->get()
+            ->keyBy('etapa'); // o el campo que uses como clave
 
         return view('livewire.comercio.comercio-data', [
-        'ubicacion' => $this->ubicacion,
-        'historial' => $historial,
-        'rubros' => $this->rubros
+            'ubicacion' => $this->ubicacion,
+            'historial' => $historial,
+            'rubros' => $this->rubros
         ])->layout('admin.layouts.app');
     }
 }
