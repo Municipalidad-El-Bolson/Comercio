@@ -20,7 +20,7 @@
                         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
                     <!-- Rubro Filter Checkboxes -->
-                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <div class="mb-3 d-flex flex-wrap gap-2 overflow-auto" style="max-width: 100%;">
                         <div>
                             <h5>Rubros</h5>
                             <div class="form-check form-check-inline">
@@ -36,7 +36,7 @@
                                     $normalizedRubro = strtolower(trim($ubicacion->rubro->subrubro));
                                 @endphp
                                 @if (!in_array($normalizedRubro, $uniqueRubros))
-                                    <div class="form-check form-check-inline">
+                                    <div class="form-check form-check-inline" style="min-width: 150px;">
                                         <input class="form-check-input rubro-checkbox" type="checkbox"
                                             id="rubro-{{ $normalizedRubro }}" value="{{ $normalizedRubro }}" checked>
                                         <label class="form-check-label"
@@ -52,7 +52,7 @@
 
                     <div class="card">
                         <div class="card-body">
-                            <div id="map" style="height: 500px; 100%;"></div>
+                            <div id="map" style="height: 500px; width: 100%; min-width: 200px;"></div>
                         </div>
                     </div>
 
@@ -79,7 +79,6 @@
                         });
 
                         const ubicaciones = @json($ubicaciones);
-
 
                         const markers = [];
                         const markerIconUrl = "https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2_hdpi.png";
