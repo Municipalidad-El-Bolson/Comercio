@@ -10,8 +10,7 @@ class ComercioMapa extends AdminComponent
 {
     public function render()
     {
-        $ubicaciones = Ubicacion::with('rubro')
-            ->paginate(10);
+        $ubicaciones = Ubicacion::with('rubro')->get();
 
         return view('livewire.comercio.comercio-mapa', [
             'ubicaciones' => $ubicaciones

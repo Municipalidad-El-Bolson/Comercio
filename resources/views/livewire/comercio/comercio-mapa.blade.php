@@ -78,10 +78,11 @@
                             });
                         });
 
-                        // const ubicaciones = @json($ubicaciones);
-                        const ubicaciones = @json($ubicaciones->items());
+                        const ubicaciones = @json($ubicaciones);
+
 
                         const markers = [];
+                        const markerIconUrl = "https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2_hdpi.png";
 
                         function updateMarkers() {
                             const selectedRubros = Array.from(document.querySelectorAll('input.rubro-checkbox:checked')).map(cb => cb
@@ -100,12 +101,13 @@
                                             if (georreferencia.results.length > 0) {
                                                 var localizacion = georreferencia.results[0].geometry.location;
 
+                                                // Crea un div para el marcador personalizado pequeño
                                                 const el = document.createElement('div');
-                                                el.className = `${record.rubro.subrubro}` == 'Inmobiliaria' ?
-                                                    'text-info font-weight-bold h4' : 'text-danger font-weight-bold h4';
-                                                el.innerHTML = `${record.tipo}`;
-                                                el.title =
-                                                    `${record.razon_social}\n${record.domicilio_comercio}\n${record.rubro.subrubro}`;
+                                                el.style.backgroundImage = `url('${markerIconUrl}')`;
+                                                el.style.width = '30px';
+                                                el.style.height = '30px';
+                                                el.style.backgroundSize = 'contain';
+                                                el.style.backgroundRepeat = 'no-repeat';
 
                                                 const marker = new mapboxgl.Marker(el)
                                                     .setLngLat([localizacion.lng, localizacion.lat])
