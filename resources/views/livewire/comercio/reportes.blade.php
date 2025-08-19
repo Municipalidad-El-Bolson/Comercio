@@ -14,26 +14,32 @@
                 </div>
             </div>
             <div>
-                <div>
-                    <div class="card border-secondary mb-3" style="max-width: 18rem;">
-                        <div class="card-header">Reporte 1</div>
-                        <div class="card-body text-secondary">
-                            <h5 class="card-title">Reporte de algo en particular</h5>
-                            <p class="card-text">Algun tipo de explicacion rapida de que hace este reporte.</p>
+                <div class="row">
+                    <div class="col-12 col-md-6 col-lg-4 mb-3">
+                        <div class="card border-secondary h-100">
+                            <div class="card-header">Reporte 1</div>
+                            <div class="card-body text-secondary">
+                                <h5 class="card-title">Reporte de algo en particular</h5>
+                                <p class="card-text">Algun tipo de explicacion rapida de que hace este reporte.</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="card border-secondary mb-3" style="max-width: 18rem;">
-                        <div class="card-header">Reporte</div>
-                        <div class="card-body text-secondary">
-                            <h5 class="card-title">Reporte de algo en particular</h5>
-                            <p class="card-text">Algun tipo de explicacion rapida de que hace este reporte</p>
+                    <div class="col-12 col-md-6 col-lg-4 mb-3">
+                        <div class="card border-secondary h-100">
+                            <div class="card-header">Reporte</div>
+                            <div class="card-body text-secondary">
+                                <h5 class="card-title">Reporte de algo en particular</h5>
+                                <p class="card-text">Algun tipo de explicacion rapida de que hace este reporte</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="card border-secondary mb-3" style="max-width: 18rem;">
-                        <div class="card-header">Reporte</div>
-                        <div class="card-body text-secondary">
-                            <h5 class="card-title">Reporte de algo en particular</h5>
-                            <p class="card-text">Algun tipo de explicacion rapida de que hace este reporte</p>
+                    <div class="col-12 col-md-6 col-lg-4 mb-3">
+                        <div class="card border-secondary h-100">
+                            <div class="card-header">Reporte</div>
+                            <div class="card-body text-secondary">
+                                <h5 class="card-title">Reporte de algo en particular</h5>
+                                <p class="card-text">Algun tipo de explicacion rapida de que hace este reporte</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -41,4 +47,3 @@
         </div>
     </div>
 </section>
-                
