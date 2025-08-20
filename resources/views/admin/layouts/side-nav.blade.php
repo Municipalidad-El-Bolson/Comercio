@@ -10,8 +10,8 @@
     <div class="sidebar">
         <!-- Sidebar user panel (optional) -->
         <a href="{{ url('/') }}" class="brand-link">
-            <!--<img src="{{ asset('images/MEB.webp') }}" alt="Logo" style="width:200px; height:auto;">-->
-            <img src="{{ asset('images/log.webp') }}" alt="Logo" class="img-fluid" style="max-width:200px;">
+            <img src="{{ asset('images/MEB.webp') }}" alt="Logo" style="width:50px; height:auto;">
+            <!--<img src="{{ asset('images/log.webp') }}" alt="Logo" class="img-fluid" style="max-width:50px;">-->
         </a>
 
         <!-- SidebarSearch Form -->

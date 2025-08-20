@@ -271,14 +271,7 @@ class Ubicaciones extends AdminComponent
             $validated['apellido'] = $validated['apellido'] ?? null;
             $validated['nombres']  = $validated['nombres']  ?? null;
         }
-
-        // Sufijo dirección (si seguís usando)
-        if (!empty($validated['domicilio_comercio'])) {
-            $sufijo = ', R8430 El Bolsón, Río Negro';
-            $dir = $validated['domicilio_comercio'];
-            $validated['domicilio_comercio'] = Str::endsWith($dir, $sufijo) ? $dir : $dir . $sufijo;
-        }
-
+        
         unset($validated['dni'], $validated['direccion'], $validated['tipo']);
 
         // Documentos

@@ -54,6 +54,7 @@ class ComercioData extends Component
             ->orderBy('rubro_madre')
             ->orderBy('subrubro')
             ->get();
+        //filtros de busqueda del where
     }
 
     public function editaComercio(Ubicacion $ubicacion)

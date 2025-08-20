@@ -464,6 +464,16 @@
                 subEl.value = String(currentRubroId);
             }
         }
+
+    });
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('confirm-baja', ({ message }) => {
+            if (confirm(message)) {
+            Livewire.dispatch('confirmarBajaHoy');   // setea hoy + readonly
+            } else {
+            Livewire.dispatch('cancelarCambioBaja'); // revierte el select
+            }
+        });
     });
 </script>
 

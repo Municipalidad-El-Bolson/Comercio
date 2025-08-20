@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use App\Models\ComercioEstado;
+use Illuminate\Support\Str;
 
 class Ubicacion extends Model
 {
@@ -36,6 +37,8 @@ class Ubicacion extends Model
     protected static function booted()
     {
         static::saving(function (Ubicacion $m) {
+            $m->domicilio_comercio = self::normalizeDireccionComercio($m->domicilio_comercio);
+
             $nuevo = $m->estado ?: 'entramite';
             $previo = $m->getOriginal('estado') ?: null;
             $hoy = Carbon::today();
@@ -101,6 +104,43 @@ class Ubicacion extends Model
     }
 
 
+    private static function normalizeDireccionComercio(?string $dir): ?string
+    {
+        if ($dir === null) return null;
+        $dir = trim($dir);
+        if ($dir === '') return null;
+
+        // Compactar espacios
+        $dir = preg_replace('/\s+/', ' ', $dir);
+
+        // Remover comas/espacios finales sobrantes
+        $dir = rtrim($dir, " \t\n\r\0\x0B,");
+
+        // Sufijo correcto (único)
+        $suffix = ', R8430 El Bolsón, Río Negro';
+
+        // Quitar variantes del sufijo existentes (con/sin acentos)
+        $lower = mb_strtolower($dir);
+
+        $variants = [
+            ', r8430 el bolsón, río negro',
+            ', r8430 el bolson, rio negro',
+            ', r8430 el bolsón, rio negro',
+            ', r8430 el bolson, río negro',
+        ];
+
+        foreach ($variants as $v) {
+            if (Str::endsWith($lower, $v)) {
+                // cortar el sufijo existente
+                $dir = mb_substr($dir, 0, mb_strlen($dir) - mb_strlen($v));
+                $dir = rtrim($dir, " \t\n\r\0\x0B,");
+                break;
+            }
+        }
+
+        // Volver a pegar el sufijo correcto, una sola vez
+        return $dir . $suffix;
+    }
 
 
     protected $fillable = [
