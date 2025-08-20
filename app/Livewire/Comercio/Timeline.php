@@ -6,6 +6,7 @@ use Livewire\Component;
 use App\Models\Movimiento;
 use App\Models\Ubicacion;
 use Illuminate\Support\Carbon;
+use App\Models\ComercioEstado;
 
 class Timeline extends Component
 {

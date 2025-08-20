@@ -21,10 +21,13 @@
 
 <div class="container-fluid">
   {{-- Timeline arriba --}}
-
+  @if($ubicacion->habilita_seguimiento)
     <livewire:comercio.timeline 
     :ubicacion-id="$ubicacion->id"
     :created-at="$ubicacion->created_at" />
+  @endif
+
+    
 
 
   {{-- Identificación --}}

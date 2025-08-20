@@ -167,39 +167,61 @@
                 </div>
 
                 {{-- Estado + Fechas + Monto + Observaciones --}}
-                <div class="form-row">
+                @php
+                $estado = $state['estado'] ?? 'entramite';
+                @endphp
+
+                <div class="form-row align-items-end">
+                {{-- Estado --}}
                     <div class="form-group col-md-4 mb-2">
                         <label class="mb-1" for="estado">Estado</label>
                         <select id="estado" wire:model.defer="state.estado"
-                            class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
-                            <option value="vigente">Vigente</option>
-                            <option value="irregular">Irregular</option>
-                            <option value="entramite">En Trámite</option>
+                        class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
+                        <option value="vigente">Vigente</option>
+                        <option value="irregular">Irregular</option>
+                        <option value="entramite">En Trámite</option>
+                        <option value="baja">Baja</option>
                         </select>
-                        @error('state.estado')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        @error('state.estado') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="form-group col-md-4 mb-2">
+                    {{-- Fecha de alta (Vigente e Irregular y Baja) --}}
+                    <div class="form-group col-md-4 mb-2 {{ in_array($estado, ['entramite']) ? 'd-none' : '' }}" id="grp-fecha-alta">
                         <label class="mb-1" for="fecha_alta">Fecha de alta</label>
                         <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta"
-                            class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
-                        @error('state.fecha_alta')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
+                        @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @if($showEditModal)
+                        <small class="form-text text-muted d-none" id="ayuda-vigente-desde-tramite">
+                            Si cambiás de <em>En trámite</em> a <em>Vigente</em> podés dejarla vacía: se usa la fecha de hoy.
+                        </small>
+                        @endif
                     </div>
 
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1" for="monto_pagar">Monto a pagar (opcional)</label>
-                        <input type="number" step="0.01" id="monto_pagar" wire:model.defer="state.monto_pagar"
-                            class="form-control form-control-sm @error('state.monto_pagar') is-invalid @enderror"
-                            placeholder="0.00">
-                        @error('state.monto_pagar')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                    {{-- Fecha de vencimiento (Vigente e Irregular) --}}
+                    <div class="form-group col-md-4 mb-2 {{ in_array($estado, ['vigente','irregular']) ? '' : 'd-none' }}" id="grp-fecha-vto">
+                        <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
+                        <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto"
+                        class="form-control form-control-sm" readonly>
+                    </div>
+                    
+
+                    {{-- Fecha de baja (solo Baja) --}}
+                    <div class="form-group col-md-4 mb-2 {{ $estado === 'baja' ? '' : 'd-none' }}" id="grp-fecha-baja">
+                        <label class="mb-1" for="fecha_baja">Fecha de baja</label>
+                        <input type="date" id="fecha_baja" wire:model.defer="state.fecha_baja"
+                        class="form-control form-control-sm" readonly>
                     </div>
                 </div>
+
+                {{-- Monto --}}
+                <div class="form-group col-md-4 mb-2">
+                    <label class="mb-1" for="monto_pagar">Monto a pagar (opcional)</label>
+                    <input type="number" step="0.01" id="monto_pagar" wire:model.defer="state.monto_pagar"
+                    class="form-control form-control-sm @error('state.monto_pagar') is-invalid @enderror" placeholder="0.00">
+                    @error('state.monto_pagar') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+
 
                 <div class="form-group mb-2">
                     <label class="mb-1" for="observaciones">Observaciones</label>
@@ -344,7 +366,61 @@
             sel.addEventListener('change', () => aplicarModoPersona(sel.value));
         }
     });
+    function aplicarModoEstado() {
+        const estado = document.getElementById('estado')?.value || 'entramite';
+        const gAlta = document.getElementById('grp-fecha-alta');
+        const gVto  = document.getElementById('grp-fecha-vto');
+        const gBaja = document.getElementById('grp-fecha-baja');
+        const ayuda = document.getElementById('ayuda-vigente-desde-tramite');
 
+        // reset
+        [gAlta,gVto,gBaja].forEach(e => e && e.classList.add('d-none'));
+        if (ayuda) ayuda.classList.add('d-none');
+
+        if (estado === 'entramite') {
+            // ninguna fecha
+        }
+        if (estado === 'vigente') {
+            if (gAlta) gAlta.classList.remove('d-none');
+            if (gVto)  gVto.classList.remove('d-none');
+            if (@json($showEditModal ? true : false)) {
+            // sólo muestro el hint en edición
+            if (ayuda) ayuda.classList.remove('d-none');
+            }
+        }
+        if (estado === 'irregular') {
+            if (gAlta) gAlta.classList.remove('d-none');
+            if (gVto)  gVto.classList.remove('d-none');
+        }
+        if (estado === 'baja') {
+            if (gAlta) gAlta.classList.remove('d-none');
+            if (gBaja) gBaja.classList.remove('d-none');
+        }
+
+        // cálculo cliente de vto (solo vigente/irregular)
+        if ((estado === 'vigente' || estado === 'irregular')) {
+            const alta = document.getElementById('fecha_alta')?.value;
+            const vto  = document.getElementById('fecha_vto');
+            if (alta && vto) {
+            const d = new Date(alta);
+            d.setFullYear(d.getFullYear() + 1);
+            vto.value = d.toISOString().slice(0,10);
+            }
+        }
+    }
+
+        document.addEventListener('DOMContentLoaded', () => {
+        const selEstado = document.getElementById('estado');
+        const alta = document.getElementById('fecha_alta');
+        if (selEstado) selEstado.addEventListener('change', aplicarModoEstado);
+        if (alta) alta.addEventListener('change', aplicarModoEstado);
+        aplicarModoEstado();
+        });
+
+        // Reaplicar post-render Livewire
+        document.addEventListener('livewire:init', () => {
+        Livewire.hook('message.processed', aplicarModoEstado);
+        });
     // --- Rubro Madre/Subrubro ---
     document.addEventListener('DOMContentLoaded', function() {
         const mapa = @json($mapaSub ?? [], JSON_UNESCAPED_UNICODE);
