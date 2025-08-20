@@ -5,20 +5,13 @@ namespace Database\Seeders;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Seeder;
 use App\Models\Rubro;
+use Illuminate\Support\Facades\DB;
 
 class RubrosSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-
-        Schema::disableForeignKeyConstraints();
-        Rubro::truncate();
-        Schema::enableForeignKeyConstraints();
-
-        Rubro::insert([
+        $data = [
             ['id' => 3, 'rubro_madre' => 'Comercio y Ventas', 'subrubro' => 'ALMACENES NATURISTAS'],
             ['id' => 11, 'rubro_madre' => 'Comercio y Ventas', 'subrubro' => 'ARTICULOS DE BAZAR, MENAJE'],
             ['id' => 12, 'rubro_madre' => 'Comercio y Ventas', 'subrubro' => 'ARTICULOS DE COMUNICACION, INFORMATICA Y ELECTRONICA Y REPARACION'],
@@ -200,6 +193,10 @@ class RubrosSeeder extends Seeder
             ['id' => 98, 'rubro_madre' => 'Transporte y Turismo', 'subrubro' => 'TRANSPORTE URBANO DE PASAJEROS'],
             ['id' => 104, 'rubro_madre' => 'Transporte y Turismo', 'subrubro' => 'VENTA DE AUTOMOTORES, NUEVOS Y USADOS Y VENTA DE MOTOS DE NUEVAS Y USADAS'],
             ['id' => 122, 'rubro_madre' => 'Transporte y Turismo', 'subrubro' => 'VENTA DE PASAJES DE AUTOTRANSPORTE DE LARGA DISTANCIA'],
-        ]);
+        ];
+
+        $data = array_values(array_filter($data, fn($r) => ($r['id'] ?? 0) > 0));
+
+        DB::table('rubros')->upsert($data, ['id'], ['rubro_madre','subrubro']);
     }
 }
