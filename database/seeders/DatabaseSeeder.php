@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -12,10 +11,5 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(\Database\Seeders\RubrosTableSeeder::class);
         $this->call(\Database\Seeders\AdminUserSeeder::class);
-        $this->call(\Database\Seeders\RubrosSeeder::class);
-
-        $this->call([
-            RubrosTableSeeder::class,
-        ]);
     }
 }

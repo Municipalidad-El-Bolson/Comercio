@@ -19,7 +19,13 @@ class Ubicaciones extends AdminComponent
     public $state = [];
     public $ubicacion = null;
     public $showEditModal = false;
-    public $rubros = [];
+
+    public function rubros()
+    {
+        return Rubro::select('id','mega_rubro','rubro_madre','subrubro')
+            ->orderBy('mega_rubro')->orderBy('rubro_madre')->orderBy('subrubro')
+            ->get();
+    }
 
     /** Documentos booleanos soportados (clave => default) */
     protected array $docKeysGeneral = [

@@ -132,37 +132,78 @@
                     </div>
                 </div>
 
-                {{-- Rubro Madre -> Subrubro dependiente --}}
+                {{-- Mega Rubro -> Rubro Madre -> Subrubro (encadenados) --}}
                 @php
-                    $rubros = $rubros ?? collect(); // por si no viene
-                    $madres = $rubros->pluck('rubro_madre')->filter()->unique()->sort()->values();
-                    $mapaSub = $rubros
-                        ->groupBy(fn($r) => strtolower($r->rubro_madre))
+                    $rubros = $rubros ?? collect();
+
+                    // Listas únicas
+                    $megas  = $rubros->pluck('mega_rubro')->filter()->unique()->sort()->values();
+
+                    // mega -> [madres]
+                    $mapMadres = $rubros
+                        ->groupBy(fn($r) => strtolower($r->mega_rubro))
+                        ->map(fn($g) => $g->pluck('rubro_madre')->filter()->unique()->sort()->values());
+
+                    // "mega|madre" -> [ {id, sub} ]
+                    $mapSubs = $rubros
+                        ->groupBy(fn($r) => strtolower($r->mega_rubro) . '|' . strtolower($r->rubro_madre))
                         ->map(fn($g) => $g->map(fn($r) => ['id' => $r->id, 'sub' => $r->subrubro])->values());
-                    $rubroIdActual = (int) ($state['rubro_id'] ?? 0);
+
+                    $rubroIdActual = (string) ($state['rubro_id'] ?? '');
                 @endphp
 
-                <div class="form-row">
-                    <div class="form-group col-md-6 mb-2">
-                        <label class="mb-1">Rubro</label>
-                        <select id="rubro-madre" class="form-control form-control-sm">
-                            <option value="">-- Seleccione Rubro Madre --</option>
-                            @foreach ($madres as $madre)
-                                <option value="{{ strtolower($madre) }}">{{ $madre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                <div
+                    x-data="rubroPicker({
+                        mapMadres: @js($mapMadres),
+                        mapSubs:   @js($mapSubs),
+                        currentId: @js($rubroIdActual),
+                    })"
+                    x-init="init()"
+                >
+                    <div class="form-row">
+                        {{--  Mega rubro --}}
+                        <div class="form-group col-md-4 mb-2">
+                            <label class="mb-1">Mega rubro</label>
+                            <select class="form-control form-control-sm"
+                                    x-model="selectedMega"
+                                    @change="onMegaChange()">
+                                <option value="">-- Seleccione Mega rubro --</option>
+                                @foreach ($megas as $mega)
+                                    <option value="{{ strtolower($mega) }}">{{ $mega }}</option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                    <div class="form-group col-md-6 mb-2">
-                        <label class="mb-1">Subrubro</label>
-                        <select id="rubro-sub"
-                            class="form-control form-control-sm @error('state.rubro_id') is-invalid @enderror"
-                            wire:model.defer="state.rubro_id" disabled>
-                            <option value="">-- Seleccione Subrubro --</option>
-                        </select>
-                        @error('state.rubro_id')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        {{-- Rubro madre --}}
+                        <div class="form-group col-md-4 mb-2">
+                            <label class="mb-1">Rubro madre</label>
+                            <select class="form-control form-control-sm"
+                                    x-model="selectedMadre"
+                                    :disabled="!selectedMega"
+                                    @change="onMadreChange()">
+                                <option value="">-- Seleccione Rubro madre --</option>
+                                <template x-for="madre in madres" :key="madre">
+                                    <option :value="madre.toLowerCase()" x-text="madre"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        {{-- Subrubro (guarda rubro_id) --}}
+                        <div class="form-group col-md-4 mb-2">
+                            <label class="mb-1">Subrubro</label>
+                            <select class="form-control form-control-sm @error('state.rubro_id') is-invalid @enderror"
+                                    x-model="selectedSub"
+                                    :disabled="!selectedMadre"
+                                    @change="$wire.set('state.rubro_id', selectedSub)">
+                                <option value="">-- Seleccione Subrubro --</option>
+                                <template x-for="op in subs" :key="op.id">
+                                    <option :value="op.id" x-text="op.sub"></option>
+                                </template>
+                            </select>
+                            @error('state.rubro_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
                 </div>
 
@@ -305,46 +346,56 @@
     </div>
 </div>
 
-{{-- JS: Modal + Persona + Rubros --}}
 <script>
-    // Mostrar/ocultar modal por eventos Livewire
+    @php
+    // $rubros debe venir del render del componente
+    $rubros = $rubros ?? collect();
+
+    $megas = $rubros->pluck('mega_rubro')->filter()->unique()->sort()->values();
+
+    $mapMadres = $rubros
+        ->groupBy(fn($r) => strtolower($r->mega_rubro))
+        ->map(fn($g) => $g->pluck('rubro_madre')->filter()->unique()->sort()->values());
+
+    $mapSubs = $rubros
+        ->groupBy(fn($r) => strtolower($r->mega_rubro).'|'.strtolower($r->rubro_madre))
+        ->map(fn($g) => $g->map(fn($r) => ['id' => $r->id, 'sub' => $r->subrubro])->values());
+
+    $rubroIdActual = (string)($state['rubro_id'] ?? '');
+    @endphp
+    
+    // === Mantengo tu código original de modal/persona/estados ===
     document.addEventListener('livewire:init', () => {
         Livewire.on('show-form', () => $('#form').modal('show'));
         Livewire.on('hide-form', () => $('#form').modal('hide'));
-        // re-aplicar modos luego de cada render
         Livewire.hook('message.processed', () => {
             aplicarModoPersona(leerTipoPersona());
+            aplicarModoEstado();
+            // Re-enlazar Rubros luego del render
+            inicializarCascadaRubros();
         });
     });
 
-    // Foco inicial
     document.addEventListener('DOMContentLoaded', function() {
         $('#form').on('shown.bs.modal', function() {
             const persona = leerTipoPersona();
             aplicarModoPersona(persona);
             const input = persona === 'juridica' ? document.getElementById('razon_social') :
                 document.getElementById('apellido');
-            if (input) {
-                input.focus();
-                input.select();
-            }
+            if (input) { input.focus(); input.select(); }
         });
     });
 
-    // --- Persona: Física/Jurídica (sin recargar) ---
     function leerTipoPersona() {
         const sel = document.getElementById('persona_tipo');
         return sel ? sel.value : 'fisica';
     }
-
     function aplicarModoPersona(tipo) {
         const esJ = (tipo === 'juridica');
-
         const bApe = document.getElementById('bloque-fisica-apellido');
         const bNom = document.getElementById('bloque-fisica-nombres');
         const bRaz = document.getElementById('bloque-juridica-razon');
         const docsJ = document.getElementById('docs-juridica');
-
         const ape = document.getElementById('apellido');
         const nom = document.getElementById('nombres');
         const raz = document.getElementById('razon_social');
@@ -358,7 +409,6 @@
         if (nom) nom.disabled = esJ;
         if (raz) raz.disabled = !esJ;
     }
-
     document.addEventListener('DOMContentLoaded', () => {
         const sel = document.getElementById('persona_tipo');
         if (sel) {
@@ -366,6 +416,7 @@
             sel.addEventListener('change', () => aplicarModoPersona(sel.value));
         }
     });
+
     function aplicarModoEstado() {
         const estado = document.getElementById('estado')?.value || 'entramite';
         const gAlta = document.getElementById('grp-fecha-alta');
@@ -373,19 +424,14 @@
         const gBaja = document.getElementById('grp-fecha-baja');
         const ayuda = document.getElementById('ayuda-vigente-desde-tramite');
 
-        // reset
         [gAlta,gVto,gBaja].forEach(e => e && e.classList.add('d-none'));
         if (ayuda) ayuda.classList.add('d-none');
 
-        if (estado === 'entramite') {
-            // ninguna fecha
-        }
         if (estado === 'vigente') {
             if (gAlta) gAlta.classList.remove('d-none');
             if (gVto)  gVto.classList.remove('d-none');
             if (@json($showEditModal ? true : false)) {
-            // sólo muestro el hint en edición
-            if (ayuda) ayuda.classList.remove('d-none');
+                if (ayuda) ayuda.classList.remove('d-none');
             }
         }
         if (estado === 'irregular') {
@@ -397,84 +443,162 @@
             if (gBaja) gBaja.classList.remove('d-none');
         }
 
-        // cálculo cliente de vto (solo vigente/irregular)
         if ((estado === 'vigente' || estado === 'irregular')) {
             const alta = document.getElementById('fecha_alta')?.value;
             const vto  = document.getElementById('fecha_vto');
             if (alta && vto) {
-            const d = new Date(alta);
-            d.setFullYear(d.getFullYear() + 1);
-            vto.value = d.toISOString().slice(0,10);
+                const d = new Date(alta);
+                d.setFullYear(d.getFullYear() + 1);
+                vto.value = d.toISOString().slice(0,10);
             }
         }
     }
-
-        document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
         const selEstado = document.getElementById('estado');
         const alta = document.getElementById('fecha_alta');
         if (selEstado) selEstado.addEventListener('change', aplicarModoEstado);
         if (alta) alta.addEventListener('change', aplicarModoEstado);
         aplicarModoEstado();
-        });
-
-        // Reaplicar post-render Livewire
-        document.addEventListener('livewire:init', () => {
-        Livewire.hook('message.processed', aplicarModoEstado);
-        });
-    // --- Rubro Madre/Subrubro ---
-    document.addEventListener('DOMContentLoaded', function() {
-        const mapa = @json($mapaSub ?? [], JSON_UNESCAPED_UNICODE);
-        const madreEl = document.getElementById('rubro-madre');
-        const subEl = document.getElementById('rubro-sub');
-        const currentRubroId = {{ $rubroIdActual ?? 0 }};
-
-        if (!madreEl || !subEl) return;
-
-        // id => madreKey (para precarga)
-        const idToMadre = {};
-        Object.keys(mapa).forEach(key => (mapa[key] || []).forEach(it => idToMadre[it.id] = key));
-
-        function poblarSubrubros(madreKey) {
-            subEl.innerHTML = '<option value="">-- Seleccione Subrubro --</option>';
-            const lista = mapa[madreKey] || [];
-            if (!madreKey || !lista.length) {
-                subEl.disabled = true;
-                return;
+    });
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('confirm-baja', ({ message }) => {
+            if (confirm(message)) {
+                Livewire.dispatch('confirmarBajaHoy');
+            } else {
+                Livewire.dispatch('cancelarCambioBaja');
             }
+        });
+    });
+
+    // === NUEVO: Mega Rubro -> Rubro Madre -> Subrubro ===
+    function inicializarCascadaRubros() {
+        const megaEl  = document.getElementById('mega-rubro');
+        const madreEl = document.getElementById('rubro-madre');
+        const subEl   = document.getElementById('rubro-sub');
+        if (!megaEl || !madreEl || !subEl) return;
+
+        // Datos generados en Blade con @js/@json
+        const mapMadres = @js($mapMadres ?? []);
+        const mapSubs   = @js($mapSubs ?? []);
+        const currentId = @js($rubroIdActual ?? '');
+
+        // Helpers
+        function clearSelect(el, placeholder) {
+            el.innerHTML = '';
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = placeholder;
+            el.appendChild(opt);
+        }
+        function populateMadres(megaKey) {
+            clearSelect(madreEl, '-- Seleccione Rubro madre --');
+            clearSelect(subEl,   '-- Seleccione Subrubro --');
+            madreEl.disabled = true;
+            subEl.disabled   = true;
+
+            const madres = mapMadres?.[megaKey] || [];
+            if (!megaKey || madres.length === 0) return;
+
+            madres.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = String(m).toLowerCase();
+                opt.textContent = m;
+                madreEl.appendChild(opt);
+            });
+            madreEl.disabled = false;
+        }
+        function populateSubs(megaKey, madreKey) {
+            clearSelect(subEl, '-- Seleccione Subrubro --');
+            subEl.disabled = true;
+
+            const key = `${megaKey}|${madreKey}`;
+            const lista = mapSubs?.[key] || [];
+            if (!megaKey || !madreKey || lista.length === 0) return;
+
             lista.forEach(it => {
                 const opt = document.createElement('option');
-                opt.value = it.id;
+                opt.value = String(it.id);
                 opt.textContent = it.sub || '(Sin subrubro)';
                 subEl.appendChild(opt);
             });
             subEl.disabled = false;
         }
 
-        madreEl.addEventListener('change', () => {
-            poblarSubrubros(madreEl.value);
-            subEl.value = '';
+        // Event listeners
+        megaEl.addEventListener('change', () => {
+            const megaKey = (megaEl.value || '').toLowerCase();
+            populateMadres(megaKey);
+            madreEl.value = '';
+            subEl.value   = '';
+            Livewire.find(/* this component id auto */)?.set?.('state.rubro_id', null);
+            // si no, fallback:
+            if (window.Livewire) Livewire.dispatch('set', { name: 'state.rubro_id', value: null });
         });
 
-        // Precarga en edición
-        if (currentRubroId) {
-            const mk = idToMadre[currentRubroId];
-            if (mk) {
-                madreEl.value = mk;
-                poblarSubrubros(mk);
-                subEl.value = String(currentRubroId);
+        madreEl.addEventListener('change', () => {
+            const megaKey  = (megaEl.value || '').toLowerCase();
+            const madreKey = (madreEl.value || '').toLowerCase();
+            populateSubs(megaKey, madreKey);
+            subEl.value = '';
+            if (window.Livewire) Livewire.dispatch('set', { name: 'state.rubro_id', value: null });
+        });
+
+        subEl.addEventListener('change', () => {
+            const valor = subEl.value || null;
+            // Guardar rubro_id en Livewire (equivalente a wire:model.defer="state.rubro_id")
+            if (window.Livewire) {
+                // LW3 permite set con $wire.set desde Blade; desde JS:
+                Livewire.all().forEach(instance => {
+                    try { instance.set('state.rubro_id', valor); } catch (e) {}
+                });
+            }
+        });
+
+        // Precarga en edición: reconstruir mega/madre/sub desde currentId
+        function precargarDesdeId() {
+            if (!currentId) {
+                // estado inicial: todo deshabilitado salvo mega
+                madreEl.disabled = true;
+                subEl.disabled   = true;
+                return;
+            }
+            // Buscar el par mega|madre que contenga ese id
+            let foundMega = '', foundMadre = '';
+            Object.keys(mapSubs || {}).some(k => {
+                const arr = mapSubs[k] || [];
+                const hit = arr.find(o => String(o.id) === String(currentId));
+                if (hit) {
+                    const [megaKey, madreKey] = k.split('|');
+                    foundMega  = megaKey;
+                    foundMadre = madreKey;
+                    return true;
+                }
+                return false;
+            });
+            // Aplicar selección y poblar combos
+            if (foundMega) {
+                megaEl.value = foundMega;
+                populateMadres(foundMega);
+            }
+            if (foundMadre) {
+                madreEl.value = foundMadre;
+                populateSubs(foundMega, foundMadre);
+            }
+            if (currentId) {
+                subEl.value = String(currentId);
             }
         }
 
-    });
-    document.addEventListener('livewire:init', () => {
-        Livewire.on('confirm-baja', ({ message }) => {
-            if (confirm(message)) {
-            Livewire.dispatch('confirmarBajaHoy');   // setea hoy + readonly
-            } else {
-            Livewire.dispatch('cancelarCambioBaja'); // revierte el select
-            }
-        });
-    });
+        // Inicializar estado inicial y precarga
+        clearSelect(madreEl, '-- Seleccione Rubro madre --');
+        clearSelect(subEl,   '-- Seleccione Subrubro --');
+        madreEl.disabled = true;
+        subEl.disabled   = true;
+        precargarDesdeId();
+    }
+
+    // Arranque inicial
+    document.addEventListener('DOMContentLoaded', inicializarCascadaRubros);
 </script>
 
 <style>
