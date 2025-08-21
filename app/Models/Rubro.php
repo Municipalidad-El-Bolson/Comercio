@@ -9,7 +9,7 @@ class Rubro extends Model
     protected $table = 'rubros';      
     protected $primaryKey = 'id';     
 
-    protected $fillable = ['id','rubro_madre','subrubro'];
+    protected $fillable = ['id','mega_rubro','rubro_madre','subrubro'];
 
     public $timestamps = false;
 
