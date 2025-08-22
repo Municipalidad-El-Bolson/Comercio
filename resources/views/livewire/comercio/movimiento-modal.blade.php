@@ -12,10 +12,8 @@
                     <div class="form-group col-md-6 mb-2">
                         <label class="mb-1">Título</label>
                         <input type="text" id="titulo" wire:model.defer="titulo"
-                            class="form-control form-control-sm text-capitalize ">
-                        @error('titulo')
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
+                               class="form-control form-control-sm text-capitalize">
+                        @error('titulo') <small class="text-danger">{{ $message }}</small> @enderror
                     </div>
                     <div class="form-group col-md-6 mb-2">
                         <label class="mb-1">Estado</label>
@@ -27,11 +25,8 @@
                             <option value="Archivado">Archivado</option>
                             <option value="Cancelado">Cancelado</option>
                         </select>
-                        @error('estado')
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
+                        @error('estado') <small class="text-danger">{{ $message }}</small> @enderror
                     </div>
-
                 </div>
 
                 <div class="form-group mb-2">
@@ -40,11 +35,13 @@
                 </div>
 
                 <div class="form-group mb-2">
-                    <label class="mb-1">Archivo (opcional)</label>
-                    <input type="file" wire:model="archivo" class="form-control-file form-control-sm">
-                    @error('archivo')
-                        <small class="text-danger">{{ $message }}</small>
-                    @enderror
+                    <label class="mb-1 d-flex align-items-center">
+                        Archivo (opcional)
+                        <span class="ml-2" wire:loading wire:target="archivo">Subiendo…</span>
+                    </label>
+                    <input type="file" wire:model="archivo" accept=".jpg,.jpeg,.png,.webp,.gif,.bmp,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                           class="form-control-file form-control-sm">
+                    @error('archivo') <small class="text-danger">{{ $message }}</small> @enderror
                 </div>
 
                 <hr class="my-2">
@@ -59,32 +56,58 @@
                             <th class="text-sm">Descripción</th>
                             <th class="text-sm">Archivo</th>
                             <th class="text-sm">Fecha</th>
-                            <th colspan="2" class="text-sm"></th>
+                            <th class="text-sm text-center">Eliminar</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($movimientos as $mov)
-                            <tr>
+                            <tr wire:key="mov-{{ $mov->id }}">
                                 <td class="text-sm">{{ $mov->titulo }}</td>
                                 <td class="text-sm">{{ $mov->estado ?? '—' }}</td>
                                 <td class="text-sm">{{ $mov->descripcion ?? '—' }}</td>
                                 <td class="text-sm">
-                                    @if ($mov->archivo)
-                                        <a href="{{ Storage::url($mov->archivo) }}" target="_blank">📎 Ver</a>
+                                    @php
+                                        $path = $mov->archivo ?? '';
+                                        $exists = $path && \Illuminate\Support\Facades\Storage::disk('public')->exists($path);
+                                    @endphp
+
+                                    @if ($exists)
+                                        @php
+                                            $isImage = preg_match('/\.(jpe?g|png|gif|webp|bmp)$/i', $path);
+                                            $url = route('files.show', ['path' => $path]); // <- sin symlink
+                                        @endphp
+                                        @if ($isImage)
+                                            <a href="{{ $url }}" target="_blank" rel="noopener">
+                                                <img src="{{ $url }}" alt="archivo" style="max-width:80px;max-height:60px;object-fit:cover;">
+                                            </a>
+                                        @else
+                                            <a href="{{ $url }}" target="_blank" rel="noopener">Ver</a>
+                                    @endif
                                     @else
                                         —
                                     @endif
                                 </td>
-                                <td class="text-sm">{{ $mov->created_at->format('d/m/Y H:i') }}</td>
-                                <td>
-                                    <a href="#" wire:click="showConfirmation({{ $mov->id }})">
-                                        <i class="fas fa-trash text-danger"></i>
-                                    </a>
+
+                                <td class="text-sm">
+                                    @php
+                                        $base = $mov->fecha ?: $mov->created_at;
+                                        $txt  = $base ? \Illuminate\Support\Carbon::parse($base)->format('d/m/Y H:i') : '—';
+                                    @endphp
+                                    {{ $txt }}
+                                </td>
+                                <td class="text-center">
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            onclick="if(!confirm('¿Eliminar este movimiento?')) return false;"
+                                            wire:click.prevent="eliminarMovimiento({{ $mov->id }})"
+                                            wire:loading.attr="disabled">
+                                        Eliminar
+                                    </button>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center text-sm">Sin movimientos aún.</td>
+                                <td colspan="6" class="text-center text-sm">Sin movimientos aún.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -92,23 +115,19 @@
             </div>
 
             <div class="modal-footer py-2 px-3">
-                <button type="submit" class="btn btn-sm btn-primary">Guardar</button>
+                <button type="submit" class="btn btn-sm btn-primary" wire:loading.attr="disabled">Guardar</button>
                 <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Cerrar</button>
             </div>
         </form>
     </div>
 </div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const modal = document.getElementById('modalMovimientos');
-        if (modal) {
-            $('#modalMovimientos').on('shown.bs.modal', function() {
-                const input = document.getElementById('titulo');
-                if (input) {
-                    input.focus();
-                    input.select();
-                }
-            });
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    $('#modalMovimientos').on('shown.bs.modal', function() {
+        const input = document.getElementById('titulo');
+        if (input) { input.focus(); input.select(); }
     });
+});
 </script>
+

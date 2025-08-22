@@ -9,12 +9,12 @@ class Rubro extends Model
     protected $table = 'rubros';      
     protected $primaryKey = 'id';     
 
-    protected $fillable = [
-        'rubro_madre',
-        'subrubro',
-    ];
+    protected $fillable = ['id','mega_rubro','rubro_madre','subrubro'];
 
     public $timestamps = false;
+
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     public function ubicaciones()
     {

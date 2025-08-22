@@ -8,8 +8,8 @@
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="/">Home</a></li>
-                        <li class="breadcrumb-item active">HC - Mapa</li>
+                        <li class="breadcrumb-item active"><a href="/">Home</a></li>
+                        <li class="breadcrumb-item">Mapa</li>
                     </ol>
                 </div>
             </div>
@@ -20,7 +20,7 @@
                         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
                     <!-- Rubro Filter Checkboxes -->
-                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <div class="mb-3 d-flex flex-wrap gap-2 overflow-auto" style="max-width: 100%;">
                         <div>
                             <h5>Rubros</h5>
                             <div class="form-check form-check-inline">
@@ -33,14 +33,14 @@
                             @endphp
                             @foreach ($ubicaciones as $ubicacion)
                                 @php
-                                    $normalizedRubro = strtolower(trim($ubicacion->rubro->rubro));
+                                    $normalizedRubro = strtolower(trim($ubicacion->rubro->subrubro));
                                 @endphp
                                 @if (!in_array($normalizedRubro, $uniqueRubros))
-                                    <div class="form-check form-check-inline">
+                                    <div class="form-check form-check-inline" style="min-width: 150px;">
                                         <input class="form-check-input rubro-checkbox" type="checkbox"
                                             id="rubro-{{ $normalizedRubro }}" value="{{ $normalizedRubro }}" checked>
                                         <label class="form-check-label"
-                                            for="rubro-{{ $normalizedRubro }}">{{ $ubicacion->rubro->rubro }}</label>
+                                            for="rubro-{{ $normalizedRubro }}">{{ $ubicacion->rubro->subrubro }}</label>
                                     </div>
                                     @php
                                         $uniqueRubros[] = $normalizedRubro;
@@ -52,7 +52,7 @@
 
                     <div class="card">
                         <div class="card-body">
-                            <div id="map" style="height: 500px; 100%;"></div>
+                            <div id="map" style="height: 500px; width: 100%; min-width: 200px;"></div>
                         </div>
                     </div>
 
@@ -79,7 +79,9 @@
                         });
 
                         const ubicaciones = @json($ubicaciones);
+
                         const markers = [];
+                        const markerIconUrl = "https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2_hdpi.png";
 
                         function updateMarkers() {
                             const selectedRubros = Array.from(document.querySelectorAll('input.rubro-checkbox:checked')).map(cb => cb
@@ -88,9 +90,9 @@
                             markers.forEach(marker => marker.remove());
 
                             ubicaciones.forEach(record => {
-                                if (selectedRubros.includes(record.rubro.rubro.toLowerCase().trim())) {
+                                if (selectedRubros.includes(record.rubro.subrubro.toLowerCase().trim())) {
                                     let geocodeURL =
-                                        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(record.direccion)}&key=${googleApiKey}`;
+                                        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(record.domicilio_comercio)}&key=${googleApiKey}`;
 
                                     fetch(geocodeURL)
                                         .then(response => response.json())
@@ -98,11 +100,13 @@
                                             if (georreferencia.results.length > 0) {
                                                 var localizacion = georreferencia.results[0].geometry.location;
 
+                                                // Crea un div para el marcador personalizado pequeño
                                                 const el = document.createElement('div');
-                                                el.className = `${record.rubro.rubro}` == 'Inmobiliaria' ?
-                                                    'text-info font-weight-bold h4' : 'text-danger font-weight-bold h4';
-                                                el.innerHTML = `${record.tipo}`;
-                                                el.title = `${record.razon_social}\n${record.direccion}\n${record.rubro.rubro}`;
+                                                el.style.backgroundImage = `url('${markerIconUrl}')`;
+                                                el.style.width = '30px';
+                                                el.style.height = '30px';
+                                                el.style.backgroundSize = 'contain';
+                                                el.style.backgroundRepeat = 'no-repeat';
 
                                                 const marker = new mapboxgl.Marker(el)
                                                     .setLngLat([localizacion.lng, localizacion.lat])
@@ -113,8 +117,8 @@
                                                     })
                                                     .setHTML(`
                                                 <h3>${record.razon_social}</h3>
-                                                <p><strong>Dirección:</strong> ${record.direccion}</p>
-                                                <p><strong>Rubro:</strong> ${record.rubro.rubro}</p>
+                                                <p><strong>Dirección:</strong> ${record.domicilio_comercio}</p>
+                                                <p><strong>Rubro:</strong> ${record.rubro.subrubro}</p>
                                                 `);
 
                                                 marker.setPopup(popup);

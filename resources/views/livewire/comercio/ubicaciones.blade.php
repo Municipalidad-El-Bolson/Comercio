@@ -1,95 +1,107 @@
-<div class="container">
+<div class="container-fluid px-1 px-md-3">
     <x-confirmation-alert />
     <x-loading-indicator />
     @include('livewire.comercio.form')
     <livewire:comercio.movimiento-modal />
+
     <div class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">HC - Panel Principal</h1>
+                <div class="col-12 col-md-6">
+                    <h1 class="m-0">Panel Principal</h1>
                 </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
+                <div class="col-12 col-md-6">
+                    <ol class="breadcrumb float-md-right">
                         <li class="breadcrumb-item active">Home</li>
-                        <li class="breadcrumb-item active"><a href="/mapas">HC-Mapa</a></li>
                     </ol>
                 </div>
             </div>
         </div>
     </div>
-    <div class="container-fluid">
+
+    <div class="container-fluid px-0">
         <div class="card">
-            {{-- <div class="card-header bg-gradient-info">
-                <h5 class="text-white font-weight-bolder ">Habilitaciones Comerciales</h5>
-            </div> --}}
-            <div class="d-flex justify-content-between mb-2">
-                <div></div> {{-- espacio a la izquierda por si querés algo después --}}
-                <button class="btn btn-primary btn-sm mr-2 mt-2" wire:click="nuevoComercio">
+            <div class="d-flex flex-column flex-md-row justify-content-between mb-2 p-2">
+                <div></div>
+                <button class="btn btn-primary btn-sm mt-2 mt-md-0" wire:click="nuevoComercio">
                     <i class="fa fa-plus mr-1"></i> Nuevo
                 </button>
             </div>
+
             <x-search-input wire:model.live="searchTerm" />
+
             <div class="card-body">
-                <table class="table table-sm table-hover table-bordered">
-                    <thead>
-                        <tr>
-                            <th class="text-sm">Razón Social</th>
-                            <th class="text-sm">Apellido</th>
-                            <th class="text-sm">Nombres</th>
-                            <th class="text-sm">DNI</th>
-                            <th class="text-sm">Rubro</th>
-                            <th class="text-sm">Dirección</th>
-                            <th class="text-sm">Estado</th>
-                            <th class="text-sm">Habilitado</th>
-                            <th colspan="3" class="small text-bold text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($ubicaciones as $ubicacion)
-                            <tr>
-                                <td class="text-sm">{{ $ubicacion->razon_social }}</td>
-                                <td class="text-sm">{{ $ubicacion->apellido }}</td>
-                                <td class="text-sm">{{ $ubicacion->nombres }}</td>
-                                <td class="text-sm">{{ $ubicacion->dni }}</td>
-                                <td class="text-sm">{{ $ubicacion->rubro->rubro }}</td>
-                                <td class="text-sm">{{ $ubicacion->direccion }}</td>
-                                <td class="text-sm">{{ ucfirst($ubicacion->estado) }}</td>
-                                <td class="text-sm text-center">
-                                    @if ($ubicacion->habilitado)
-                                        <span class="badge badge-success">Sí</span>
-                                    @else
-                                        <span class="badge badge-danger">No</span>
-                                    @endif
-                                </td>
-                                <td class="small text-center">
-                                    <a href="#" wire:click.prevent="editaComercio({{ $ubicacion->id }})">
-                                        <i class="fa fa-edit text-info mr-2" data-toggle="tooltip"
-                                            title="Editar Registro"></i>
-                                    </a>
-                                    <a href="#" wire:click="mostrarMovimientos({{ $ubicacion->id }})">
-                                        <i class="fas fa-clipboard-list text-success"></i>
-                                    </a>
-                                    {{-- <a href="#">
-                                        <i class="fas fa-comment-dollar text-danger"
-                                            wire:click.prevent="$emit('abrirModalMovimientos', {{ $ubicacion->id }})"
-                                            title="Tramites"></i>
-                                    </a> --}}
-                                </td>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover table-bordered mb-0">
+                        <thead>
+                            <tr class="text-center">
+                                <th class="text-sm">Persona</th>
+                                <th class="text-sm">Razón Social</th>
+                                <th class="text-sm">Apellido</th>
+                                <th class="text-sm">Nombres</th>
+                                <th class="text-sm">DNI / CUIT</th>
+                                <th class="text-sm">Rubro</th>
+                                <th class="text-sm">Domicilio Comercio</th>
+                                <th class="text-sm">Estado</th>
+                                <th class="text-sm">Situación</th>
+                                <th class="text-sm">Habilitado</th>
+                                <th class="text-sm text-bold text-center">Acciones</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                <div class="d-flex justify-content-center">
+                        </thead>
+                        <tbody>
+                            @forelse ($ubicaciones as $ubicacion)
+                                <tr onclick="window.location='{{ route('comercio.data', $ubicacion) }}'"
+                                    style="cursor:pointer;">
+                                    <td class="text-sm text-center">{{ ucfirst($ubicacion->persona_tipo) }}</td>
+                                    <td class="text-sm">{{ $ubicacion->razon_social }}</td>
+                                    <td class="text-sm">{{ $ubicacion->apellido }}</td>
+                                    <td class="text-sm">{{ $ubicacion->nombres }}</td>
+                                    <td class="text-sm">{{ $ubicacion->dni_cuit }}</td>
+                                    <td class="text-sm">
+                                        {{ $ubicacion->rubro->rubro_madre ?? '' }}
+                                        @if ($ubicacion->rubro->subrubro)
+                                            - {{ $ubicacion->rubro->subrubro }}
+                                        @endif
+                                    </td>
+                                    <td class="text-sm">{{ $ubicacion->domicilio_comercio }}</td>
+                                    <td class="text-sm text-center">
+                                        <span
+                                            class="badge badge-{{ $ubicacion->estado === 'vigente' ? 'success' : ($ubicacion->estado === 'irregular' ? 'danger' : 'warning') }}">
+                                            {{ ucfirst($ubicacion->estado) }}
+                                        </span>
+                                    </td>
+                                    <td class="text-sm text-center">{{ ucfirst($ubicacion->situacion) }}</td>
+                                    <td class="text-sm text-center">
+                                        @if ($ubicacion->habilitado)
+                                            <span class="badge badge-success">Sí</span>
+                                        @else
+                                            <span class="badge badge-danger">No</span>
+                                        @endif
+                                    </td>
+                                    <td class="small text-center">
+                                        <button type="button" class="btn btn-primary btn-sm"
+                                            title="Ver Movimientos / Actas" onclick="event.stopPropagation();"
+                                            wire:click="mostrarMovimientos({{ $ubicacion->id }})">
+                                            Actas
+                                        </button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="11" class="text-center text-muted">No hay registros</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-center mt-3">
                     {{ $ubicaciones->links() }}
                 </div>
-
-
             </div>
         </div>
     </div>
 </div>
-{{-- Llama al modal --}}
+
 <script>
     window.addEventListener('mostrar-modal-movimientos', () => {
         $('#modalMovimientos').modal('show');
