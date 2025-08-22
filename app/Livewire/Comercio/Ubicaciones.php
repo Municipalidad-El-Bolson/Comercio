@@ -20,12 +20,11 @@ class Ubicaciones extends AdminComponent
     public $ubicacion = null;
     public $showEditModal = false;
 
-    public function rubros()
-    {
-        return Rubro::select('id','mega_rubro','rubro_madre','subrubro')
-            ->orderBy('mega_rubro')->orderBy('rubro_madre')->orderBy('subrubro')
-            ->get();
-    }
+    public array $megas   = [];
+    public array $madres  = [];
+    public array $subs    = [];
+    public string $selectedMega  = '';
+    public string $selectedMadre = '';
 
     /** Documentos booleanos soportados (clave => default) */
     protected array $docKeysGeneral = [
@@ -59,10 +58,18 @@ class Ubicaciones extends AdminComponent
             false
         );
 
-        $this->rubros = Rubro::select('id', 'rubro_madre', 'subrubro')
-            ->orderBy('rubro_madre')
-            ->orderBy('subrubro')
-            ->get();
+        // cargar solo los megas (distinct)
+        $this->megas = Rubro::query()
+            ->select('mega_rubro')
+            ->distinct()
+            ->orderBy('mega_rubro')
+            ->pluck('mega_rubro')
+            ->toArray();
+
+        // estado inicial
+        $this->madres = [];
+        $this->subs   = [];
+        
     }
 
     public function updatingSearchTerm() { $this->resetPage(); }
@@ -70,52 +77,104 @@ class Ubicaciones extends AdminComponent
     public function render()
     {
         $ubicaciones = Ubicacion::with(['rubro','estadoModel'])
-            ->where(function ($q) {
-                $q->where('razon_social', 'like', '%' . $this->searchTerm . '%')
-                  ->orWhere('apellido', 'like', '%' . $this->searchTerm . '%')
-                  ->orWhere('nombres', 'like', '%' . $this->searchTerm . '%');
+            ->where(function($q){
+                $t = '%'.$this->searchTerm.'%';
+                $q->where('razon_social','like',$t)
+                  ->orWhere('apellido','like',$t)
+                  ->orWhere('nombres','like',$t);
             })
-            ->orderBy('razon_social')
-            ->paginate(10);
+            ->orderBy('razon_social')->paginate(10);
 
         return view('livewire.comercio.ubicaciones', [
             'ubicaciones' => $ubicaciones,
-            'rubros'      => $this->rubros,
+            // pasamos las listas simples; no $rubros gigante
+            'megas'  => $this->megas,
+            'madres' => $this->madres,
+            'subs'   => $this->subs,
         ])->layout('admin.layouts.app');
     }
-
     /** Botón "Nuevo Comercio" */
     public function nuevoComercio()
     {
-        $this->reset('state', 'ubicacion');
+        $this->reset('state', 'ubicacion', 'selectedMega', 'selectedMadre', 'madres', 'subs');
 
         $this->state = [
-            'persona_tipo'       => 'fisica',     // fisica | juridica
-            'estado'             => 'entramite',  // entramite | vigente | baja
-            'fecha_alta'         => null,
-            'fecha_baja'         => null,
-            'fecha_vto'          => null,
-            'documentos'         => $this->docDefaults,
+            'persona_tipo'  => 'fisica',
+            'estado'        => 'entramite',
+            'fecha_alta'    => null,
+            'fecha_baja'    => null,
+            'fecha_vto'     => null,
+            'rubro_id'      => null,
+            'documentos'    => $this->docDefaults,
         ];
 
         $this->showEditModal = false;
         $this->dispatch('show-form');
     }
 
-    /** Editar Comercio (abre modal con datos + documentos) */
     public function editaComercio(Ubicacion $ubicacion)
     {
         $this->showEditModal = true;
-        $this->ubicacion = $ubicacion->loadMissing('documentos');
+        $this->ubicacion = $ubicacion->loadMissing('documentos', 'rubro');
 
         $this->state = $this->ubicacion->toArray();
         $docs = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
-        $soloDocs = array_intersect_key($docs, $this->docDefaults);
-        $this->state['documentos'] = array_merge($this->docDefaults, $soloDocs);
+        $this->state['documentos'] = array_merge($this->docDefaults, array_intersect_key($docs, $this->docDefaults));
+
+        // Precarga: si hay rubro_id => cargar selectedMega/Madre/Subs coherentes
+        if ($this->ubicacion->rubro_id) {
+            $r = Rubro::find($this->ubicacion->rubro_id);
+            if ($r) {
+                $this->selectedMega  = $r->mega_rubro ?? '';
+                $this->madres = Rubro::where('mega_rubro', $this->selectedMega)
+                    ->select('rubro_madre')->distinct()->orderBy('rubro_madre')->pluck('rubro_madre')->toArray();
+
+                $this->selectedMadre = $r->rubro_madre ?? '';
+                $this->subs = Rubro::where('mega_rubro', $this->selectedMega)
+                    ->where('rubro_madre', $this->selectedMadre)
+                    ->orderBy('subrubro')
+                    ->get(['id','subrubro'])
+                    ->map(fn($x)=>['id'=>$x->id,'sub'=>$x->subrubro])
+                    ->toArray();
+            }
+        }
 
         $this->dispatch('show-form');
     }
 
+    public function updatedSelectedMega($value)
+    {
+        $this->selectedMadre = '';
+        $this->state['rubro_id'] = null;
+
+        $this->madres = $value
+            ? Rubro::where('mega_rubro', $value)
+                ->select('rubro_madre')->distinct()->orderBy('rubro_madre')
+                ->pluck('rubro_madre')->toArray()
+            : [];
+
+        $this->subs = [];
+    }
+    
+
+    /** Cuando cambia el Rubro Madre */
+    public function updatedSelectedMadre($value)
+    {
+        $this->state['rubro_id'] = null;
+
+        $this->subs = ($this->selectedMega && $value)
+            ? Rubro::where('mega_rubro', $this->selectedMega)
+                ->where('rubro_madre', $value)
+                ->orderBy('subrubro')
+                ->get(['id','subrubro'])
+                ->map(fn($x)=>['id'=>$x->id,'sub'=>$x->subrubro])
+                ->toArray()
+            : [];
+    }
+
+    public function onMegaChange() { $this->updatedSelectedMega($this->selectedMega); }
+    public function onMadreChange() { $this->updatedSelectedMadre($this->selectedMadre); }
+    
     /** Crear */
     public function createCliente()
     {
