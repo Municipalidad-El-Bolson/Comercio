@@ -19,34 +19,43 @@
                     <link rel="stylesheet"
                         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
-                    <!-- Rubro Filter Checkboxes -->
-                    <div class="mb-3 d-flex flex-wrap gap-2 overflow-auto" style="max-width: 100%;">
-                        <div>
-                            <h5>Rubros</h5>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox" id="select-all" value="select-all">
-                                <label class="form-check-label text-danger text-bold" for="select-all">Seleccionar
-                                    Todos</label>
+                   <div>
+                    {{-- Filtros --}}
+                    <div class="mb-3">
+                        <div class="form-row">
+                            <div class="form-group col-md-4 mb-2">
+                                <label class="mb-1">Mega rubro</label>
+                                <select id="f-mega" class="form-control form-control-sm" wire:model.live="selectedMega">
+                                    <option value="">-- Seleccione Mega rubro --</option>
+                                    @foreach ($megas as $mega)
+                                        <option value="{{ $mega }}">{{ $mega }}</option>
+                                    @endforeach
+                                </select>
                             </div>
-                            @php
-                                $uniqueRubros = [];
-                            @endphp
-                            @foreach ($ubicaciones as $ubicacion)
-                                @php
-                                    $normalizedRubro = strtolower(trim($ubicacion->rubro->subrubro));
-                                @endphp
-                                @if (!in_array($normalizedRubro, $uniqueRubros))
-                                    <div class="form-check form-check-inline" style="min-width: 150px;">
-                                        <input class="form-check-input rubro-checkbox" type="checkbox"
-                                            id="rubro-{{ $normalizedRubro }}" value="{{ $normalizedRubro }}" checked>
-                                        <label class="form-check-label"
-                                            for="rubro-{{ $normalizedRubro }}">{{ $ubicacion->rubro->subrubro }}</label>
-                                    </div>
-                                    @php
-                                        $uniqueRubros[] = $normalizedRubro;
-                                    @endphp
-                                @endif
-                            @endforeach
+
+                            <div class="form-group col-md-4 mb-2">
+                                <label class="mb-1">Rubro madre</label>
+                                <select id="f-madre" class="form-control form-control-sm"
+                                        wire:model.live="selectedMadre"
+                                        @disabled(empty($selectedMega))>
+                                    <option value="">-- Seleccione Rubro madre --</option>
+                                    @foreach ($madres as $madre)
+                                        <option value="{{ $madre }}">{{ $madre }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="form-group col-md-4 mb-2">
+                                <label class="mb-1">Subrubro</label>
+                                <select id="f-sub" class="form-control form-control-sm"
+                                        wire:model.live="selectedSubId"
+                                        @disabled(empty($selectedMadre))>
+                                    <option value="">-- Seleccione Subrubro --</option>
+                                    @foreach ($subs as $op)
+                                        <option value="{{ $op['id'] }}">{{ $op['sub'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
                     </div>
 

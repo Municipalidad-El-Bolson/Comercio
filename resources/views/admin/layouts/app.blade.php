@@ -29,6 +29,7 @@
     <!-- summernote -->
     <link rel="stylesheet" href="{{ asset('admin/plugins/summernote/summernote-bs4.min.css') }}">
 
+    @vite(['resources/css/app.css','resources/js/app.js'])
     @livewireStyles
 
 </head>
