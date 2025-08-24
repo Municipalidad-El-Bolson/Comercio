@@ -151,80 +151,44 @@
     </div>
   </div>
 
-  {{-- Documentación (card + collapse) --}}
-  @php
-    $docs = optional($ubicacion->documentos)->toArray() ?? [];
-    $generales = [
-      'doc_libre_deuda_municipal'       => 'Certificado de libre deuda municipal',
-      'doc_planeamiento_urbano'         => 'Dirección de Planeamiento Urbano',
-      'doc_solicitud_habilitacion_pago' => 'Solicitud de habilitación + pago',
-      'doc_comprobante_uso_local'       => 'Comprobante de uso del local',
-      'doc_afip_constancia'             => 'Constancia de inscripción AFIP',
-      'doc_recaudacion_rn'              => 'Constancia de inscripción Agencia Recaudación RN',
-      'doc_fotocopia_dni'               => 'Fotocopia de DNI',
-      'doc_comprobante_uso_inmueble'    => 'Comprobante de uso del inmueble',
-      'doc_libre_deuda_tasas_inmueble'  => 'Libre deuda de tasas del inmueble',
-      'doc_aptitud_tecnica_local'       => 'Certificado de aptitud técnica',
-      'doc_cocap_rhi'                   => 'Certificado CO.CA.P.R.HI',
-      'doc_nota_carteleria_obras'       => 'Nota a Obras por cartelería',
-      'doc_libro_actas_100'             => 'Libro de actas (100 hojas)',
-    ];
-    $juridicas = [
-      'doc_acta_constitucion'           => 'Acta de constitución',
-      'doc_contrato_societario'         => 'Contrato societario',
-      'doc_docs_representantes'         => 'Documentación de representantes',
-    ];
-    $esJuridica = ($ubicacion->persona_tipo ?? 'fisica') === 'juridica';
-    $todas = $esJuridica ? array_merge($generales, $juridicas) : $generales;
-    $total = count($todas);
-    $presentadas = collect(array_keys($todas))->filter(fn($k) => (bool)($docs[$k] ?? false))->count();
-    $chip = fn(bool $ok) => $ok ? 'bg-success text-white border-success' : 'bg-light text-muted border-secondary';
-  @endphp
-
-  <div class="card mb-4">
+  {{-- Documentación (card + collapse Livewire-friendly) --}}
+  <div class="card mb-4" x-data="{open:false}">
     <div class="card-header bg-light d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center">
         <strong class="mr-3">Documentación presentada</strong>
-        <span class="badge badge-primary">{{ $presentadas }}/{{ $total }}</span>
+        <span class="badge badge-primary">{{ $docsOK }}/{{ $docsTotal }}</span>
       </div>
-      <button class="btn btn-sm btn-outline-secondary"
-              type="button"
-              data-toggle="collapse"
-              data-target="#docsCollapse"
-              aria-expanded="false"
-              aria-controls="docsCollapse">
-        <span class="mr-1">ver</span>
-        <i class="fas fa-chevron-down"></i>
+      <button class="btn btn-sm btn-outline-secondary" type="button" @click="open=!open">
+        <span class="mr-1" x-text="open ? 'ocultar' : 'ver'"></span>
+        <i :class="open ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
       </button>
     </div>
-    <div id="docsCollapse" class="collapse">
+
+    <div x-show="open" x-cloak x-collapse>
       <div class="card-body">
         <div class="row">
           <div class="col-md-6 mb-3">
             <h6 class="mb-2">Generales</h6>
-            @foreach($generales as $key => $label)
-              @php $ok = (bool)($docs[$key] ?? false); @endphp
-              <div class="mb-2 p-2 rounded border {{ $chip($ok) }}">
+            @foreach($labelsGenerales as $key => $label)
+              @php $ok = !empty($docs[$key] ?? false); @endphp
+              <div class="mb-2 p-2 rounded border {{ $ok ? 'bg-success text-white border-success' : 'bg-light text-muted border-secondary' }}">
                 <div class="d-flex justify-content-between align-items-center">
                   <span class="small">{{ $label }}</span>
-                  <span class="badge {{ $ok ? 'badge-light' : 'badge-secondary' }}">
-                    {{ $ok ? 'Sí' : 'No' }}
-                  </span>
+                  <span class="badge {{ $ok ? 'badge-light' : 'badge-secondary' }}">{{ $ok ? 'Sí' : 'No' }}</span>
                 </div>
               </div>
             @endforeach
           </div>
+
           @if($esJuridica)
             <div class="col-md-6 mb-3">
               <h6 class="mb-2">Personas Jurídicas</h6>
-              @foreach($juridicas as $key => $label)
-                @php $ok = (bool)($docs[$key] ?? false); @endphp
-                <div class="mb-2 p-2 rounded border {{ $chip($ok) }}">
+              @foreach($labelsJuridicas as $key => $label)
+                @php $ok = !empty($docs[$key] ?? false); @endphp
+                <div class="mb-2 p-2 rounded border {{ $ok ? 'bg-success text-white border-success' : 'bg-light text-muted border-secondary' }}">
                   <div class="d-flex justify-content-between align-items-center">
                     <span class="small">{{ $label }}</span>
-                    <span class="badge {{ $ok ? 'badge-light' : 'badge-secondary' }}">
-                      {{ $ok ? 'Sí' : 'No' }}
-                    </span>
+                    <span class="badge {{ $ok ? 'badge-light' : 'badge-secondary' }}">{{ $ok ? 'Sí' : 'No' }}</span>
                   </div>
                 </div>
               @endforeach
