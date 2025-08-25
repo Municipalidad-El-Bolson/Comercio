@@ -39,6 +39,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('register-user') }}" class="nav-link">
+                        <i class="nav-icon fas fa-book-open"></i>
+                        <p>Usuario Nuevo</p>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('mapas') }}" class="nav-link">
                         <i class="nav-icon	fas fa-map-marked-alt"></i>
                         <p>Mapa</p>

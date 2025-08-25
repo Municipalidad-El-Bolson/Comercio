@@ -56,7 +56,7 @@
                             <th class="text-sm">Descripción</th>
                             <th class="text-sm">Archivo</th>
                             <th class="text-sm">Fecha</th>
-                            <th class="text-sm text-center">Eliminar</th>
+                            <th class="text-sm text-center">Acciones</th> {{-- <== CAMBIADO --}}
                         </tr>
                     </thead>
                     <tbody>
@@ -66,42 +66,24 @@
                                 <td class="text-sm">{{ $mov->estado ?? '—' }}</td>
                                 <td class="text-sm">{{ $mov->descripcion ?? '—' }}</td>
                                 <td class="text-sm">
-                                    @php
-                                        $path = $mov->archivo ?? '';
-                                        $exists = $path && \Illuminate\Support\Facades\Storage::disk('public')->exists($path);
-                                    @endphp
-
-                                    @if ($exists)
-                                        @php
-                                            $isImage = preg_match('/\.(jpe?g|png|gif|webp|bmp)$/i', $path);
-                                            $url = route('files.show', ['path' => $path]); // <- sin symlink
-                                        @endphp
-                                        @if ($isImage)
-                                            <a href="{{ $url }}" target="_blank" rel="noopener">
-                                                <img src="{{ $url }}" alt="archivo" style="max-width:80px;max-height:60px;object-fit:cover;">
+                                    @if ($mov->archivo_existe && $mov->archivo_url)
+                                        @if ($mov->archivo_es_imagen)
+                                            <a href="{{ $mov->archivo_url }}" target="_blank" rel="noopener">
+                                                <img src="{{ $mov->archivo_url }}" alt="archivo" style="max-width:80px;max-height:60px;object-fit:cover;">
                                             </a>
                                         @else
-                                            <a href="{{ $url }}" target="_blank" rel="noopener">Ver</a>
-                                    @endif
+                                            <a href="{{ $mov->archivo_url }}" target="_blank" rel="noopener">Ver</a>
+                                        @endif
                                     @else
                                         —
                                     @endif
                                 </td>
-
-                                <td class="text-sm">
-                                    @php
-                                        $base = $mov->fecha ?: $mov->created_at;
-                                        $txt  = $base ? \Illuminate\Support\Carbon::parse($base)->format('d/m/Y H:i') : '—';
-                                    @endphp
-                                    {{ $txt }}
-                                </td>
+                                <td class="text-sm">{{ $mov->fecha_mostrar }}</td>
                                 <td class="text-center">
                                     <button type="button"
-                                            class="btn btn-sm btn-outline-danger"
-                                            onclick="if(!confirm('¿Eliminar este movimiento?')) return false;"
-                                            wire:click.prevent="eliminarMovimiento({{ $mov->id }})"
-                                            wire:loading.attr="disabled">
-                                        Eliminar
+                                        class="btn btn-sm btn-outline-primary"
+                                        wire:click="$dispatch('editarMovimiento', {{ $mov->id }})">
+                                        Editar
                                     </button>
                                 </td>
                             </tr>

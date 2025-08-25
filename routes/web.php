@@ -12,6 +12,7 @@ use App\Livewire\Comercio\ComercioMapa;
 use App\Livewire\Comercio\Historial;
 use App\Livewire\Comercio\Reportes;
 use App\Livewire\Comercio\ComercioData;
+use App\Livewire\Auth\RegisterUser;
 
 Route::redirect('/', '/login');
 
@@ -30,6 +31,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/mapas', ComercioMapa::class)->name('mapas');
     Route::get('/historial', Historial::class)->name('historial');
     Route::get('/reportes', Reportes::class)->name('reportes');
+    Route::get('/register-user', RegisterUser::class)->name('register-user');
 
     Route::get('/comercios/{ubicacion}', ComercioData::class)->name('comercio.data');
 
