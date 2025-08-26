@@ -11,21 +11,28 @@
         </div>
       </div>
 
-      {{-- Filtros --}}
-      <div class="row g-2 mb-3">
-        <div class="col-sm-3">
-          <input class="form-control" type="text" placeholder="Buscar acción/ruta/entidad" wire:model.debounce.400ms="search">
+      <form wire:submit.prevent="filtrar">
+        <div class="row g-2 mb-3">
+          <div class="col-sm-3">
+            <input class="form-control" type="text" placeholder="Buscar acción/ruta/entidad" wire:model.defer="search">
+          </div>
+          <div class="col-sm-2">
+            <input class="form-control" type="date" wire:model.defer="desde">
+          </div>
+          <div class="col-sm-2">
+            <input class="form-control" type="date" wire:model.defer="hasta">
+          </div>
+          <div class="col-sm-3">
+            <input class="form-control" type="text" placeholder="Nombre del usuario" wire:model.defer="adminName">
+          </div>
+          <div class="col-sm-2 d-grid">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-search"></i> Buscar
+            </button>
+          </div>
         </div>
-        <div class="col-sm-2">
-          <input class="form-control" type="date" wire:model="desde">
-        </div>
-        <div class="col-sm-2">
-          <input class="form-control" type="date" wire:model="hasta">
-        </div>
-        <div class="col-sm-3">
-          <input class="form-control" type="number" placeholder="User ID" wire:model="userId">
-        </div>
-      </div>
+      </form>
+
 
       <ol class="list-group list-group-numbered">
         @forelse($items as $log)

@@ -74,8 +74,7 @@ class Reportes extends Component
     {
         $hoy = Carbon::today()->toDateString();
 
-        $base = $this->base(); // aplica rubro/estado si lo setearas, pero para “por estado” conviene ignorar $this->estado:
-        // Si querés ignorar SIEMPRE el filtro estado aquí, usa Ubicacion::query()->when($this->rubro_id,...)
+        $base = $this->base(); 
 
         $vigentes = (clone $base)->where('estado','vigente')->whereDate('fecha_vto','>=',$hoy)->count();
         $vencidos = (clone $base)->where('estado','vigente')->whereDate('fecha_vto','<',$hoy)->count();

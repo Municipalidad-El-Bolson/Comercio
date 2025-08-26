@@ -12,21 +12,31 @@ class Historial extends Component
 {
     use WithPagination;
 
-    public ?int $userId = null;
+    // Filtros
     public string $search = '';
     public ?string $desde = null;
     public ?string $hasta = null;
+    public ?string $adminName = null; // <-- nombre del admin
 
-    protected $queryString = ['userId', 'search', 'desde', 'hasta'];
+    protected $queryString = ['search', 'desde', 'hasta', 'adminName'];
     protected $paginationTheme = 'bootstrap';
 
-    public function updating($field) { if (in_array($field, ['userId','search','desde','hasta'])) $this->resetPage(); }
+    public function updating($field)
+    {
+        if (in_array($field, ['search','desde','hasta','adminName'])) {
+            $this->resetPage();
+        }
+    }
+
+    public function filtrar()
+    {
+        $this->resetPage();
+    }
 
     public function render()
     {
         $q = AuditLog::with('user')->latest();
 
-        if ($this->userId) $q->where('user_id', $this->userId);
         if ($this->search !== '') {
             $q->where(function($w){
                 $w->where('action', 'like', "%{$this->search}%")
@@ -34,11 +44,19 @@ class Historial extends Component
                   ->orWhere('path', 'like', "%{$this->search}%");
             });
         }
+
         if ($this->desde) $q->where('created_at', '>=', $this->desde.' 00:00:00');
         if ($this->hasta) $q->where('created_at', '<=', $this->hasta.' 23:59:59');
+
+        if ($this->adminName) {
+            $q->whereHas('user', fn($u) =>
+                $u->where('name', 'like', "%{$this->adminName}%")
+            );
+        }
 
         return view('livewire.comercio.historial', [
             'items' => $q->paginate(15),
         ]);
     }
 }
+
