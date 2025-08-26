@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use App\Models\ComercioEstado;
 use Illuminate\Support\Str;
+use App\Traits\AuditsModelChanges;
 
 class Ubicacion extends Model
 {
+    use AuditsModelChanges;
+    
     protected $table = 'ubicaciones';
 
     use HasFactory;
@@ -141,6 +144,20 @@ class Ubicacion extends Model
         // Volver a pegar el sufijo correcto, una sola vez
         return $dir . $suffix;
     }
+
+    public function auditMessage(string $action, array $meta = []): string
+    {
+        // ajustá el campo que tenga el “nombre” real de la ubicación:
+        $nombre = $this->nombre ?? $this->razon_social ?? ('#'.$this->getKey());
+
+        return match ($action) {
+            'created' => "Se creó la ubicación {$nombre}",
+            'updated' => "Se actualizó la ubicación {$nombre}",
+            'deleted' => "Se eliminó la ubicación {$nombre}",
+            default   => "Ubicación {$nombre}: {$action}",
+        };
+    }
+
 
 
     protected $fillable = [

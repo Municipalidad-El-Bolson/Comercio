@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\AuditsModelChanges;
 
 class Movimiento extends Model
 {
+    use AuditsModelChanges;
+    
     protected $fillable = [
         'ubicacion_id',
         'tipo',

@@ -18,7 +18,7 @@
     <div style="margin-bottom:10px;">
       <label><input type="checkbox" name="remember"> Recordarme</label>
     </div>
-    @if ($errors->any())
+    @if (isset($errors) && $errors->any())
       <div style="color:#d00;margin-bottom:10px;">{{ $errors->first() }}</div>
     @endif
     <button type="submit" style="width:100%;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:6px;">Entrar</button>
