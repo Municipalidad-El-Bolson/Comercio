@@ -17,25 +17,19 @@ class Ubicacion extends Model
 
     use HasFactory;
 
-    public function rubro()
-    {
-        return $this->belongsTo(Rubro::class, 'rubro_id');
-    }
+    public function scopeVigentes($q) { return $q->where('estado','vigente')->whereDate('fecha_vto','>=',now()); }
+    public function scopeVencidos($q) { return $q->where('estado','vigente')->whereDate('fecha_vto','<',now()); }
+    public function scopeEnTramite($q){ return $q->where('estado','entramite'); }
+    public function scopeClausurados($q){ return $q->where('estado','irregular'); }
 
-    public function documentos()
-    {
-        return $this->hasOne(UbicacionDocumento::class);
-    }
 
-    public function movimientos()
-    {
-        return $this->hasMany(Movimiento::class);
-    }
+    public function rubro(){ return $this->belongsTo(Rubro::class, 'rubro_id'); }
 
-    public function estadoModel()
-    {
-        return $this->belongsTo(ComercioEstado::class, 'estado', 'codigo');
-    }
+    public function documentos(){ return $this->hasOne(UbicacionDocumento::class);}
+
+    public function movimientos(){ return $this->hasMany(Movimiento::class);}
+
+    public function estadoModel(){ return $this->belongsTo(ComercioEstado::class, 'estado', 'codigo');}
 
     protected static function booted()
     {
@@ -101,10 +95,7 @@ class Ubicacion extends Model
     }
 
     // Para la UI
-    public function getHabilitaSeguimientoAttribute(): bool
-    {
-        return (bool) optional($this->estadoModel)->habilita_seguimiento;
-    }
+    public function getHabilitaSeguimientoAttribute(): bool{ return (bool) optional($this->estadoModel)->habilita_seguimiento;}
 
 
     private static function normalizeDireccionComercio(?string $dir): ?string
@@ -157,8 +148,6 @@ class Ubicacion extends Model
             default   => "Ubicación {$nombre}: {$action}",
         };
     }
-
-
 
     protected $fillable = [
         'persona_tipo',
