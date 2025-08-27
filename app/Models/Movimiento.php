@@ -27,6 +27,8 @@ class Movimiento extends Model
         'updated_at'  => 'datetime',
     ];
 
+    public $timestamps = true;
+    
     public function ubicacion()
     {
         return $this->belongsTo(\App\Models\Ubicacion::class);
