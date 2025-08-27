@@ -44,7 +44,6 @@
                                 <th class="text-sm">Domicilio Comercio</th>
                                 <th class="text-sm">Estado</th>
                                 <th class="text-sm">Situación</th>
-                                <th class="text-sm">Habilitado</th>
                                 <th class="text-sm text-bold text-center">Acciones</th>
                             </tr>
                         </thead>
@@ -58,32 +57,19 @@
                                     <td class="text-sm">{{ $ubicacion->nombres }}</td>
                                     <td class="text-sm">{{ $ubicacion->dni_cuit }}</td>
                                     <td class="text-sm">
-                                        {{ $ubicacion->rubro->rubro_madre ?? '' }}
-                                        @if ($ubicacion->rubro->subrubro)
-                                            - {{ $ubicacion->rubro->subrubro }}
-                                        @endif
+                                        {{ data_get($ubicacion, 'rubro.subrubro', '') }}
                                     </td>
+
                                     <td class="text-sm">{{ $ubicacion->domicilio_comercio }}</td>
                                     <td class="text-sm text-center">
-                                        <span
-                                            class="badge badge-{{ $ubicacion->estado === 'vigente' ? 'success' : ($ubicacion->estado === 'irregular' ? 'danger' : 'warning') }}">
-                                            {{ ucfirst($ubicacion->estado) }}
-                                        </span>
+                                        <span class="badge badge-{{ $ubicacion->estado === 'vigente' ? 'success' : ($ubicacion->estado === 'irregular' ? 'danger' : 'warning') }}">{{ ucfirst($ubicacion->estado) }}</span>
                                     </td>
-                                    <td class="text-sm text-center">{{ ucfirst($ubicacion->situacion) }}</td>
                                     <td class="text-sm text-center">
-                                        @if ($ubicacion->habilitado)
-                                            <span class="badge badge-success">Sí</span>
-                                        @else
-                                            <span class="badge badge-danger">No</span>
-                                        @endif
+                                        {{ ucfirst($ubicacion->situacion) }}
                                     </td>
                                     <td class="small text-center">
-                                        <button type="button" class="btn btn-primary btn-sm"
-                                            title="Ver Movimientos / Actas" onclick="event.stopPropagation();"
-                                            wire:click="mostrarMovimientos({{ $ubicacion->id }})">
-                                            Actas
-                                        </button>
+                                        <button type="button" class="btn btn-primary btn-sm" title="Ver Movimientos / Actas" onclick="event.stopPropagation();" wire:click="mostrarMovimientos({{ $ubicacion->id }})">Actas</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" title="Ver mapa" onclick="event.stopPropagation();" wire:click="abrirMapa({{ $ubicacion->id }})">Mapa</button>
                                     </td>
                                 </tr>
                             @empty
@@ -98,12 +84,30 @@
                     {{ $ubicaciones->links() }}
                 </div>
             </div>
+            @include('livewire.comercio.mapa-modal')
         </div>
     </div>
 </div>
 
 <script>
-    window.addEventListener('mostrar-modal-movimientos', () => {
-        $('#modalMovimientos').modal('show');
+    window.addEventListener('mostrar-modal-mapa', async (e) => {
+    const payload = e.detail?.payload ?? e.detail ?? {};
+
+    renderInfo(payload);
+
+    const hasLatLng = payload.lat != null && payload.lng != null;
+
+    if (hasLatLng) {
+      initOrUpdateMap({
+        lat: payload.lat,
+        lng: payload.lng,
+        razon: payload.razon,
+        domicilio: payload.domicilio,
+        subrubro: payload.subrubro
+      });
+      $('#modalMapa').modal('show');
+      return;
+    }
     });
+    window.addEventListener('mostrar-modal-movimientos', () => {$('#modalMovimientos').modal('show');});
 </script>

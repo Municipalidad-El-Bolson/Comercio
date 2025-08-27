@@ -10,6 +10,7 @@ use App\Models\ComercioEstado;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Livewire\WithPagination;
+use Livewire\Attributes\On;
 
 class Ubicaciones extends AdminComponent
 {
@@ -51,6 +52,30 @@ class Ubicaciones extends AdminComponent
 
     protected array $docDefaults = [];
 
+    public ?int $ubicacionIdParaMapa = null;
+
+    public function abrirMapa(int $id): void
+    {
+        $u = Ubicacion::with('rubro:id,subrubro')->findOrFail($id);
+
+
+        $payload = [
+            'id'        => $u->id,
+            'razon'     => $u->razon_social,
+            'dni_cuit'  => $u->dni_cuit,
+            'persona'   => ucfirst($u->persona_tipo),
+            'estado'    => ucfirst($u->estado),
+            'situacion' => ucfirst($u->situacion),
+            'domicilio' => $u->domicilio_comercio,
+            'subrubro'  => optional($u->rubro)->subrubro,
+            'lat'       => $u->lat,
+            'lng'       => $u->lng,
+        ];
+
+        $this->dispatch('mostrar-modal-mapa', payload: $payload);
+    }
+
+
     public function mount()
     {
         $this->docDefaults = array_fill_keys(
@@ -58,7 +83,6 @@ class Ubicaciones extends AdminComponent
             false
         );
 
-        // cargar solo los megas (distinct)
         $this->megas = Rubro::query()
             ->select('mega_rubro')
             ->distinct()
@@ -66,7 +90,6 @@ class Ubicaciones extends AdminComponent
             ->pluck('mega_rubro')
             ->toArray();
 
-        // estado inicial
         $this->madres = [];
         $this->subs   = [];
         
