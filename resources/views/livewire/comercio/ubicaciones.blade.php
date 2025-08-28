@@ -44,7 +44,8 @@
                                 <th class="text-sm">Domicilio Comercio</th>
                                 <th class="text-sm">Estado</th>
                                 <th class="text-sm">Situación</th>
-                                <th class="text-sm text-bold text-center">Acciones</th>
+                                <th class="text-sm text-bold text-center">Subir Actas</th>
+                                <th class="text-sm text-bold text-center">Ver Mapas</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -69,6 +70,8 @@
                                     </td>
                                     <td class="small text-center">
                                         <button type="button" class="btn btn-primary btn-sm" title="Ver Movimientos / Actas" onclick="event.stopPropagation();" wire:click="mostrarMovimientos({{ $ubicacion->id }})">Actas</button>
+                                    </td>
+                                    <td class="small text-center">
                                         <button type="button" class="btn btn-outline-secondary btn-sm" title="Ver mapa" onclick="event.stopPropagation();" wire:click="abrirMapa({{ $ubicacion->id }})">Mapa</button>
                                     </td>
                                 </tr>

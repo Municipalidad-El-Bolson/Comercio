@@ -10,6 +10,7 @@ use App\Models\ComercioEstado;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Livewire\WithPagination;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 
 class Ubicaciones extends AdminComponent
@@ -58,7 +59,6 @@ class Ubicaciones extends AdminComponent
     {
         $u = Ubicacion::with('rubro:id,subrubro')->findOrFail($id);
 
-
         $payload = [
             'id'        => $u->id,
             'razon'     => $u->razon_social,
@@ -74,7 +74,6 @@ class Ubicaciones extends AdminComponent
 
         $this->dispatch('mostrar-modal-mapa', payload: $payload);
     }
-
 
     public function mount()
     {
@@ -92,7 +91,6 @@ class Ubicaciones extends AdminComponent
 
         $this->madres = [];
         $this->subs   = [];
-        
     }
 
     public function updatingSearchTerm() { $this->resetPage(); }
@@ -110,12 +108,12 @@ class Ubicaciones extends AdminComponent
 
         return view('livewire.comercio.ubicaciones', [
             'ubicaciones' => $ubicaciones,
-            // pasamos las listas simples; no $rubros gigante
             'megas'  => $this->megas,
             'madres' => $this->madres,
             'subs'   => $this->subs,
         ])->layout('admin.layouts.app');
     }
+
     /** Botón "Nuevo Comercio" */
     public function nuevoComercio()
     {
@@ -128,6 +126,18 @@ class Ubicaciones extends AdminComponent
             'fecha_baja'    => null,
             'fecha_vto'     => null,
             'rubro_id'      => null,
+            'dni_cuit'      => '',
+            'apellido'      => '',
+            'nombres'       => '',
+            'razon_social'  => '',
+            'nombre_comercial' => '',
+            'domicilio_responsable' => '',
+            'domicilio_comercio'    => '',
+            'correo'        => '',
+            'telefono'      => '',
+            'nomenclatura'  => '',
+            'monto_pagar'   => null,
+            'observaciones' => '',
             'documentos'    => $this->docDefaults,
         ];
 
@@ -144,7 +154,6 @@ class Ubicaciones extends AdminComponent
         $docs = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
         $this->state['documentos'] = array_merge($this->docDefaults, array_intersect_key($docs, $this->docDefaults));
 
-        // Precarga: si hay rubro_id => cargar selectedMega/Madre/Subs coherentes
         if ($this->ubicacion->rubro_id) {
             $r = Rubro::find($this->ubicacion->rubro_id);
             if ($r) {
@@ -178,7 +187,6 @@ class Ubicaciones extends AdminComponent
 
         $this->subs = [];
     }
-    
 
     /** Cuando cambia el Rubro Madre */
     public function updatedSelectedMadre($value)
@@ -197,75 +205,147 @@ class Ubicaciones extends AdminComponent
 
     public function onMegaChange() { $this->updatedSelectedMega($this->selectedMega); }
     public function onMadreChange() { $this->updatedSelectedMadre($this->selectedMadre); }
-    
-    /** Crear */
-    public function createCliente()
+
+    /** ===== Helpers de reglas ===== */
+
+    private function reglasComunes(bool $isUpdate = false): array
     {
-        $rulesBase = [
-            'persona_tipo'          => 'required|in:fisica,juridica',
-            'apellido'              => 'nullable|string',
-            'nombres'               => 'nullable|string',
-            'razon_social'          => 'nullable|string',
-            'dni_cuit'              => 'required|string',
-            'rubro_id'              => 'required|exists:rubros,id',
+        // Unique para dni_cuit
+        $uniqueDniCuit = Rule::unique('ubicaciones', 'dni_cuit'); // ajustar si la tabla es otra
+        if ($isUpdate && $this->ubicacion?->id) {
+            $uniqueDniCuit = $uniqueDniCuit->ignore($this->ubicacion->id);
+        }
 
-            'domicilio_responsable' => 'required|string',
-            'correo'                => 'nullable|email',
-            'telefono'              => 'nullable|string',
-            'nombre_comercial'      => 'nullable|string',
-            'domicilio_comercio'    => 'required|string',
-            'nomenclatura'          => 'nullable|string',
-            'observaciones'         => 'nullable|string',
+        $rules = [
+            'state.persona_tipo'          => ['required', Rule::in(['fisica','juridica'])],
+            'state.dni_cuit'              => ['bail','required', 'string', $uniqueDniCuit, 'regex:/^\d{7,8}$|^\d{11}$/', function ($attr, $value, $fail) {
+                if (strlen(preg_replace('/\D/','', $value)) === 11 && !$this->isValidCuit($value)) {
+                    $fail('El CUIT no es válido.');
+                }
+            }],
+            'state.rubro_id'              => ['required','exists:rubros,id'],
 
-            'estado'                => 'required|in:entramite,vigente,baja',
-            'fecha_alta'            => 'nullable|date',
-            'fecha_baja'            => 'nullable|date',
-            'fecha_vto'             => 'nullable|date',
-            'documentos'            => 'array',
+            'state.apellido'              => ['nullable','string','min:2','max:60'],
+            'state.nombres'               => ['nullable','string','min:2','max:80'],
+            'state.razon_social'          => ['nullable','string','min:2','max:120'],
+            'state.nombre_comercial'      => ['nullable','string','min:2','max:120'],
+
+            'state.domicilio_responsable' => ['required','string','min:3','max:160'],
+            'state.domicilio_comercio'    => ['required','string','min:3','max:160'],
+            'state.correo'                => ['nullable','email:rfc,dns','max:120'],
+            'state.telefono'              => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
+            'state.nomenclatura'          => ['nullable','string','max:80'],
+            'state.monto_pagar'           => ['nullable','numeric','min:0','regex:/^\d{1,9}(\.\d{1,2})?$/'],
+            'state.observaciones'         => ['nullable','string','max:500'],
+
+            'state.estado'                => ['required', Rule::in(['entramite','vigente','irregular','baja'])],
+            'state.fecha_alta'            => ['nullable','date'],
+            'state.fecha_baja'            => ['nullable','date'],
+            'state.fecha_vto'             => ['nullable','date'],
+
+            'state.documentos'            => ['array'],
         ];
 
-        $rules = array_merge($rulesBase, $this->reglasFechasPorEstado(true));
-
-        // Reglas booleanas para todos los docs
+        // Documentos booleanos
         foreach (array_keys($this->docDefaults) as $key) {
-            $rules["documentos.$key"] = 'boolean';
+            $rules["state.documentos.$key"] = ['boolean'];
         }
 
-        // Reglas identidad
+        // Condicionales persona
         if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
-            $rules['apellido'] = 'required|string';
-            $rules['nombres']  = 'required|string';
+            $rules['state.apellido'] = ['required','string','min:2','max:60'];
+            $rules['state.nombres']  = ['required','string','min:2','max:80'];
         } else {
-            $rules['razon_social'] = 'required|string';
+            $rules['state.razon_social'] = ['required','string','min:2','max:120'];
         }
 
-        // Ajustar por flags del estado (oculta/ignora fechas que no aplican)
+        return $rules;
+    }
+
+    private function mensajes(): array
+    {
+        return [
+            'state.apellido.min'           => 'El apellido debe tener al menos :min caracteres.',
+            'state.nombres.min'            => 'Los nombres deben tener al menos :min caracteres.',
+            'state.nombre_comercial.min'   => 'El nombre comercial debe tener al menos :min caracteres.',
+
+            'state.persona_tipo.required' => 'Seleccioná el tipo de persona.',
+            'state.persona_tipo.in'       => 'El tipo debe ser física o jurídica.',
+            'state.dni_cuit.required'     => 'Ingresá DNI o CUIT.',
+            'state.dni_cuit.regex'        => 'Usá DNI (7–8 dígitos) o CUIT (11 dígitos).',
+            'state.dni_cuit.unique'       => 'Ya existe un registro con ese DNI/CUIT.',
+            'state.rubro_id.required'     => 'Seleccioná el subrubro.',
+            'state.rubro_id.exists'       => 'El subrubro seleccionado no es válido.',
+
+            'state.apellido.required'     => 'El apellido es obligatorio.',
+            'state.nombres.required'      => 'Los nombres son obligatorios.',
+            'state.razon_social.required' => 'La razón social es obligatoria.',
+
+            'state.domicilio_responsable.required' => 'Ingresá el domicilio del responsable.',
+            'state.domicilio_comercio.required'    => 'Ingresá el domicilio del comercio.',
+            'state.correo.email'                   => 'Ingresá un correo válido.',
+            'state.telefono.regex'                 => 'Formato de teléfono inválido.',
+            'state.monto_pagar.numeric'            => 'El monto debe ser numérico.',
+            'state.monto_pagar.regex'              => 'Usá hasta 2 decimales (ej: 123.45).',
+            'state.estado.required'                => 'Seleccioná el estado.',
+        ];
+    }
+
+    
+    private function atributos(): array
+    {
+        return [
+            'state.persona_tipo'          => 'tipo de persona',
+            'state.dni_cuit'              => 'DNI/CUIT',
+            'state.apellido'              => 'apellido',
+            'state.nombres'               => 'nombres',
+            'state.razon_social'          => 'razón social',
+            'state.nombre_comercial'      => 'nombre comercial',
+            'state.domicilio_responsable' => 'domicilio del responsable',
+            'state.domicilio_comercio'    => 'domicilio del comercio',
+            'state.correo'                => 'correo electrónico',
+            'state.telefono'              => 'teléfono',
+            'state.nomenclatura'          => 'nomenclatura',
+            'state.monto_pagar'           => 'monto a pagar',
+            'state.estado'                => 'estado',
+            'state.fecha_alta'            => 'fecha de alta',
+            'state.fecha_baja'            => 'fecha de baja',
+            'state.fecha_vto'             => 'fecha de vencimiento',
+        ];
+    }
+
+    /**Crear*/
+    public function createCliente()
+    {
         $this->aplicarFlagsEstadoEnState();
 
-        $validated = Validator::make($this->state, $rules)->validate();
+        $validated = $this->validate(
+            array_merge($this->reglasComunes(false), $this->reglasFechasPorEstado(true)),
+            $this->mensajes(),
+            $this->atributos()
+        );
 
-        // Formateos de texto
+        $data = $validated['state'];
+
+        // Formateos
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
-            if (!empty($validated[$c])) $validated[$c] = Str::title($validated[$c]);
+            if (!empty($data[$c])) $data[$c] = Str::title($data[$c]);
         }
 
         // Identidad coherente
-        $esFisica = ($validated['persona_tipo'] ?? 'fisica') === 'fisica';
+        $esFisica = ($data['persona_tipo'] ?? 'fisica') === 'fisica';
         if ($esFisica) {
-            $validated['razon_social'] = $validated['razon_social'] ?? null;
+            $data['razon_social'] = $data['razon_social'] ?? null;
         } else {
-            $validated['apellido'] = $validated['apellido'] ?? null;
-            $validated['nombres']  = $validated['nombres']  ?? null;
+            $data['apellido'] = $data['apellido'] ?? null;
+            $data['nombres']  = $data['nombres']  ?? null;
         }
 
-        // Campos legacy fuera
-        unset($validated['dni'], $validated['direccion'], $validated['tipo']);
-
         // Documentos
-        $documentos = $validated['documentos'] ?? [];
-        unset($validated['documentos']);
+        $documentos = $data['documentos'] ?? [];
+        unset($data['documentos']);
 
-        // Mapeos de nombres que usás en el form
+        // Mapeos opcionales de documentos
         if (array_key_exists('doc_afip_constancia', $documentos)) {
             if (($this->state['persona_tipo'] ?? 'fisica') === 'juridica') {
                 $documentos['doc_afip_constancia_juridica'] = (bool)$documentos['doc_afip_constancia'];
@@ -279,17 +359,16 @@ class Ubicaciones extends AdminComponent
             unset($documentos['doc_recaudacion_rn']);
         }
 
-        // Filtrar a columnas válidas
+        // Crear Ubicación
+        $ubic = Ubicacion::create($data);
+
+        // Guardar checklist (hasOne)
         $permitidos = array_flip((new UbicacionDocumento)->getFillable());
         $documentos = array_intersect_key($documentos, $permitidos);
         foreach ($permitidos as $campo => $_) {
             $documentos[$campo] = (bool)($documentos[$campo] ?? false);
         }
 
-        // Crear Ubicación (el modelo setea fechas según estado en saving())
-        $ubic = Ubicacion::create($validated);
-
-        // Guardar checklist (hasOne)
         $ubic->documentos()->updateOrCreate(
             ['ubicacion_id' => $ubic->id],
             array_merge($this->docDefaults, $documentos, ['ubicacion_id' => $ubic->id])
@@ -304,67 +383,33 @@ class Ubicaciones extends AdminComponent
     /** Actualizar */
     public function updateComercio()
     {
-        $rulesBase  = [
-            'persona_tipo'          => 'required|in:fisica,juridica',
-            'apellido'              => 'nullable|string',
-            'nombres'               => 'nullable|string',
-            'razon_social'          => 'nullable|string',
-            'dni_cuit'              => 'required|string',
-            'rubro_id'              => 'required|exists:rubros,id',
-
-            'domicilio_responsable' => 'required|string',
-            'correo'                => 'nullable|email',
-            'telefono'              => 'nullable|string',
-            'nombre_comercial'      => 'nullable|string',
-            'domicilio_comercio'    => 'required|string',
-            'nomenclatura'          => 'nullable|string',
-            'observaciones'         => 'nullable|string',
-
-            'estado'                => 'required|in:entramite,vigente,baja',
-            'fecha_alta'            => 'nullable|date',
-            'fecha_baja'            => 'nullable|date',
-            'fecha_vto'             => 'nullable|date',
-            'documentos'            => 'array',
-        ];
-        
-        $rules = array_merge($rulesBase, $this->reglasFechasPorEstado(false));
-
-
-        foreach (array_keys($this->docDefaults) as $key) {
-            $rules["documentos.$key"] = 'boolean';
-        }
-
-        if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
-            $rules['apellido'] = 'required|string';
-            $rules['nombres']  = 'required|string';
-        } else {
-            $rules['razon_social'] = 'required|string';
-        }
-
-        // Flags por estado
         $this->aplicarFlagsEstadoEnState();
 
-        $validated = Validator::make($this->state, $rules)->validate();
+        $validated = $this->validate(
+            array_merge($this->reglasComunes(true), $this->reglasFechasPorEstado(false)),
+            $this->mensajes(),
+            $this->atributos()
+        );
+
+        $data = $validated['state'];
 
         // Formateos
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
-            if (!empty($validated[$c])) $validated[$c] = Str::title($validated[$c]);
+            if (!empty($data[$c])) $data[$c] = Str::title($data[$c]);
         }
 
         // Identidad coherente
-        $esFisica = ($validated['persona_tipo'] ?? 'fisica') === 'fisica';
+        $esFisica = ($data['persona_tipo'] ?? 'fisica') === 'fisica';
         if ($esFisica) {
-            $validated['razon_social'] = $validated['razon_social'] ?? null;
+            $data['razon_social'] = $data['razon_social'] ?? null;
         } else {
-            $validated['apellido'] = $validated['apellido'] ?? null;
-            $validated['nombres']  = $validated['nombres']  ?? null;
+            $data['apellido'] = $data['apellido'] ?? null;
+            $data['nombres']  = $data['nombres']  ?? null;
         }
-        
-        unset($validated['dni'], $validated['direccion'], $validated['tipo']);
 
         // Documentos
-        $documentos = $validated['documentos'] ?? [];
-        unset($validated['documentos']);
+        $documentos = $data['documentos'] ?? [];
+        unset($data['documentos']);
 
         if (array_key_exists('doc_afip_constancia', $documentos)) {
             if (($this->state['persona_tipo'] ?? 'fisica') === 'juridica') {
@@ -379,11 +424,12 @@ class Ubicaciones extends AdminComponent
             unset($documentos['doc_recaudacion_rn']);
         }
 
+        // Filtrar a columnas válidas en documentos
         $permitidos = array_flip((new UbicacionDocumento)->getFillable());
         $documentos = array_intersect_key($documentos, $permitidos);
 
         // Guardar Ubicación (el modelo normaliza fechas por estado)
-        $this->ubicacion->update($validated);
+        $this->ubicacion->update($data);
 
         // Guardar checklist (crea si no existe)
         $this->ubicacion->documentos()->updateOrCreate(
@@ -434,10 +480,8 @@ class Ubicaciones extends AdminComponent
         $this->dispatch('abrirModalMovimientos', $id);
     }
 
-    /**
-     * Aplica los flags del estado seleccionado sobre $this->state,
-     * para que el form no exija/guarde fechas que no correspondan.
-     */
+    /*Flags y reglas por estado*/
+
     private function aplicarFlagsEstadoEnState(): void
     {
         $codigo = $this->state['estado'] ?? 'entramite';
@@ -454,44 +498,53 @@ class Ubicaciones extends AdminComponent
     {
         $estado = $this->state['estado'] ?? 'entramite';
         $reglas = [
-            'fecha_alta' => 'nullable|date',
-            'fecha_baja' => 'nullable|date',
-            'fecha_vto'  => 'nullable|date',
+            'state.fecha_alta' => 'nullable|date',
+            'state.fecha_baja' => 'nullable|date',
+            'state.fecha_vto'  => 'nullable|date',
         ];
 
         switch ($estado) {
             case 'entramite':
-                // nada requerido
                 break;
 
             case 'vigente':
                 if ($esCreate) {
-                    // alta inicial de un comercio ya vigente -> requiere fecha_alta
-                    $reglas['fecha_alta'] = 'required|date';
+                    $reglas['state.fecha_alta'] = 'required|date';
                 } else {
-                    // si venía de 'entramite', se podrá dejar vacía (el modelo la pondrá HOY)
                     $prev = $this->ubicacion?->getOriginal('estado') ?? null;
                     if ($prev !== 'entramite') {
-                        $reglas['fecha_alta'] = 'required|date';
+                        $reglas['state.fecha_alta'] = 'required|date';
                     }
                 }
                 break;
 
             case 'irregular':
-                $reglas['fecha_alta'] = 'required|date';
+                $reglas['state.fecha_alta'] = 'required|date';
                 break;
 
             case 'baja':
-                // Debe tener alta (si no venía con una)
                 if (empty($this->state['fecha_alta']) && empty($this->ubicacion?->fecha_alta)) {
-                    $reglas['fecha_alta'] = 'required|date';
+                    $reglas['state.fecha_alta'] = 'required|date';
                 }
-                // fecha_baja NO se pide: la pone el modelo como HOY
-                $reglas['fecha_baja'] = 'nullable';
-                $reglas['fecha_vto']  = 'nullable';
+                // modelo pone fecha_baja HOY; dejamos nullable acá
+                $reglas['state.fecha_baja'] = 'nullable';
+                $reglas['state.fecha_vto']  = 'nullable';
                 break;
         }
         return $reglas;
     }
 
+    /*CUIT*/
+    private function isValidCuit(string $cuit): bool
+    {
+        $cuit = preg_replace('/\D/','', $cuit);
+        if (!preg_match('/^\d{11}$/', $cuit)) return false;
+        $digits = array_map('intval', str_split($cuit));
+        $weights = [5,4,3,2,7,6,5,4,3,2];
+        $sum = 0;
+        for ($i=0; $i<10; $i++) $sum += $digits[$i] * $weights[$i];
+        $mod = $sum % 11;
+        $check = $mod === 0 ? 0 : ($mod === 1 ? 9 : 11 - $mod);
+        return $check === $digits[10];
+    }
 }
