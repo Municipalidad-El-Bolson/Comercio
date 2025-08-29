@@ -1,6 +1,7 @@
 <div class="container-fluid px-1 px-md-3">
     <x-confirmation-alert />
     <x-loading-indicator />
+    @include('livewire.comercio.form')
     <livewire:comercio.movimiento-modal />
 
     <div class="content-header">
@@ -87,7 +88,6 @@
                 </div>
             </div>
             @include('livewire.comercio.mapa-modal')
-            @include('livewire.comercio.form')
         </div>
     </div>
 </div>
