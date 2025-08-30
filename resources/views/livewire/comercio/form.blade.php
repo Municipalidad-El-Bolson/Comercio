@@ -124,7 +124,7 @@
           <div class="form-group col-md-4 mb-2">
             <label class="mb-1">Mega rubro</label>
             <select class="form-control form-control-sm"
-                    wire:model.live="selectedMega" wire:change="onMegaChange">
+                    wire:model.live="selectedMega">
               <option value="">-- Seleccione Mega rubro --</option>
               @foreach ($megas ?? [] as $mega)
                 <option value="{{ $mega }}">{{ $mega }}</option>
@@ -135,7 +135,7 @@
           <div class="form-group col-md-4 mb-2">
             <label class="mb-1">Rubro madre</label>
             <select class="form-control form-control-sm"
-                    wire:model.live="selectedMadre" wire:change="onMadreChange"
+                    wire:model.live="selectedMadre"
                     @disabled(empty($selectedMega))>
               <option value="">-- Seleccione Rubro madre --</option>
               @foreach ($madres ?? [] as $madre)
@@ -158,14 +158,19 @@
           </div>
         </div>
 
-        @php $estado = $state['estado'] ?? 'entramite'; @endphp
+        @php
+          $estadoActual = data_get($state, 'estado'); // solo para las fechas de abajo
+        @endphp
 
-        <div class="form-row align-items-end">
+        <div class="form-row">
+          {{-- Estado --}}
           <div class="form-group col-md-4 mb-2">
             <label class="mb-1" for="estado">Estado</label>
-            <select id="estado" wire:model.defer="state.estado"
-              class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
-              <option value="entramite">En Trámite</option>
+            <select id="estado"
+                    wire:model.live="state.estado"
+                    class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
+              <option value="">-- Seleccioná estado --</option>
+              <option value="entramite">En trámite</option>
               <option value="vigente">Vigente</option>
               <option value="irregular">Irregular</option>
               <option value="baja">Baja</option>
@@ -173,37 +178,57 @@
             @error('state.estado') <div class="invalid-feedback">{{ $message }}</div> @enderror
           </div>
 
-          <div class="form-group col-md-4 mb-2 {{ in_array($estado, ['entramite']) ? 'd-none' : '' }}" id="grp-fecha-alta">
-            <label class="mb-1" for="fecha_alta">Fecha de alta</label>
-            <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta"
-              class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
-            @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            @if($showEditModal)
-              <small class="form-text text-muted d-none" id="ayuda-vigente-desde-tramite">
-                Si cambiás de <em>En trámite</em> a <em>Vigente</em> podés dejarla vacía: se usa la fecha de hoy.
-              </small>
-            @endif
+          {{-- Tipo de habilitación (seleccionable SIEMPRE) --}}
+          <div class="form-group col-md-4 mb-2">
+            <label class="mb-1" for="tipo_hab">Tipo de habilitación</label>
+            <select id="tipo_hab"
+                    wire:model.defer="state.tipo_hab"
+                    class="form-control form-control-sm @error('state.tipo_hab') is-invalid @enderror">
+              <option value="definitiva">Definitiva</option>
+              <option value="prev">Provisoria (6 meses)</option>
+            </select>
+            @error('state.tipo_hab') <div class="invalid-feedback">{{ $message }}</div> @enderror
           </div>
 
-          <div class="form-group col-md-4 mb-2 {{ in_array($estado, ['vigente','irregular']) ? '' : 'd-none' }}" id="grp-fecha-vto">
-            <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
-            <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto"
-              class="form-control form-control-sm" readonly>
-          </div>
-
-          <div class="form-group col-md-4 mb-2 {{ $estado === 'baja' ? '' : 'd-none' }}" id="grp-fecha-baja">
-            <label class="mb-1" for="fecha_baja">Fecha de baja</label>
-            <input type="date" id="fecha_baja" wire:model.defer="state.fecha_baja"
-              class="form-control form-control-sm" readonly>
+          {{-- Monto --}}
+          <div class="form-group col-md-4 mb-2">
+            <label class="mb-1" for="monto_pagar">Monto a pagar (opcional)</label>
+            <input type="number" step="0.01" id="monto_pagar" wire:model.defer="state.monto_pagar"
+              class="form-control form-control-sm @error('state.monto_pagar') is-invalid @enderror" placeholder="0.00">
+            @error('state.monto_pagar') <div class="invalid-feedback">{{ $message }}</div> @enderror
           </div>
         </div>
 
-        {{-- Monto --}}
-        <div class="form-group col-md-4 mb-2">
-          <label class="mb-1" for="monto_pagar">Monto a pagar (opcional)</label>
-          <input type="number" step="0.01" id="monto_pagar" wire:model.defer="state.monto_pagar"
-            class="form-control form-control-sm @error('state.monto_pagar') is-invalid @enderror" placeholder="0.00">
-          @error('state.monto_pagar') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        {{-- === FECHAS ABAJO === --}}
+        <div class="form-row align-items-end">
+          {{-- Fecha de alta: visible salvo en trámite --}}
+          @if($estadoActual && $estadoActual !== 'entramite')
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_alta">Fecha de alta</label>
+              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta"
+                    class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
+              @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+          @endif
+
+          {{-- Fecha de vencimiento: solo en vigente/irregular (readonly; la calcula el modelo con tipo_hab) --}}
+          @if(in_array($estadoActual, ['vigente','irregular']))
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
+              <input type="date" id="fecha_vto" wire:model="state.fecha_vto"
+                class="form-control form-control-sm" readonly>
+            </div>
+          @endif
+
+          {{-- Fecha de baja: solo en baja (editable) --}}
+          @if($estadoActual === 'baja')
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_baja">Fecha de baja</label>
+              <input type="date" id="fecha_baja" wire:model.defer="state.fecha_baja"
+                    class="form-control form-control-sm @error('state.fecha_baja') is-invalid @enderror">
+              @error('state.fecha_baja') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+          @endif
         </div>
 
         <div class="form-group mb-2">

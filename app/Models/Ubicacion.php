@@ -11,7 +11,7 @@ use App\Traits\AuditsModelChanges;
 
 class Ubicacion extends Model
 {
-    use AuditsModelChanges;
+    use AuditsModelChanges, HasFactory;
     
     protected $table = 'ubicaciones';
 
@@ -36,66 +36,63 @@ class Ubicacion extends Model
         static::saving(function (Ubicacion $m) {
             $m->domicilio_comercio = self::normalizeDireccionComercio($m->domicilio_comercio);
 
-            $nuevo = $m->estado ?: 'entramite';
-            $previo = $m->getOriginal('estado') ?: null;
-            $hoy = Carbon::today();
+            $estado  = $m->estado ?: 'entramite';
+            $tipo    = $m->tipo_hab ?: 'definitiva';
+            $alta    = $m->fecha_alta;
 
-            // CREATE vs UPDATE
-            $esCreate = ! $m->exists;
-
-            // ---- ENT RAMITE ----
-            if ($nuevo === 'entramite') {
+            if ($estado === 'entramite') {
+                $m->situacion  = null;
                 $m->fecha_alta = null;
                 $m->fecha_baja = null;
                 $m->fecha_vto  = null;
+                return;
             }
 
-            // ---- VIGENTE ----
-            if ($nuevo === 'vigente') {
-                if ($esCreate) {
-                    // Carga inicial de un comercio ya vigente -> exigir fecha_alta desde el form
-                    // (si viene vacía, no la inventamos)
-                    if ($m->fecha_alta) {
-                        $m->fecha_vto = Carbon::parse($m->fecha_alta)->addYearNoOverflow();
-                    }
-                } else {
-                    // Transición a vigente
-                    if ($previo === 'entramite' && empty($m->fecha_alta)) {
-                        // Caso especial: venía en trámite -> alta HOY
-                        $m->fecha_alta = $hoy;
-                    }
-                    if ($m->fecha_alta) {
-                        $m->fecha_vto = Carbon::parse($m->fecha_alta)->addYearNoOverflow();
-                    }
-                }
+            if ($estado === 'vigente' || $estado === 'irregular') {
+                $m->situacion = 'alta';
                 $m->fecha_baja = null;
-            }
 
-            // ---- IRREGULAR ----
-            if ($nuevo === 'irregular') {
-                // Siempre requiere fecha_alta; si no vino y no tenía, no inventamos (lo exige la UI/validación)
                 if ($m->fecha_alta) {
-                    $m->fecha_vto = Carbon::parse($m->fecha_alta)->addYearNoOverflow();
+                    $alta = $m->fecha_alta instanceof \Carbon\Carbon ? $m->fecha_alta->copy() : \Carbon\Carbon::parse($m->fecha_alta);
+                    $m->fecha_vto = $tipo === 'definitiva'
+                        ? $alta->addYearNoOverflow()
+                        : $alta->addMonthsNoOverflow(6);
                 } else {
                     $m->fecha_vto = null;
                 }
-                $m->fecha_baja = null;
+                return;
             }
 
-            // ---- BAJA ----
-            if ($nuevo === 'baja') {
-                if (empty($m->fecha_alta)) {
-                    // si no tenía alta, la pedimos en la UI; como fallback, setear hoy para no dejar inconsistente:
-                    $m->fecha_alta = $m->fecha_alta ?: $hoy;
-                }
-                $m->fecha_baja = $hoy;
-                $m->fecha_vto  = null;
+            if ($estado === 'baja') {
+                $m->situacion = 'baja';
+                // No tocamos alta/baja: vienen del form. VTO no aplica
+                $m->fecha_vto = null;
             }
         });
     }
 
+    private static function calcularVto(Carbon|string $fechaAlta, string $tipo): Carbon
+    {
+        $alta = $fechaAlta instanceof Carbon ? $fechaAlta->copy() : Carbon::parse($fechaAlta);
+        
+        return match ($tipo) {
+            'definitiva' => $alta->addYearNoOverflow(),
+            'prev'       => $alta->addMonthsNoOverflow(6),
+            default      => $alta->addMonthsNoOverflow(6),
+        };
+    }
+
     // Para la UI
     public function getHabilitaSeguimientoAttribute(): bool{ return (bool) optional($this->estadoModel)->habilita_seguimiento;}
+
+    public function getTipoHabLabelAttribute(): string
+    {
+        return match($this->tipo_hab) {
+            'definitiva' => 'Definitiva',
+            'prev'       => 'Provisoria',
+            default      => 'Provisoria',
+        };
+    }
 
 
     private static function normalizeDireccionComercio(?string $dir): ?string
@@ -149,6 +146,12 @@ class Ubicacion extends Model
         };
     }
 
+    protected $casts = [
+        'fecha_alta' => 'date',
+        'fecha_baja' => 'date',
+        'fecha_vto'  => 'date',
+    ];
+
     protected $fillable = [
         'persona_tipo',
         'apellido',
@@ -164,9 +167,11 @@ class Ubicacion extends Model
         'nomenclatura',
         'observaciones',
         'estado',           // vigente | irregular | entramite
-        'situacion',        // alta | baja
+        'situacion',
+        'tipo_hab',        // alta | baja
         'fecha_alta',
         'fecha_baja',
+        'fecha_vto',
     ];
 
     // Si deseas deshabilitar los timestamps en el modelo

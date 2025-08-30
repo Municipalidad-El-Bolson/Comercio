@@ -12,13 +12,19 @@ use Illuminate\Support\Str;
 use Livewire\WithPagination;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
+use Carbon\Carbon;
+
 
 class Ubicaciones extends AdminComponent
 {
     use WithPagination;
 
     public $searchTerm = '';
-    public $state = [];
+    public $state = [
+        'tipo_hab'   => 'prev',
+        'documentos' => [],
+    ];
+
     public $ubicacion = null;
     public $showEditModal = false;
 
@@ -81,7 +87,7 @@ class Ubicaciones extends AdminComponent
             array_merge($this->docKeysGeneral, $this->docKeysJuridica),
             false
         );
-
+        $this->state['documentos'] = $this->state['documentos'] ?? [];
         $this->megas = Rubro::query()
             ->select('mega_rubro')
             ->distinct()
@@ -92,6 +98,16 @@ class Ubicaciones extends AdminComponent
         $this->madres = [];
         $this->subs   = [];
     }
+
+    public function updated($name, $value)
+    {
+        if (!isset($this->state['documentos']) || !is_array($this->state['documentos'])) {
+            $this->state['documentos'] = [];
+        }
+        if ($name === 'state.persona_tipo' || str_starts_with($name, 'state.documentos.')) {
+        }
+    }
+
 
     public function updatingSearchTerm() { $this->resetPage(); }
 
@@ -114,6 +130,29 @@ class Ubicaciones extends AdminComponent
         ])->layout('admin.layouts.app');
     }
 
+    private function recomputarVtoEnState(): void
+    {
+        $estado   = $this->state['estado']    ?? null;
+        $tipoHab  = $this->state['tipo_hab']  ?? 'prev';       // 'definitiva' | 'prev'
+        $fechaAlta= $this->state['fecha_alta']?? null;         // 'YYYY-MM-DD'
+
+        if (in_array($estado, ['vigente','irregular']) && $fechaAlta) {
+            $alta = Carbon::parse($fechaAlta);
+            $vto  = $tipoHab === 'definitiva'
+                ? $alta->copy()->addYearNoOverflow()
+                : $alta->copy()->addMonthsNoOverflow(6);
+            // formatear para <input type="date">
+            $this->state['fecha_vto'] = $vto->format('Y-m-d');
+        } else {
+            $this->state['fecha_vto'] = null;
+        }
+    }
+
+    // hooks de Livewire: se disparan cuando cambia cada campo
+    public function updatedStateFechaAlta($value): void   { $this->recomputarVtoEnState(); }
+    public function updatedStateTipoHab($value): void     { $this->recomputarVtoEnState(); }
+    public function updatedStateEstado($value): void      { $this->recomputarVtoEnState(); }
+
     /** Botón "Nuevo Comercio" */
     public function nuevoComercio()
     {
@@ -121,7 +160,8 @@ class Ubicaciones extends AdminComponent
 
         $this->state = [
             'persona_tipo'  => 'fisica',
-            'estado'        => 'entramite',
+            'estado'        => null,
+            'tipo_hab'      => 'prev',
             'fecha_alta'    => null,
             'fecha_baja'    => null,
             'fecha_vto'     => null,
@@ -141,6 +181,7 @@ class Ubicaciones extends AdminComponent
             'documentos'    => $this->docDefaults,
         ];
 
+
         $this->showEditModal = false;
         $this->dispatch('show-form');
     }
@@ -151,8 +192,14 @@ class Ubicaciones extends AdminComponent
         $this->ubicacion = $ubicacion->loadMissing('documentos', 'rubro');
 
         $this->state = $this->ubicacion->toArray();
-        $docs = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
-        $this->state['documentos'] = array_merge($this->docDefaults, array_intersect_key($docs, $this->docDefaults));
+
+        foreach (['fecha_alta','fecha_baja','fecha_vto'] as $f) {
+            if (!empty($this->ubicacion->{$f})) {
+                $this->state[$f] = $this->ubicacion->{$f}->format('Y-m-d');
+            } else {
+                $this->state[$f] = null;
+            }
+        }
 
         if ($this->ubicacion->rubro_id) {
             $r = Rubro::find($this->ubicacion->rubro_id);
@@ -171,6 +218,9 @@ class Ubicaciones extends AdminComponent
             }
         }
 
+        $docs = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
+        $this->state['documentos'] = array_merge($this->docDefaults, array_intersect_key($docs, $this->docDefaults));
+
         $this->dispatch('show-form');
     }
 
@@ -188,7 +238,6 @@ class Ubicaciones extends AdminComponent
         $this->subs = [];
     }
 
-    /** Cuando cambia el Rubro Madre */
     public function updatedSelectedMadre($value)
     {
         $this->state['rubro_id'] = null;
@@ -203,8 +252,6 @@ class Ubicaciones extends AdminComponent
             : [];
     }
 
-    public function onMegaChange() { $this->updatedSelectedMega($this->selectedMega); }
-    public function onMadreChange() { $this->updatedSelectedMadre($this->selectedMadre); }
 
     /** ===== Helpers de reglas ===== */
 
@@ -239,6 +286,7 @@ class Ubicaciones extends AdminComponent
             'state.observaciones'         => ['nullable','string','max:500'],
 
             'state.estado'                => ['required', Rule::in(['entramite','vigente','irregular','baja'])],
+            'state.tipo_hab'              => ['required', Rule::in(['definitiva','prev'])],
             'state.fecha_alta'            => ['nullable','date'],
             'state.fecha_baja'            => ['nullable','date'],
             'state.fecha_vto'             => ['nullable','date'],
@@ -327,6 +375,7 @@ class Ubicaciones extends AdminComponent
 
         $data = $validated['state'];
 
+
         // Formateos
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
             if (!empty($data[$c])) $data[$c] = Str::title($data[$c]);
@@ -392,6 +441,7 @@ class Ubicaciones extends AdminComponent
         );
 
         $data = $validated['state'];
+        
 
         // Formateos
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
@@ -454,7 +504,6 @@ class Ubicaciones extends AdminComponent
                 $docs[$k] = $valor;
             }
         }
-
         $this->state['documentos'] = array_merge($this->docDefaults, $docs);
     }
 
@@ -497,6 +546,7 @@ class Ubicaciones extends AdminComponent
     private function reglasFechasPorEstado(bool $esCreate): array
     {
         $estado = $this->state['estado'] ?? 'entramite';
+
         $reglas = [
             'state.fecha_alta' => 'nullable|date',
             'state.fecha_baja' => 'nullable|date',
@@ -516,6 +566,7 @@ class Ubicaciones extends AdminComponent
                         $reglas['state.fecha_alta'] = 'required|date';
                     }
                 }
+                // vto lo calcula el modelo si hay alta
                 break;
 
             case 'irregular':
@@ -523,14 +574,23 @@ class Ubicaciones extends AdminComponent
                 break;
 
             case 'baja':
+
+                $reglas['state.fecha_baja'] = 'required|date'
+                    . (empty($this->state['fecha_alta']) && empty($this->ubicacion?->fecha_alta)
+                        ? '' 
+                        : '|after_or_equal:state.fecha_alta')
+                    . '|before_or_equal:today';
+
+                // si no hay alta ni antes ni ahora, pedila:
                 if (empty($this->state['fecha_alta']) && empty($this->ubicacion?->fecha_alta)) {
-                    $reglas['state.fecha_alta'] = 'required|date';
+                    $reglas['state.fecha_alta'] = 'required|date|before_or_equal:today';
                 }
-                // modelo pone fecha_baja HOY; dejamos nullable acá
-                $reglas['state.fecha_baja'] = 'nullable';
+
+                // vto no aplica
                 $reglas['state.fecha_vto']  = 'nullable';
                 break;
         }
+
         return $reglas;
     }
 
@@ -547,4 +607,5 @@ class Ubicaciones extends AdminComponent
         $check = $mod === 0 ? 0 : ($mod === 1 ? 9 : 11 - $mod);
         return $check === $digits[10];
     }
+    
 }
