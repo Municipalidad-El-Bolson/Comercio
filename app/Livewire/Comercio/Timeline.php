@@ -61,7 +61,6 @@ class Timeline extends Component
             ->get()
             ->keyBy('etapa');
 
-        // Etapa actual = primera etapa sin registro; si todas tienen, última
         $primeraNoHecha = collect(array_keys($this->etapas))->first(fn($k) => !isset($movs[$k]));
         $this->etapaActual = $primeraNoHecha ?? array_key_last($this->etapas);
     }
@@ -70,21 +69,23 @@ class Timeline extends Component
     {
         $this->validate();
 
-        // Fecha del día (zona de Salta)
         $hoy = Carbon::now('America/Argentina/Salta')->toDateString();
 
-        // Seguridad: sólo claves válidas
         if (!array_key_exists($this->etapaActual, $this->etapas)) {
             $this->addError('etapaActual', 'Etapa inválida.');
             return;
         }
 
         Movimiento::updateOrCreate(
-            ['ubicacion_id' => $this->ubicacionId, 'etapa' => $this->etapaActual],
+            ['ubicacion_id' => $this->ubicacionId,
+             'etapa'        => $this->etapaActual, 
+             'tipo'         => 'timeline',
+            ],
             [
                 'titulo'      => $this->etapas[$this->etapaActual]['title'],
                 'observacion' => $this->obs,
                 'fecha'       => $hoy,
+                'tipo_acta'    => null,
             ]
         );
 
@@ -92,6 +93,7 @@ class Timeline extends Component
         // Mover selector a la siguiente no completada
         $keys = array_keys($this->etapas);
         $completadas = Movimiento::where('ubicacion_id', $this->ubicacionId)
+            ->where('tipo', 'timeline')
             ->whereIn('etapa', $keys)
             ->pluck('etapa')
             ->flip();
@@ -107,6 +109,7 @@ class Timeline extends Component
         // Movimientos por etapa (último por etapa)
         $movs = Movimiento::query()
             ->where('ubicacion_id', $this->ubicacionId)
+            ->where('tipo', 'timeline')
             ->whereIn('etapa', array_keys($this->etapas))
             ->select('etapa', DB::raw('MAX(fecha) as fecha'), DB::raw('MAX(id) as id'))
             ->groupBy('etapa')

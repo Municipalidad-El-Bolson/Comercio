@@ -17,12 +17,14 @@ class MovimientoModal extends Component
     public $movimientos = [];
 
     public $titulo, $descripcion, $estado = 'En Proceso', $archivo;
+    public $tipo_acta = null;
 
     protected $rules = [
         'titulo'      => 'required|string',
         'descripcion' => 'nullable|string',
         'estado'      => 'required|string',
         'archivo'     => 'nullable|file|max:2048',
+        'tipo_acta'   => 'nullable|in:asesoramiento,notificacion,inspeccion,infraccion',
     ];
 
     protected $listeners = ['abrirModalMovimientos'];
@@ -35,12 +37,13 @@ class MovimientoModal extends Component
     public function abrirModalMovimientos($ubicacionId)
     {
         $this->ubicacion = Ubicacion::findOrFail($ubicacionId);
+
         $this->reset(['titulo', 'descripcion', 'archivo']);
         $this->estado = 'En Proceso';
+        $this->tipo_acta = null;
 
         $this->cargarMovimientos();
 
-        // abre el modal
         $this->dispatch('mostrar-modal-movimientos');
     }
 
@@ -48,7 +51,6 @@ class MovimientoModal extends Component
     {
         $this->validate();
 
-        // subir archivo al disco 'public'
         $archivoPath = null;
         if ($this->archivo) {
             $nombreLimpio = Str::slug($this->titulo);
@@ -57,23 +59,22 @@ class MovimientoModal extends Component
             $archivoPath  = $this->archivo->storeAs('movimientos', $nombreFinal, 'public');
         }
 
-        // crear movimiento (acta)
         Movimiento::create([
             'ubicacion_id' => $this->ubicacion->id,
-            'tipo'         => 'acta', // distingue de timeline
+            'tipo'         => 'acta',
+            'tipo_acta'    => $this->tipo_acta,  
             'titulo'       => Str::title($this->titulo),
             'descripcion'  => $this->descripcion ? Str::title($this->descripcion) : '',
             'estado'       => $this->estado,
-            'archivo'      => $archivoPath, // ej: movimientos/archivo.jpg
-            'fecha'        => now(),        // guarda fecha y hora
+            'archivo'      => $archivoPath, 
+            'fecha'        => now(),
         ]);
 
-        // limpiar formulario y refrescar tabla
-        $this->reset(['titulo', 'descripcion', 'archivo']);
+        $this->reset(['titulo', 'descripcion', 'archivo','tipo_acta']);
         $this->estado = 'En Proceso';
+
         $this->cargarMovimientos();
 
-        // toast opcional
         $this->dispatch('hide-form', ['message' => 'Movimiento guardado con éxito.']);
     }
 

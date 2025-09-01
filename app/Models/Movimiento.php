@@ -8,10 +8,13 @@ use App\Traits\AuditsModelChanges;
 class Movimiento extends Model
 {
     use AuditsModelChanges;
+
+    public const ACTA_TIPOS = ['asesoramiento','notificacion','inspeccion','infraccion'];
     
     protected $fillable = [
         'ubicacion_id',
         'tipo',
+        'tipo_acta',
         'titulo',
         'descripcion',
         'estado',

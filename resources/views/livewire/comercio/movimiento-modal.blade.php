@@ -8,14 +8,14 @@
 
             <div class="modal-body p-2">
                 {{-- Formulario de carga --}}
+                <div class="form-group mb-2">
+                    <label class="mb-1">Título</label>
+                    <input type="text" id="titulo" wire:model.defer="titulo"
+                            class="form-control form-control-sm text-capitalize">
+                    @error('titulo') <small class="text-danger">{{ $message }}</small> @enderror
+                </div>
                 <div class="form-row">
-                    <div class="form-group col-md-6 mb-2">
-                        <label class="mb-1">Título</label>
-                        <input type="text" id="titulo" wire:model.defer="titulo"
-                               class="form-control form-control-sm text-capitalize">
-                        @error('titulo') <small class="text-danger">{{ $message }}</small> @enderror
-                    </div>
-                    <div class="form-group col-md-6 mb-2">
+                    <div class="form-group col-md-6">
                         <label class="mb-1">Estado</label>
                         <select wire:model.defer="estado" class="form-control form-control-sm">
                             <option value="En Proceso">En Proceso</option>
@@ -26,6 +26,18 @@
                             <option value="Cancelado">Cancelado</option>
                         </select>
                         @error('estado') <small class="text-danger">{{ $message }}</small> @enderror
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label class="mb-1" for="tipo_acta">Tipo de acta</label>
+                        <select id="tipo_acta" wire:model.defer="tipo_acta"
+                                class="form-control form-control-sm @error('tipo_acta') is-invalid @enderror">
+                        <option value="">-- Seleccioná --</option>
+                        <option value="asesoramiento">Asesoramiento</option>
+                        <option value="notificacion">Notificación</option>
+                        <option value="inspeccion">Inspección</option>
+                        <option value="infraccion">Infracción</option>
+                        </select>
+                        @error('tipo_acta') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                 </div>
 
