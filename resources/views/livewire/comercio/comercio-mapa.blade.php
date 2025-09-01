@@ -136,6 +136,14 @@
   });
 
   // ===== CARGA INICIAL DEL MAPA + CAPAS =====
+    // Cache local para calcular bounds de polígonos
+    let GEO_BARRIOS = null;
+    let GEO_CPU = null;
+
+    // Cargar GeoJSON en memoria (además de usarlos como sources)
+    fetch('/geo/BARRIOS1.json').then(r=>r.json()).then(j=>{ GEO_BARRIOS=j; });
+    fetch('/geo/CPU_MEB.json').then(r=>r.json()).then(j=>{ GEO_CPU=j; });
+
   map.on('load', async function() {
     // 1) Limpiar POIs/places
     const layers = map.getStyle()?.layers ?? [];
@@ -188,6 +196,48 @@
     applyPolygonFilters();
   });
 
+    // Acumula posiciones de pines de esta "pintada"
+    let currentMarkerLngLats = [];
+
+    // Agregar un punto a la caja
+    function extendBounds(bounds, lng, lat) {
+    if (!bounds) return new mapboxgl.LngLatBounds([lng, lat], [lng, lat]);
+    return bounds.extend([lng, lat]);
+    }
+
+    // Hace fit a bounds si existen; si no, centra a El Bolsón
+    function fitToBounds(bounds) {
+    if (bounds && typeof bounds.getNorthEast === 'function') {
+        map.fitBounds(bounds, { padding: 40, maxZoom: 17, duration: 600 });
+    } else {
+        map.easeTo({ center: [-71.53, -41.9645], zoom: 14, duration: 600 });
+    }
+    }
+
+    // Devuelve bounds del polígono por propiedad exacta
+    function boundsOfFeatureByProp(featureCollection, propName, value) {
+    if (!featureCollection) return null;
+    const feats = featureCollection.features || [];
+    // buscar primer match exacto
+    const f = feats.find(fe => (fe.properties?.[propName] ?? '') === value);
+    if (!f) return null;
+
+    // recorrer todas las coords del (Multi)Polygon
+    const type = f.geometry?.type;
+    const coords = f.geometry?.coordinates || [];
+    let b = null;
+
+    const addCoord = ([lng,lat]) => { b = extendBounds(b, lng, lat); };
+
+    if (type === 'Polygon') {
+        (coords[0] || []).forEach(addCoord);
+    } else if (type === 'MultiPolygon') {
+        coords.forEach(poly => (poly[0] || []).forEach(addCoord));
+    }
+    return b;
+    }
+
+
   // ===== Helpers para toggles y filtros de capas =====
   function setLayerVisibility(prefix, visible) {
     const v = visible ? 'visible' : 'none';
@@ -236,60 +286,84 @@
   }
 
   async function placeMarker(record) {
-    let lat = parseFloat(record.lat ?? record.latitud);
-    let lng = parseFloat(record.lng ?? record.longitud);
+  let lat = parseFloat(record.lat ?? record.latitud);
+  let lng = parseFloat(record.lng ?? record.longitud);
 
-
-    if (!(Number.isFinite(lat) && Number.isFinite(lng))) {
-      try {
-        const geocodeURL = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(record.domicilio_comercio || '')}&key=${googleApiKey}`;
-        const res = await fetch(geocodeURL);
-        const data = await res.json();
-        const loc = data?.results?.[0]?.geometry?.location;
-        if (loc) { lat = loc.lat; lng = loc.lng; }
-      } catch(e) {}
-    }
-
-    if (!(Number.isFinite(lat) && Number.isFinite(lng))) return;
-
-    const el = document.createElement('div');
-    el.style.backgroundImage = `url('${markerIconUrl}')`;
-    el.style.width = '30px';
-    el.style.height = '30px';
-    el.style.backgroundSize = 'contain';
-    el.style.backgroundRepeat = 'no-repeat';
-
-    const marker = new mapboxgl.Marker(el)
-      .setLngLat([lng, lat])
-      .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
-            <h3 class="mb-1">${record.nombre_comercial ?? record.razon_social ?? ''}</h3>
-            <div><strong>Dirección:</strong> ${record.domicilio_comercio ?? ''}</div>
-            <div><strong>Rubro:</strong> ${record.rubro?.subrubro ?? ''}</div>
-            <div><strong>Barrio:</strong> ${record.barrio ?? '-'}</div>
-            <div><strong>Estado:</strong> ${record.estado ?? '-'}</div>
-        `))
-
-      .addTo(map);
-
-    markers.push(marker);
+  if (!(Number.isFinite(lat) && Number.isFinite(lng))) {
+    try {
+      const geocodeURL = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(record.domicilio_comercio || '')}&key=${googleApiKey}`;
+      const res = await fetch(geocodeURL);
+      const data = await res.json();
+      const loc = data?.results?.[0]?.geometry?.location;
+      if (loc) { lat = loc.lat; lng = loc.lng; }
+    } catch(e) {}
   }
 
-  async function updateMarkers() {
-    clearMarkers();
+  if (!(Number.isFinite(lat) && Number.isFinite(lng))) return;
 
-    const checked = Array.from(document.querySelectorAll('input.rubro-checkbox:checked'))
-      .map(cb => (cb.value || '').toLowerCase().trim());
-    const filterFn = checked.length
-      ? (rec) => checked.includes((rec.rubro?.subrubro || '').toLowerCase().trim())
-      : () => true;
+  const el = document.createElement('div');
+  el.style.backgroundImage = `url('${markerIconUrl}')`;
+  el.style.width = '30px';
+  el.style.height = '30px';
+  el.style.backgroundSize = 'contain';
+  el.style.backgroundRepeat = 'no-repeat';
 
-    for (const record of (ubicaciones || []).filter(filterFn)) {
-      await placeMarker(record);
-    }
+  const marker = new mapboxgl.Marker(el)
+    .setLngLat([lng, lat])
+    .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
+      <h3 class="mb-1">${record.nombre_comercial ?? record.razon_social ?? ''}</h3>
+      <div><strong>Dirección:</strong> ${record.domicilio_comercio ?? ''}</div>
+      <div><strong>Rubro:</strong> ${record.rubro?.subrubro ?? ''}</div>
+      <div><strong>Barrio:</strong> ${record.barrio ?? '-'}</div>
+      <div><strong>Estado:</strong> ${record.estado ?? '-'}</div>
+    `))
+    .addTo(map);
 
-    // Cada vez que actualices marcadores, también aplica filtros de polígonos
-    applyPolygonFilters();
+  markers.push(marker);
+  currentMarkerLngLats.push([lng, lat]); // 👈 guardar para bounds
+}
+
+async function updateMarkers() {
+  clearMarkers();
+  currentMarkerLngLats = []; // 👈 reset por cada actualización
+
+  const checked = Array.from(document.querySelectorAll('input.rubro-checkbox:checked'))
+    .map(cb => (cb.value || '').toLowerCase().trim());
+  const filterFn = checked.length
+    ? (rec) => checked.includes((rec.rubro?.subrubro || '').toLowerCase().trim())
+    : () => true;
+
+  for (const record of (ubicaciones || []).filter(filterFn)) {
+    await placeMarker(record);
   }
+
+  // aplicar filtros visuales a polígonos
+  applyPolygonFilters();
+
+  // === FIT A LO QUE SE VE ===
+  // 1) si hay pines, ajustamos a pines
+  let bounds = null;
+  for (const [lng, lat] of currentMarkerLngLats) {
+    bounds = extendBounds(bounds, lng, lat);
+  }
+
+  // 2) si NO hay pines, pero hay barrio/CPU seleccionado, ajustamos al polígono
+  if (!bounds) {
+    const barrio = document.querySelector('[wire\\:model\\.live="selectedBarrio"]')?.value || '';
+    const cpu    = document.querySelector('[wire\\:model\\.live="selectedCpu"]')?.value || '';
+
+    if (barrio && GEO_BARRIOS) {
+      bounds = boundsOfFeatureByProp(GEO_BARRIOS, 'BARRIO', barrio);
+    }
+    if (!bounds && cpu && GEO_CPU) {
+      bounds = boundsOfFeatureByProp(GEO_CPU, 'CPU_COD', cpu);
+    }
+  }
+
+  // 3) fallback: centro por defecto
+  fitToBounds(bounds);
+}
+
 
   // Livewire -> actualizar ubicaciones y refrescar mapa
   window.addEventListener('ubicacionesUpdated', (ev) => {
