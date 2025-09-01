@@ -101,15 +101,17 @@ class ComercioMapa extends AdminComponent
             ->orderBy('razon_social')
             ->get([
                 'id', 'razon_social', 'domicilio_comercio',
-                'latitud', 'longitud', 'rubro_id'
+                'lat', 'lng', 'rubro_id'
             ])
             ->map(function ($u) {
                 return [
                     'id'                 => $u->id,
                     'razon_social'       => $u->razon_social,
                     'domicilio_comercio' => $u->domicilio_comercio,
-                    'latitud'            => $u->latitud,
-                    'longitud'           => $u->longitud,
+                    'lat'                => $u->lat,
+                    'lng'                => $u->lng,
+                    'latitud'            => $u->lat,
+                    'longitud'           => $u->lng,
                     'rubro' => [
                         'id'          => $u->rubro?->id,
                         'mega_rubro'  => $u->rubro?->mega_rubro,

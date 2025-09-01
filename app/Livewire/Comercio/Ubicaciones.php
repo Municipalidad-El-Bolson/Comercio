@@ -278,10 +278,10 @@ class Ubicaciones extends AdminComponent
             'state.nombre_comercial'      => ['nullable','string','min:2','max:120'],
 
             'state.domicilio_responsable' => ['required','string','min:3','max:160'],
-            'state.domicilio_comercio'    => ['required','string','min:3','max:160'],
+            'state.domicilio_comercio'    => ['nullable','string','min:3','max:160','required_without:state.nomenclatura'],
             'state.correo'                => ['nullable','email:rfc,dns','max:120'],
             'state.telefono'              => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
-            'state.nomenclatura'          => ['nullable','string','max:80'],
+            'state.nomenclatura'          => ['nullable','string','max:80','required_without:state.domicilio_comercio'],
             'state.monto_pagar'           => ['nullable','numeric','min:0','regex:/^\d{1,9}(\.\d{1,2})?$/'],
             'state.observaciones'         => ['nullable','string','max:500'],
 
@@ -408,7 +408,8 @@ class Ubicaciones extends AdminComponent
             unset($documentos['doc_recaudacion_rn']);
         }
 
-        // Crear Ubicación
+        $enricher = app(\App\Services\UbicacionGeoEnricher::class);
+        $data = $enricher->enrich($data);
         $ubic = Ubicacion::create($data);
 
         // Guardar checklist (hasOne)

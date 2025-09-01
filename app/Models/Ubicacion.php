@@ -165,6 +165,7 @@ class Ubicacion extends Model
         'nombre_comercial',
         'domicilio_comercio',
         'nomenclatura',
+        'lat','lng','barrio','cpu_cod','cpu_nombre',
         'observaciones',
         'estado',           // vigente | irregular | entramite
         'situacion',
