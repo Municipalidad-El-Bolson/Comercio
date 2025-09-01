@@ -4,8 +4,10 @@ namespace App\Livewire\Comercio;
 
 use App\Livewire\Admin\AdminComponent;
 use App\Models\Ubicacion;
-use Livewire\Component;
 use App\Models\Rubro;
+use App\Models\ComercioEstado;
+use App\Services\GeoService; // 👈 agregá esto
+use Livewire\Component;
 
 class ComercioMapa extends AdminComponent
 {
@@ -13,64 +15,80 @@ class ComercioMapa extends AdminComponent
     public array $madres = [];
     public array $subs = [];
 
+    // 👇 NUEVO
+    public array $barrios = [];
+    public array $estados = ['entramite' => 'En trámite', 'vigente' => 'Vigente', 'irregular' => 'Irregular', 'baja' => 'Baja'];
+    public string $selectedBarrio = '';
+    public string $selectedEstado = '';
+    public string $fantasiaQuery = '';
+    public array $fantasiaSuggestions = [];
+
     public string $selectedMega = '';
     public string $selectedMadre = '';
     public ?int $selectedSubId = null;
 
-    /** Data mostrada (para primera carga) */
     public array $ubicaciones = [];
 
-    public function mount()
+    public function mount(GeoService $geo) // 👈 inyectamos GeoService
     {
-        // Megas distintas
+        // Megas
         $this->megas = Rubro::query()
             ->select('mega_rubro')->distinct()->orderBy('mega_rubro')
             ->pluck('mega_rubro')->toArray();
 
-        // Primera carga: todas (o limita si querés)
+        // Barrios desde GeoJSON
+        $this->barrios = $geo->barriosList();
+
+        // Primera carga
         $this->ubicaciones = $this->queryUbicaciones()->toArray();
     }
 
-    /** Cuando cambia Mega */
-    public function updatedSelectedMega($value)
-    {
-        $this->selectedMadre = '';
-        $this->selectedSubId = null;
-
-        $this->madres = $value
-            ? Rubro::where('mega_rubro', $value)
-                ->select('rubro_madre')->distinct()->orderBy('rubro_madre')
-                ->pluck('rubro_madre')->toArray()
+    public function updatedSelectedMega($v) { $this->selectedMadre = ''; $this->selectedSubId = null; 
+        $this->madres = $v
+            ? Rubro::where('mega_rubro', $v)->select('rubro_madre')->distinct()->orderBy('rubro_madre')->pluck('rubro_madre')->toArray()
             : [];
+        $this->subs = []; $this->emitUbicaciones();
+    }
 
-        $this->subs = [];
-
+    public function updatedSelectedMadre($v) {
+        $this->selectedSubId = null;
+        $this->subs = ($this->selectedMega && $v)
+            ? Rubro::where('mega_rubro',$this->selectedMega)->where('rubro_madre',$v)
+                ->orderBy('subrubro')->get(['id','subrubro'])
+                ->map(fn($x)=>['id'=>$x->id,'sub'=>$x->subrubro])->toArray()
+            : [];
         $this->emitUbicaciones();
     }
 
-    /** Cuando cambia Rubro Madre */
-    public function updatedSelectedMadre($value)
-    {
-        $this->selectedSubId = null;
-
-        $this->subs = ($this->selectedMega && $value)
-            ? Rubro::where('mega_rubro', $this->selectedMega)
-                ->where('rubro_madre', $value)
-                ->orderBy('subrubro')
-                ->get(['id','subrubro'])
-                ->map(fn($x)=>['id'=>$x->id,'sub'=>$x->subrubro])
-                ->toArray()
-            : [];
-
+    public function updatedSelectedSubId($v): void {
+        $this->selectedSubId = is_numeric($v) ? (int)$v : null;
         $this->emitUbicaciones();
     }
 
-    /** Cuando elige Subrubro (guarda rubro_id) */
-    public function updatedSelectedSubId($value): void
-    {
-        // $value llega como string o '' (vacío). Normalizamos:
-        $this->selectedSubId = $value !== '' ? (string)$value : null;
+    // 👇 NUEVO: cuando cambian los filtros extra
+    public function updatedSelectedBarrio() { $this->emitUbicaciones(); }
+    public function updatedSelectedEstado() { $this->emitUbicaciones(); }
 
+    // 👇 NUEVO: autocompletar “nombre de fantasía”
+    public function updatedFantasiaQuery($value) {
+        $value = trim((string)$value);
+        if ($value === '' || mb_strlen($value) < 2) { // esperá 2+ letras
+            $this->fantasiaSuggestions = [];
+            $this->emitUbicaciones();
+            return;
+        }
+
+        // Sugerencias (solo nombres comerciales)
+        $t = '%'.$value.'%';
+        $this->fantasiaSuggestions = Ubicacion::query()
+            ->whereNotNull('nombre_comercial')->where('nombre_comercial','<>','')
+            ->where('nombre_comercial','like',$t)
+            ->orderBy('nombre_comercial')
+            ->limit(10)
+            ->pluck('nombre_comercial')
+            ->toArray();
+
+        // Refrescar resultados del mapa con el filtro de texto aplicado
         $this->emitUbicaciones();
     }
 
@@ -78,40 +96,52 @@ class ComercioMapa extends AdminComponent
     {
         $rows = $this->queryUbicaciones();
         $this->ubicaciones = $rows->toArray();
-
-        // Enviar al navegador para redibujar marcadores
         $this->dispatch('ubicacionesUpdated', ubicaciones: $this->ubicaciones);
     }
 
     private function queryUbicaciones()
     {
-        // Convertimos selectedSubId en int sólo si es numérico
-        $subId = (is_numeric($this->selectedSubId ?? null))
-            ? (int)$this->selectedSubId
-            : null;
-
+        $subId = is_numeric($this->selectedSubId ?? null) ? (int)$this->selectedSubId : null;
+        $fantasia = trim($this->fantasiaQuery ?? '');
 
         return Ubicacion::with('rubro:id,mega_rubro,rubro_madre,subrubro')
+            // filtros de rubro
             ->when($this->selectedMega !== '', fn ($q) =>
                 $q->whereHas('rubro', fn ($r) => $r->where('mega_rubro', $this->selectedMega)))
             ->when($this->selectedMadre !== '', fn ($q) =>
                 $q->whereHas('rubro', fn ($r) => $r->where('rubro_madre', $this->selectedMadre)))
-            ->when($subId, fn ($q) =>
-                $q->where('rubro_id', $subId))
-            ->orderBy('razon_social')
+            ->when($subId, fn ($q) => $q->where('rubro_id', $subId))
+
+            // 👇 filtros nuevos
+            ->when($this->selectedBarrio !== '', fn($q)=> $q->where('barrio', $this->selectedBarrio))
+            ->when($this->selectedEstado !== '', fn($q)=> $q->where('estado', $this->selectedEstado))
+            ->when($fantasia !== '', function($q) use ($fantasia) {
+                $t = '%'.$fantasia.'%';
+                $q->where(function($w) use ($t) {
+                    $w->where('nombre_comercial','like',$t);
+                    // si querés que también matchee razón social, descomentalo:
+                    // ->orWhere('razon_social','like',$t);
+                });
+            })
+
+            ->orderByRaw("COALESCE(NULLIF(nombre_comercial,''), razon_social) asc")
             ->get([
-                'id', 'razon_social', 'domicilio_comercio',
-                'lat', 'lng', 'rubro_id'
+                'id','razon_social','nombre_comercial','domicilio_comercio',
+                'lat','lng','rubro_id','barrio','estado'
             ])
             ->map(function ($u) {
                 return [
                     'id'                 => $u->id,
                     'razon_social'       => $u->razon_social,
+                    'nombre_comercial'   => $u->nombre_comercial,
                     'domicilio_comercio' => $u->domicilio_comercio,
                     'lat'                => $u->lat,
                     'lng'                => $u->lng,
+                    // compatibilidad si tu JS todavía lee estos nombres
                     'latitud'            => $u->lat,
                     'longitud'           => $u->lng,
+                    'barrio'             => $u->barrio,
+                    'estado'             => $u->estado,
                     'rubro' => [
                         'id'          => $u->rubro?->id,
                         'mega_rubro'  => $u->rubro?->mega_rubro,
@@ -124,13 +154,17 @@ class ComercioMapa extends AdminComponent
 
     public function render()
     {
-       return view('livewire.comercio.comercio-mapa', [
+        return view('livewire.comercio.comercio-mapa', [
             'megas'  => $this->megas,
             'madres' => $this->madres,
             'subs'   => $this->subs,
-            'ubicaciones' => $this->ubicaciones, // para la 1ª carga
-        ])
-        ->layout('admin.layouts.app');
+
+            // 👇 pasar filtros nuevos
+            'barrios' => $this->barrios,
+            'estados' => $this->estados,
+
+            'ubicaciones' => $this->ubicaciones,
+        ])->layout('admin.layouts.app');
     }
 
     public static string $layout = 'admin.layouts.app';

@@ -20,6 +20,51 @@
                         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
                    <div>
+                    {{-- ================= Filtros adicionales ================= --}}
+                    <div class="mb-2">
+                        <div class="form-row">
+                            <div class="form-group col-md-3 mb-2">
+                            <label class="mb-1">Barrio</label>
+                            <select class="form-control form-control-sm" wire:model.live="selectedBarrio">
+                                <option value="">-- Todos --</option>
+                                @foreach($barrios as $b)
+                                <option value="{{ $b }}">{{ $b }}</option>
+                                @endforeach
+                            </select>
+                            </div>
+
+                            <div class="form-group col-md-3 mb-2">
+                            <label class="mb-1">Estado</label>
+                            <select class="form-control form-control-sm" wire:model.live="selectedEstado">
+                                <option value="">-- Todos --</option>
+                                @foreach($estados as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            </div>
+
+                            <div class="form-group col-md-6 mb-2">
+                            <label class="mb-1">Nombre de fantasía</label>
+                            <input type="text" class="form-control form-control-sm"
+                                    placeholder="Escribí para buscar (mín. 2 letras)"
+                                    wire:model.live.debounce.300ms="fantasiaQuery" />
+
+                            {{-- Sugerencias en vivo (lista simple) --}}
+                            @if(!empty($fantasiaQuery) && count($fantasiaSuggestions) > 0)
+                                <ul class="list-group position-absolute w-50" style="z-index: 1000;">
+                                @foreach($fantasiaSuggestions as $sug)
+                                    <li class="list-group-item list-group-item-action p-1"
+                                        style="cursor:pointer"
+                                        wire:click="$set('fantasiaQuery','{{ addslashes($sug) }}')">
+                                    {{ $sug }}
+                                    </li>
+                                @endforeach
+                                </ul>
+                            @endif
+                            </div>
+                        </div>
+                    </div>
+
                     {{-- Filtros --}}
                     <div class="mb-3">
                         <div class="form-row">
@@ -217,10 +262,13 @@
     const marker = new mapboxgl.Marker(el)
       .setLngLat([lng, lat])
       .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
-        <h3>${record.razon_social ?? ''}</h3>
-        <p><strong>Dirección:</strong> ${record.domicilio_comercio ?? ''}</p>
-        <p><strong>Rubro:</strong> ${record.rubro?.subrubro ?? ''}</p>
-      `))
+            <h3 class="mb-1">${record.nombre_comercial ?? record.razon_social ?? ''}</h3>
+            <div><strong>Dirección:</strong> ${record.domicilio_comercio ?? ''}</div>
+            <div><strong>Rubro:</strong> ${record.rubro?.subrubro ?? ''}</div>
+            <div><strong>Barrio:</strong> ${record.barrio ?? '-'}</div>
+            <div><strong>Estado:</strong> ${record.estado ?? '-'}</div>
+        `))
+
       .addTo(map);
 
     markers.push(marker);
