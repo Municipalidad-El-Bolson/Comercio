@@ -330,7 +330,7 @@ class Ubicaciones extends AdminComponent
             'state.razon_social.required' => 'La razón social es obligatoria.',
 
             'state.domicilio_responsable.required' => 'Ingresá el domicilio del responsable.',
-            'state.domicilio_comercio.required'    => 'Ingresá el domicilio del comercio.',
+            'state.domicilio_comercio'    => 'Ingresá el domicilio del comercio.',
             'state.correo.email'                   => 'Ingresá un correo válido.',
             'state.telefono.regex'                 => 'Formato de teléfono inválido.',
             'state.monto_pagar.numeric'            => 'El monto debe ser numérico.',

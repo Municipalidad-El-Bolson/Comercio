@@ -29,23 +29,30 @@ trait AuditsModelChanges
         });
     }
 
-    protected static function writeAudit(string $action, $model, array $meta = []): void
-    {
-        $message = method_exists($model, 'auditMessage')
-            ? $model->auditMessage($action, $meta)
-            : self::defaultMessage($action, $model);
+protected static function writeAudit(string $action, $model, array $meta = []): void
+{
+    // guarda acción técnica y data útil para formatear
+    $meta = [
+        'action'      => $action,
+        'route'       => optional(request()->route())->getName(),
+        'is_livewire' => str_contains(request()?->path() ?? '', 'livewire/'),
+    ] + $meta;
 
-        \App\Models\AuditLog::create([
-            'user_id'     => auth()->id(),
-            'action'      => $message,           // ← mensaje legible
-            'entity_type' => get_class($model),
-            'entity_id'   => (string) $model->getKey(),
-            'ip'          => request()?->ip(),
-            'method'      => request()?->method(),
-            'path'        => request()?->path(),
-            'meta'        => $meta ?: null,
-        ]);
-    }
+    $message = method_exists($model, 'auditMessage')
+        ? $model->auditMessage($action, $meta)
+        : self::defaultMessage($action, $model);
+
+    \App\Models\AuditLog::create([
+        'user_id'     => auth()->id(),
+        'action'      => $message, // lo seguís guardando si querés
+        'entity_type' => get_class($model),
+        'entity_id'   => (string) $model->getKey(),
+        'ip'          => request()?->ip(),
+        'method'      => request()?->method(),
+        'path'        => request()?->path(),
+        'meta'        => $meta,
+    ]);
+}
 
     protected static function defaultMessage(string $action, $model): string
     {

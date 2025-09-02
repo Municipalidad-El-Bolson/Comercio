@@ -40,32 +40,27 @@
             <div class="row align-items-center">
               <div class="col-12 col-sm-10">
                 <div class="fw-bold">
-                  @if(!empty($log->action))
-                    {{ $log->action }}
-                  @elseif($log->entity_type)
-                    {{ class_basename($log->entity_type) }} #{{ $log->entity_id }}
-                  @else
-                    —
-                  @endif
+                  {{ $log->message }}
                 </div>
 
-                <div>
-                  {{ $log->user?->name ?? 'Invitado' }}
-                  <small class="text-muted">• {{ $log->method }} {{ $log->path }}</small>
-                  @if($log->ip)
-                    <small class="text-muted">• {{ $log->ip }}</small>
-                  @endif
-                </div>
+                <div>{{ $log->subtitle }}</div>
+
+                @if(!empty($log->diff_lines))
+                  <ul class="mt-1 mb-0 small text-muted">
+                    @foreach($log->diff_lines as $line)
+                      <li>{{ $line }}</li>
+                    @endforeach
+                  </ul>
+                @endif
               </div>
 
               <div class="col-12 col-sm-2 text-sm-end mt-2 mt-sm-0">
                 <span class="badge text-bg-primary rounded-pill">
-                  {{ $log->created_at->format('d/m/Y H:i') }}
-                </span>
+                {{ $log->created_at->timezone('America/Argentina/Buenos_Aires')->format('d/m/Y H:i') }}
+              </span>
               </div>
             </div>
           </li>
-
         @empty
           <li class="list-group-item text-muted">Sin registros.</li>
         @endforelse

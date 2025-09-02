@@ -133,19 +133,6 @@ class Ubicacion extends Model
         return $dir . $suffix;
     }
 
-    public function auditMessage(string $action, array $meta = []): string
-    {
-        // ajustá el campo que tenga el “nombre” real de la ubicación:
-        $nombre = $this->nombre ?? $this->razon_social ?? ('#'.$this->getKey());
-
-        return match ($action) {
-            'created' => "Se creó la ubicación {$nombre}",
-            'updated' => "Se actualizó la ubicación {$nombre}",
-            'deleted' => "Se eliminó la ubicación {$nombre}",
-            default   => "Ubicación {$nombre}: {$action}",
-        };
-    }
-
     protected $casts = [
         'fecha_alta' => 'date',
         'fecha_baja' => 'date',
@@ -177,4 +164,17 @@ class Ubicacion extends Model
 
     // Si deseas deshabilitar los timestamps en el modelo
     public $timestamps = false;
+
+        public function auditMessage(string $action, array $meta = []): string
+    {
+        // ajustá el campo que tenga el “nombre” real de la ubicación:
+        $nombre = $this->nombre_comercial;
+
+        return match ($action) {
+            'created' => "Se creó el comercio {$nombre}",
+            'updated' => "Se modificó el comercio {$nombre}",
+            'deleted' => "Se eliminó el comercio {$nombre}",
+            default   => "Comercio {$nombre}: {$action}",
+        };
+    }
 }

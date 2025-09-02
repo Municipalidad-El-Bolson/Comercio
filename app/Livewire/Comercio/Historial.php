@@ -35,7 +35,8 @@ class Historial extends Component
 
     public function render()
     {
-        $q = AuditLog::with('user')->latest();
+        $q = AuditLog::with(['user', 'entity'])->latest();
+        
 
         if ($this->search !== '') {
             $q->where(function($w){
