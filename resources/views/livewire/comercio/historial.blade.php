@@ -12,27 +12,63 @@
       </div>
 
       <form wire:submit.prevent="filtrar">
-        <div class="row g-2 mb-3">
-          <div class="col-sm-3">
-            <input class="form-control" type="text" placeholder="Buscar acción/ruta/entidad" wire:model.defer="search">
+        <div class="row g-2 mb-3 align-items-end">
+          {{-- 1) Nombre de Usuario (typeahead) --}}
+          <div class="col-12 col-md-4">
+            <label class="form-label mb-1">Nombre de Usuario</label>
+            <input
+              class="form-control"
+              type="text"
+              placeholder="Usuario"
+              list="userHints"
+              wire:model.live.debounce.300ms="userName"
+            >
+            <datalist id="userHints">
+              @foreach(($userHints ?? []) as $hint)
+                <option value="{{ $hint }}"></option>
+              @endforeach
+            </datalist>
           </div>
-          <div class="col-sm-2">
-            <input class="form-control" type="date" wire:model.defer="desde">
+
+          {{-- 2) Objeto --}}
+          <div class="col-6 col-md-2">
+            <label class="form-label mb-1">Objeto</label>
+            <select class="form-select" wire:model.live="objeto">
+              <option value="">Todos</option>
+              <option value="comercio">Comercio</option>
+              <option value="acta">Acta</option>
+            </select>
           </div>
-          <div class="col-sm-2">
-            <input class="form-control" type="date" wire:model.defer="hasta">
+
+          {{-- 3) Acción --}}
+          <div class="col-6 col-md-2">
+            <label class="form-label mb-1">Acción</label>
+            <select class="form-select" wire:model.live="accion">
+              <option value="">Todas</option>
+              <option value="crear">Crear</option>
+              <option value="editar">Editar</option>
+              <option value="loguear">Loguear</option>
+            </select>
           </div>
-          <div class="col-sm-3">
-            <input class="form-control" type="text" placeholder="Nombre del usuario" wire:model.defer="adminName">
+
+          {{-- 4) Desde / Hasta --}}
+          <div class="col-6 col-md-2">
+            <label class="form-label mb-1">Desde</label>
+            <input class="form-control" type="date" wire:model.live="desde">
           </div>
-          <div class="col-sm-2 d-grid">
-            <button type="submit" class="btn btn-primary">
-              <i class="fas fa-search"></i> Buscar
+          <div class="col-6 col-md-2">
+            <label class="form-label mb-1">Hasta</label>
+            <input class="form-control" type="date" wire:model.live="hasta">
+          </div>
+
+          {{-- (Opcional) Limpiar 
+          <div class="col-12 col-md-2 d-grid mt-2 mt-md-0">
+            <button type="button" class="btn btn-outline-secondary" wire:click="clearFilters">
+              Limpiar
             </button>
-          </div>
+          </div>--}}
         </div>
       </form>
-
 
       <ol class="list-group list-group-numbered">
         @forelse($items as $log)
