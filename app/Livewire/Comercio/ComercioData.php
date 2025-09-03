@@ -17,6 +17,12 @@ class ComercioData extends Component
     public $showEditModal = false;
     public $rubros;
     public $state = [];
+    public array $megas = [];
+    public array $madres = [];
+    public array $subs = [];
+    public string $selectedMega = '';
+    public string $selectedMadre = '';
+
 
     /** Labels visibles (centralizamos en el componente) */
     public array $labelsGenerales = [
@@ -83,14 +89,86 @@ class ComercioData extends Component
             ->orderBy('rubro_madre')
             ->orderBy('subrubro')
             ->get();
+
+        $this->megas = Rubro::query()
+            ->select('mega_rubro')->distinct()->orderBy('mega_rubro')
+            ->pluck('mega_rubro')->toArray();
+
+        $this->rehidratarRubrosDesde($this->ubicacion->rubro_id);
     }
+
+    private function rehidratarRubrosDesde(?int $rubroId): void
+    {
+        if (!$rubroId) {
+            $this->selectedMega = '';
+            $this->selectedMadre = '';
+            $this->madres = [];
+            $this->subs = [];
+            $this->state['rubro_id'] = null;
+            return;
+        }
+
+        $r = Rubro::find($rubroId);
+        if (!$r) {
+            $this->rehidratarRubrosDesde(null);
+            return;
+        }
+
+        $this->selectedMega = $r->mega_rubro ?? '';
+        $this->madres = Rubro::where('mega_rubro', $this->selectedMega)
+            ->select('rubro_madre')->distinct()->orderBy('rubro_madre')->pluck('rubro_madre')->toArray();
+
+        $this->selectedMadre = $r->rubro_madre ?? '';
+        $this->subs = Rubro::where('mega_rubro', $this->selectedMega)
+            ->where('rubro_madre', $this->selectedMadre)
+            ->orderBy('subrubro')
+            ->get(['id','subrubro'])
+            ->map(fn($x)=>['id'=>$x->id,'sub'=>$x->subrubro])
+            ->toArray();
+
+        $this->state['rubro_id'] = (int) $rubroId;
+    }
+
+
+    public function updatedSelectedMega($value)
+    {
+        $this->selectedMadre = '';
+        $this->state['rubro_id'] = null;
+
+        $this->madres = $value
+            ? Rubro::where('mega_rubro', $value)
+                ->select('rubro_madre')->distinct()->orderBy('rubro_madre')
+                ->pluck('rubro_madre')->toArray()
+            : [];
+
+        $this->subs = [];
+    }
+
+    public function updatedSelectedMadre($value)
+    {
+        $this->state['rubro_id'] = null;
+
+        $this->subs = ($this->selectedMega && $value)
+            ? Rubro::where('mega_rubro', $this->selectedMega)
+                ->where('rubro_madre', $value)
+                ->orderBy('subrubro')
+                ->get(['id','subrubro'])
+                ->map(fn($x)=>['id'=>$x->id,'sub'=>$x->subrubro])
+                ->toArray()
+            : [];
+    }
+
 
     public function editaComercio(Ubicacion $ubicacion)
     {
         $this->showEditModal = true;
-        $this->ubicacion = $ubicacion->loadMissing('documentos');
+        $this->ubicacion = $ubicacion->loadMissing('documentos', 'rubro');
 
         $this->state = $this->ubicacion->toArray();
+
+        $this->state['estado'] = trim(mb_strtolower($this->state['estado'] ?? 'entramite'));
+
+        $this->rehidratarRubrosDesde($this->ubicacion->rubro_id ?: null);
 
         $docsRaw = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
         $docs = $this->normalizeDocsArray($docsRaw);
@@ -102,61 +180,115 @@ class ComercioData extends Component
 
     public function updateComercio()
     {
+        // NO mandamos 'situacion': la setea el modelo en saving()
+        unset($this->state['situacion']);
+
+        // Estado normalizado actual y anterior
+        $estadoNorm   = $this->normalizarEstado($this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite');
+        $prevNorm     = $this->normalizarEstado($this->ubicacion->getOriginal('estado') ?? $this->ubicacion->estado ?? 'entramite');
+
+        $yaTeniaAlta      = !empty($this->ubicacion?->fecha_alta);
+        $vieneAltaAhora   = !empty($this->state['fecha_alta']);
+
+        // Reglas base
         $rules = [
             'persona_tipo'          => 'required|in:fisica,juridica',
-            'apellido'              => 'nullable|string',
-            'nombres'               => 'nullable|string',
-            'razon_social'          => 'nullable|string',
+            'apellido'              => 'nullable|string|min:2|max:60',
+            'nombres'               => 'nullable|string|min:2|max:80',
+            'razon_social'          => 'nullable|string|min:2|max:120',
             'dni_cuit'              => 'required|string',
             'rubro_id'              => 'required|exists:rubros,id',
-            'domicilio_responsable' => 'required|string',
-            'correo'                => 'nullable|email',
-            'telefono'              => 'nullable|string',
-            'nombre_comercial'      => 'nullable|string',
-            'domicilio_comercio'    => 'required|string',
-            'nomenclatura'          => 'nullable|string',
-            'observaciones'         => 'nullable|string',
-            'estado'                => 'required|in:vigente,irregular,entramite',
-            'situacion'             => 'required|in:alta,baja',
+            'domicilio_responsable' => 'required|string|min:3|max:160',
+            'correo'                => 'nullable|email:rfc,dns|max:120',
+            'telefono'              => 'nullable|regex:/^[\d\s()+\-]{6,20}$/',
+            'nombre_comercial'      => 'nullable|string|min:2|max:120',
+            'domicilio_comercio'    => 'nullable|string|min:3|max:160', // si usás required_without:nomenclatura, agregalo
+            'nomenclatura'          => 'nullable|string|max:80',
+            'observaciones'         => 'nullable|string|max:500',
+            'estado'                => 'required|in:entramite,vigente,irregular,baja',
+            'tipo_hab'              => 'required|in:definitiva,prev',
             'fecha_alta'            => 'nullable|date',
             'fecha_baja'            => 'nullable|date',
             'documentos'            => 'array',
         ];
 
-        // Reglas condicionales
+        // Condicionales por persona
         if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
-            $rules['apellido'] = 'required|string';
-            $rules['nombres']  = 'required|string';
+            $rules['apellido'] = 'required|string|min:2|max:60';
+            $rules['nombres']  = 'required|string|min:2|max:80';
         } else {
-            $rules['razon_social'] = 'required|string';
-        }
-        if (($this->state['situacion'] ?? 'alta') === 'baja') {
-            $rules['fecha_baja'] = 'required|date';
-        } else {
-            $rules['fecha_alta'] = 'required|date';
+            $rules['razon_social'] = 'required|string|min:2|max:120';
         }
 
-        $validated = Validator::make($this->state, $rules)->validate();
+        // ===== Reglas de fechas "a prueba de balas" =====
+        switch ($estadoNorm) {
+            case 'entramite':
+                // No forzamos fechas
+                break;
 
-        foreach (['razon_social', 'apellido', 'nombres', 'domicilio_responsable', 'nombre_comercial', 'domicilio_comercio'] as $campo) {
-            if (!empty($validated[$campo])) {
-                $validated[$campo] = Str::title($validated[$campo]);
-            }
+            case 'vigente':
+                // Sólo exigimos fecha_alta si venís desde 'entramite' y no había ni hay fecha_alta
+                if ($prevNorm === 'entramite' && !$yaTeniaAlta && !$vieneAltaAhora) {
+                    $rules['fecha_alta'] = 'required|date';
+                }
+                break;
+
+            case 'irregular':
+                // Irregular siempre necesita fecha de alta
+                $rules['fecha_alta'] = 'required|date';
+                break;
+
+            case 'baja':
+                $tieneAltaAntes = $yaTeniaAlta || $vieneAltaAhora;
+
+                // Baja siempre requiere fecha_baja
+                $rules['fecha_baja'] = 'required|date' . ($tieneAltaAntes ? '|after_or_equal:fecha_alta' : '') . '|before_or_equal:today';
+
+                // Si no había alta ni ahora tampoco, exigila (para consistencia histórica)
+                if (!$tieneAltaAntes) {
+                    $rules['fecha_alta'] = 'required|date|before_or_equal:today';
+                }
+                break;
         }
 
+        // Validar
+        $validated = \Illuminate\Support\Facades\Validator::make($this->state, $rules)->validate();
+
+        // Normalizaciones cosmeticas
+        foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
+            if (!empty($validated[$c])) $validated[$c] = \Illuminate\Support\Str::title($validated[$c]);
+        }
+
+        // Documentos
         $documentos = $this->normalizeDocsArray($validated['documentos'] ?? []);
         unset($validated['documentos']);
 
-        
-        $cols = Schema::getColumnListing('ubicacion_documentos');
-        $payload = array_intersect_key($documentos, array_flip($cols));
+        // NO seteamos 'situacion' a mano; la calcula el modelo en saving()
+        // Guardar Ubicación
+        $this->ubicacion->update($validated);
 
+        // Guardar checklist (crea si no existe)
+        $cols = \Illuminate\Support\Facades\Schema::getColumnListing('ubicacion_documentos');
+        $payload = array_intersect_key($documentos, array_flip($cols));
         $this->ubicacion->documentos()->updateOrCreate(
             ['ubicacion_id' => $this->ubicacion->id],
             $payload + ['ubicacion_id' => $this->ubicacion->id]
         );
 
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
+    }
+
+
+    private function normalizarEstado(?string $estado): string
+    {
+        $e = trim(mb_strtolower($estado ?? ''));
+        return match ($e) {
+            'en tramite', 'en trámite', 'en_tramite', 'en-tramite' => 'entramite',
+            'vigente' => 'vigente',
+            'irregular' => 'irregular',
+            'baja' => 'baja',
+            default => 'entramite',
+        };
     }
 
     private function normalizeDocsArray(array $docs): array
@@ -205,6 +337,9 @@ class ComercioData extends Component
             'ubicacion' => $this->ubicacion,
             'historial' => $historial,
             'rubros' => $this->rubros,
+            'megas'  => $this->megas,
+            'madres' => $this->madres,
+            'subs'   => $this->subs,
             // Documentación
             'docs' => $docs,
             'labelsGenerales' => $this->labelsGenerales,

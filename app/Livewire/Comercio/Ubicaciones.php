@@ -33,6 +33,7 @@ class Ubicaciones extends AdminComponent
     public array $subs    = [];
     public string $selectedMega  = '';
     public string $selectedMadre = '';
+    public string $formKey = '';
 
     /** Documentos booleanos soportados (clave => default) */
     protected array $docKeysGeneral = [
@@ -97,6 +98,7 @@ class Ubicaciones extends AdminComponent
 
         $this->madres = [];
         $this->subs   = [];
+        $this->formKey = (string) \Illuminate\Support\Str::uuid();
     }
 
     public function updated($name, $value)
@@ -181,48 +183,91 @@ class Ubicaciones extends AdminComponent
             'documentos'    => $this->docDefaults,
         ];
 
-
+        $this->formKey = (string) \Illuminate\Support\Str::uuid();
         $this->showEditModal = false;
         $this->dispatch('show-form');
     }
 
     public function editaComercio(Ubicacion $ubicacion)
     {
+        try {
+    $validated = $this->validate($reglas, $this->mensajes(), $this->atributos());
+} catch (\Illuminate\Validation\ValidationException $e) {
+    \Log::error('VALIDATION FAILED', [
+        'errors' => $e->errors(),
+        'failed' => method_exists($e->validator, 'failed') ? $e->validator->failed() : null,
+        'rules'  => $reglas,
+        'state'  => $this->state,
+    ]);
+    throw $e;
+}
+
         $this->showEditModal = true;
         $this->ubicacion = $ubicacion->loadMissing('documentos', 'rubro');
 
         $this->state = $this->ubicacion->toArray();
 
         foreach (['fecha_alta','fecha_baja','fecha_vto'] as $f) {
-            if (!empty($this->ubicacion->{$f})) {
-                $this->state[$f] = $this->ubicacion->{$f}->format('Y-m-d');
-            } else {
-                $this->state[$f] = null;
-            }
+            $this->state[$f] = !empty($this->ubicacion->{$f})
+                ? $this->ubicacion->{$f}->format('Y-m-d')
+                : null;
         }
+        $this->state['estado']    = $this->normalizarEstado($this->state['estado'] ?? null);
+        $this->state['situacion'] = $this->ubicacion->situacion ?? ($this->state['situacion'] ?? null);
 
         if ($this->ubicacion->rubro_id) {
             $r = Rubro::find($this->ubicacion->rubro_id);
             if ($r) {
                 $this->selectedMega  = $r->mega_rubro ?? '';
-                $this->madres = Rubro::where('mega_rubro', $this->selectedMega)
-                    ->select('rubro_madre')->distinct()->orderBy('rubro_madre')->pluck('rubro_madre')->toArray();
+                $this->madres        = Rubro::where('mega_rubro', $this->selectedMega)
+                                        ->select('rubro_madre')->distinct()->orderBy('rubro_madre')->pluck('rubro_madre')->toArray();
 
                 $this->selectedMadre = $r->rubro_madre ?? '';
-                $this->subs = Rubro::where('mega_rubro', $this->selectedMega)
-                    ->where('rubro_madre', $this->selectedMadre)
-                    ->orderBy('subrubro')
-                    ->get(['id','subrubro'])
-                    ->map(fn($x)=>['id'=>$x->id,'sub'=>$x->subrubro])
-                    ->toArray();
+                $this->subs          = Rubro::where('mega_rubro', $this->selectedMega)
+                                        ->where('rubro_madre', $this->selectedMadre)
+                                        ->orderBy('subrubro')
+                                        ->get(['id','subrubro'])
+                                        ->map(fn($x)=>['id'=>$x->id,'sub'=>$x->subrubro])
+                                        ->toArray();
+
+                // ¡SIEMPRE después de cargar $subs!
+                $this->state['rubro_id'] = (int) $this->ubicacion->rubro_id;
             }
+        } else {
+            $this->selectedMega = '';
+            $this->selectedMadre = '';
+            $this->madres = [];
+            $this->subs = [];
+            $this->state['rubro_id'] = null;
         }
 
         $docs = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
         $this->state['documentos'] = array_merge($this->docDefaults, array_intersect_key($docs, $this->docDefaults));
-
+        $this->formKey = (string) \Illuminate\Support\Str::uuid();
         $this->dispatch('show-form');
     }
+
+    public function rehidratarRubros(): void
+    {
+        $rid = (int)($this->state['rubro_id'] ?? 0);
+        if ($rid > 0) {
+            $r = Rubro::find($rid);
+            if ($r) {
+                $this->selectedMega  = $r->mega_rubro ?? '';
+                $this->madres        = Rubro::where('mega_rubro', $this->selectedMega)
+                                    ->select('rubro_madre')->distinct()->orderBy('rubro_madre')->pluck('rubro_madre')->toArray();
+
+                $this->selectedMadre = $r->rubro_madre ?? '';
+                $this->subs          = Rubro::where('mega_rubro', $this->selectedMega)
+                                    ->where('rubro_madre', $this->selectedMadre)
+                                    ->orderBy('subrubro')
+                                    ->get(['id','subrubro'])
+                                    ->map(fn($x)=>['id'=>$x->id,'sub'=>$x->subrubro])
+                                    ->toArray();
+            }
+        }
+    }
+
 
     public function updatedSelectedMega($value)
     {
@@ -284,7 +329,6 @@ class Ubicaciones extends AdminComponent
             'state.nomenclatura'          => ['nullable','string','max:80','required_without:state.domicilio_comercio'],
             'state.monto_pagar'           => ['nullable','numeric','min:0','regex:/^\d{1,9}(\.\d{1,2})?$/'],
             'state.observaciones'         => ['nullable','string','max:500'],
-
             'state.estado'                => ['required', Rule::in(['entramite','vigente','irregular','baja'])],
             'state.tipo_hab'              => ['required', Rule::in(['definitiva','prev'])],
             'state.fecha_alta'            => ['nullable','date'],
@@ -430,19 +474,43 @@ class Ubicaciones extends AdminComponent
         $this->dispatch('hide-form', ['message' => 'Comercio creado correctamente.']);
     }
 
+    private function normalizarEstado(?string $estado): string
+    {
+        $e = trim(mb_strtolower($estado ?? ''));
+        return match ($e) {
+            'en tramite', 'en trámite', 'en_tramite', 'en-tramite' => 'entramite',
+            'vigente' => 'vigente',
+            'irregular' => 'irregular',
+            'baja' => 'baja',
+            default => 'entramite',
+        };
+    }
+
+
     /** Actualizar */
     public function updateComercio()
     {
+        $this->state['estado'] = $this->normalizarEstado($this->state['estado'] ?? null);
+
         $this->aplicarFlagsEstadoEnState();
 
+        if (array_key_exists('situacion', $this->state)) {
+            unset($this->state['situacion']);
+        }
+
+        $reglas = array_merge($this->reglasComunes(true), $this->reglasFechasPorEstado(false));
+        unset($reglas['state.situacion']);
+
         $validated = $this->validate(
-            array_merge($this->reglasComunes(true), $this->reglasFechasPorEstado(false)),
+            $reglas,
             $this->mensajes(),
             $this->atributos()
         );
 
         $data = $validated['state'];
+        $data['estado'] = $this->normalizarEstado($data['estado'] ?? null);
         
+        unset($data['situacion']);
 
         // Formateos
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
@@ -546,7 +614,7 @@ class Ubicaciones extends AdminComponent
 
     private function reglasFechasPorEstado(bool $esCreate): array
     {
-        $estado = $this->state['estado'] ?? 'entramite';
+        $nuevo = $this->normalizarEstado($this->state['estado'] ?? null);
 
         $reglas = [
             'state.fecha_alta' => 'nullable|date',
@@ -554,46 +622,49 @@ class Ubicaciones extends AdminComponent
             'state.fecha_vto'  => 'nullable|date',
         ];
 
-        switch ($estado) {
+        switch ($nuevo) {
             case 'entramite':
+                // Nunca exige fechas
                 break;
 
             case 'vigente':
                 if ($esCreate) {
                     $reglas['state.fecha_alta'] = 'required|date';
                 } else {
-                    $prev = $this->ubicacion?->getOriginal('estado') ?? null;
-                    if ($prev !== 'entramite') {
+                    $prevNorm       = $this->normalizarEstado($this->ubicacion?->getOriginal('estado') ?? null);
+                    $yaTeniaAlta    = !empty($this->ubicacion?->fecha_alta);
+                    $vieneAltaAhora = !empty($this->state['fecha_alta']);
+
+                    // Solo si pasás de EN TRÁMITE -> VIGENTE y no había alta ni viene ahora
+                    if ($prevNorm === 'entramite' && !$yaTeniaAlta && !$vieneAltaAhora) {
                         $reglas['state.fecha_alta'] = 'required|date';
                     }
                 }
-                // vto lo calcula el modelo si hay alta
                 break;
 
             case 'irregular':
+                // Irregular siempre con alta
                 $reglas['state.fecha_alta'] = 'required|date';
                 break;
 
             case 'baja':
+                $tieneAltaAntes = !empty($this->ubicacion?->fecha_alta) || !empty($this->state['fecha_alta']);
 
                 $reglas['state.fecha_baja'] = 'required|date'
-                    . (empty($this->state['fecha_alta']) && empty($this->ubicacion?->fecha_alta)
-                        ? '' 
-                        : '|after_or_equal:state.fecha_alta')
+                    . ($tieneAltaAntes ? '|after_or_equal:state.fecha_alta' : '')
                     . '|before_or_equal:today';
 
-                // si no hay alta ni antes ni ahora, pedila:
                 if (empty($this->state['fecha_alta']) && empty($this->ubicacion?->fecha_alta)) {
                     $reglas['state.fecha_alta'] = 'required|date|before_or_equal:today';
                 }
 
-                // vto no aplica
-                $reglas['state.fecha_vto']  = 'nullable';
+                $reglas['state.fecha_vto'] = 'nullable';
                 break;
         }
 
         return $reglas;
     }
+
 
     /*CUIT*/
     private function isValidCuit(string $cuit): bool
