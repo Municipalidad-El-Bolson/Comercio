@@ -66,7 +66,7 @@ class Historial extends Component
             ->with('user')
             ->with(['entity' => function (\Illuminate\Database\Eloquent\Relations\MorphTo $morphTo) {
                 $morphTo->morphWith([
-                    \App\Models\Ubicacion::class => ['comercio'], // por si mostraste nombre_fantasia
+                    \App\Models\Ubicacion::class => [], // por si mostraste nombre_fantasia
                     \App\Models\Movimiento::class => [],
                 ]);
             }]);
@@ -80,7 +80,7 @@ class Historial extends Component
         // Filtro: Objeto (Comercio | Acta)
         if ($this->objeto) {
             $map = [
-                'comercio' => Comercio::class,
+                'comercio' => Ubicacion::class,
                 'acta'     => Movimiento::class,
             ];
             if (isset($map[$this->objeto])) {

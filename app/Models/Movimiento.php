@@ -71,4 +71,24 @@ class Movimiento extends Model
     {
         return $this->belongsTo(\App\Models\Ubicacion::class);
     }
+    // app/Models/Movimiento.php
+
+    public function getArchivoUrlAttribute(): ?string
+    {
+        return $this->archivo ? \Storage::disk('public')->url($this->archivo) : null;
+    }
+    public function getArchivoExisteAttribute(): bool
+    {
+        return $this->archivo ? \Storage::disk('public')->exists($this->archivo) : false;
+    }
+    public function getArchivoEsImagenAttribute(): bool
+    {
+        if (!$this->archivo) return false;
+        return (bool) preg_match('/\.(jpe?g|png|gif|bmp|webp)$/i', $this->archivo);
+    }
+    public function getFechaMostrarAttribute(): ?string
+    {
+        return $this->fecha ? $this->fecha->format('d/m/Y H:i') : null;
+    }
+
 }

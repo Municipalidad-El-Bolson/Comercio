@@ -33,7 +33,7 @@ class AuditLog extends Model
     public function message(): Attribute
     {
         return Attribute::get(function () {
-                    // 0) Mapear eventos por nombre de ruta o por texto en action/path
+            // 0) Mapear por nombre de ruta o action
             $routesMap = config('audit.routes', []);
             $routeName = Arr::get($this->meta, 'route');
 
@@ -41,19 +41,18 @@ class AuditLog extends Model
                 return $routesMap[$routeName];
             }
 
-            // si en 'action' te quedó algo como 'login.post'
             $rawAction = (string)($this->attributes['action'] ?? '');
             if ($rawAction && isset($routesMap[$rawAction])) {
                 return $routesMap[$rawAction];
             }
 
-            // fallback por path si no hay nombre de ruta
+            // Fallback por path
             $p = (string)($this->path ?? '');
             if ($p !== '') {
                 if (Str::contains($p, 'login'))  return 'Inicio de sesión';
                 if (Str::contains($p, 'logout')) return 'Cierre de sesión';
             }
-            
+
             // Verbo según meta['action']
             $actionKey = Arr::get($this->meta, 'action');
             $verb = match ($actionKey) {
@@ -63,39 +62,35 @@ class AuditLog extends Model
                 default   => 'Se realizó',
             };
 
-            $ename = class_basename($etype ?? '');
+            // Tipo de entidad (seguro)
+            $etype = Arr::get($this->meta, 'entity_type');
+            $ename = class_basename($etype ?: (is_object($this->entity) ? get_class($this->entity) : ''));
 
+            // ===== Ubicacion =====
             if (Str::lower($ename) === 'ubicacion') {
-            $u = $this->entity; // morphTo
+                $u = $this->entity; // morphTo
 
-            // 1) comercio->nombre_fantasia
-            $fantasia = $u?->comercio?->nombre_fantasia;
+                // Tomamos datos directamente de Ubicacion (sin relación comercio)
+                $fantasia = $u?->nombre_comercial
+                    ?? $u?->razon_social
+                    ?? trim(($u->apellido ?? '').' '.($u->nombres ?? ''));
 
-            // 2) si no, en la propia ubicación (por si lo guardás ahí)
-            $fantasia ??= $u?->nombre_fantasia;
-
-            // 3) si tampoco, nombre_comercial
-            $fantasia ??= $u?->nombre_comercial;
-
-            // 4) o razón social (comercio/ubicación)
-            $fantasia ??= $u?->comercio?->razon_social;
-            $fantasia ??= $u?->razon_social;
-
-            if ($fantasia) {
-                return "{$verb} {$fantasia}";
+                if ($fantasia) {
+                    return "{$verb} {$fantasia}";
+                }
+                return "{$verb} la Ubicación #{$this->entity_id}";
             }
-            return "{$verb} la Ubicación #{$this->entity_id}";
-        }
 
-        if (Str::lower($ename) === 'movimiento') {
-            $m = $this->entity;
-            $tipo   = trim((string) ($m?->tipo ?? ''));
-            $titulo = trim((string) ($m?->titulo ?? ''));
-            $texto  = trim($tipo.' '.$titulo);
-            return $texto !== '' ? "{$verb} «{$texto}»" : "{$verb} el Movimiento #{$this->entity_id}";
-        }
+            // ===== Movimiento =====
+            if (Str::lower($ename) === 'movimiento') {
+                $m = $this->entity;
+                $tipo   = trim((string) ($m?->tipo ?? ''));
+                $titulo = trim((string) ($m?->titulo ?? ''));
+                $texto  = trim($tipo.' '.$titulo);
+                return $texto !== '' ? "{$verb} «{$texto}»" : "{$verb} el Movimiento #{$this->entity_id}";
+            }
 
-            // ---------- Fallback ----------
+            // Fallback
             if (!empty($this->attributes['action'])) {
                 return $this->attributes['action'];
             }
