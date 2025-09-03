@@ -96,42 +96,42 @@ class Ubicacion extends Model
 
 
     private static function normalizeDireccionComercio(?string $dir): ?string
-    {
-        if ($dir === null) return null;
-        $dir = trim($dir);
-        if ($dir === '') return null;
+{
+    if ($dir === null) return null;
+    $dir = trim($dir);
+    if ($dir === '') return null;
 
-        // Compactar espacios
-        $dir = preg_replace('/\s+/', ' ', $dir);
+    // Compactar espacios y trailing commas
+    $dir = preg_replace('/\s+/', ' ', $dir);
+    $dir = rtrim($dir, " \t\n\r\0\x0B,");
 
-        // Remover comas/espacios finales sobrantes
-        $dir = rtrim($dir, " \t\n\r\0\x0B,");
+    // Sufijo correcto y ÚNICO (con país)
+    $suffix = ', R8430 El Bolsón, Río Negro, Argentina';
 
-        // Sufijo correcto (único)
-        $suffix = ', R8430 El Bolsón, Río Negro';
+    // Variantes a limpiar (con/sin acentos/país)
+    $lower = mb_strtolower($dir);
+    $variants = [
+        ', r8430 el bolsón, río negro, argentina',
+        ', r8430 el bolson, rio negro, argentina',
+        ', r8430 el bolsón, rio negro, argentina',
+        ', r8430 el bolson, río negro, argentina',
+        ', r8430 el bolsón, río negro',
+        ', r8430 el bolson, rio negro',
+        ', r8430 el bolsón, rio negro',
+        ', r8430 el bolson, río negro',
+    ];
 
-        // Quitar variantes del sufijo existentes (con/sin acentos)
-        $lower = mb_strtolower($dir);
-
-        $variants = [
-            ', r8430 el bolsón, río negro',
-            ', r8430 el bolson, rio negro',
-            ', r8430 el bolsón, rio negro',
-            ', r8430 el bolson, río negro',
-        ];
-
-        foreach ($variants as $v) {
-            if (Str::endsWith($lower, $v)) {
-                // cortar el sufijo existente
-                $dir = mb_substr($dir, 0, mb_strlen($dir) - mb_strlen($v));
-                $dir = rtrim($dir, " \t\n\r\0\x0B,");
-                break;
-            }
+    foreach ($variants as $v) {
+        if (Str::endsWith($lower, $v)) {
+            $dir = mb_substr($dir, 0, mb_strlen($dir) - mb_strlen($v));
+            $dir = rtrim($dir, " \t\n\r\0\x0B,");
+            break;
         }
-
-        // Volver a pegar el sufijo correcto, una sola vez
-        return $dir . $suffix;
     }
+
+    return $dir . $suffix;
+}
+
 
     protected $casts = [
         'fecha_alta' => 'date',

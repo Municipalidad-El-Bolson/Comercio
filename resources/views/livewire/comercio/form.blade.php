@@ -133,7 +133,7 @@
           <div class="form-row">
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1">Mega rubro</label>
-              <select wire:model="selectedMega"
+              <select wire:model.live="selectedMega"
                       wire:key="megas-{{ md5(json_encode($megas ?? [])) }}"
                       class="form-control form-control-sm">
                 <option value="">-- Seleccione Mega rubro --</option>
@@ -145,7 +145,7 @@
 
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1">Rubro madre</label>
-                <select wire:model="selectedMadre"
+                <select wire:model.live="selectedMadre"
                         @disabled(empty($selectedMega))
                         wire:key="madres-{{ $selectedMega ?? 'none' }}"
                         class="form-control form-control-sm">
@@ -158,7 +158,7 @@
 
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1">Subrubro</label>
-              <select wire:model="state.rubro_id"
+              <select wire:model.live="state.rubro_id"
                       @disabled(empty($selectedMadre))
                       wire:key="subs-{{ $selectedMega ?? 'none' }}-{{ $selectedMadre ?? 'none' }}"
                       class="form-control form-control-sm @error('state.rubro_id') is-invalid @enderror">
@@ -180,7 +180,7 @@
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="estado">Estado</label>
               <select id="estado"
-                      wire:model.defer="state.estado"
+                      wire:model.live="state.estado"
                       class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
                 <option value="">-- Seleccioná estado --</option>
                 <option value="entramite">En trámite</option>
@@ -195,7 +195,7 @@
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="tipo_hab">Tipo de habilitación</label>
               <select id="tipo_hab"
-                      wire:model.defer="state.tipo_hab"
+                      wire:model.live="state.tipo_hab"
                       class="form-control form-control-sm @error('state.tipo_hab') is-invalid @enderror">
                 <option value="definitiva">Definitiva</option>
                 <option value="prev">Provisoria (6 meses)</option>

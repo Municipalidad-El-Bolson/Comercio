@@ -9,15 +9,43 @@ class UbicacionGeoEnricher {
 
   public function geocode(?string $addr): ?array {
     if (!$addr) return null;
+
     return Cache::remember('geocode:'.md5($addr), 86400, function() use ($addr) {
-      $key = config('services.google.maps_key'); // ponelo en .env
+      $key = config('services.google.maps_key'); // .env: GOOGLE_MAPS_KEY=...
+
+      // Bounding box para sesgo (aprox El Bolsón)
+      // SW: (-42.10, -71.65)  NE: (-41.85, -71.35)
+      $bounds = sprintf('%f,%f|%f,%f', -42.10, -71.65, -41.85, -71.35);
+
       $r = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
-        'address'=>$addr,'key'=>$key,
+        'address'     => $addr,
+        'key'         => $key,
+        'language'    => 'es-AR',
+        'region'      => 'ar',
+        'components'  => 'country:AR',
+        'bounds'      => $bounds,   // sesgo; no es filtro estricto
       ])->json();
-      $loc = $r['results'][0]['geometry']['location'] ?? null;
-      return $loc ? ['lat'=>$loc['lat'],'lng'=>$loc['lng']] : null;
+
+      $res = $r['results'][0] ?? null;
+      if (!$res) return null;
+
+      // Filtro estricto a Argentina (y opcional Río Negro)
+      $ac = collect($res['address_components'] ?? []);
+      $country = $ac->first(fn($c) => in_array('country', $c['types'] ?? []));
+      if (($country['short_name'] ?? '') !== 'AR') return null;
+
+      // (Opcional) exigir provincia Río Negro
+      $prov = $ac->first(fn($c) => in_array('administrative_area_level_1', $c['types'] ?? []));
+      if ($prov && strcasecmp($prov['long_name'] ?? '', 'Río Negro') !== 0) {
+        // si querés forzar solo Río Negro, retorná null
+        // return null;
+      }
+
+      $loc = $res['geometry']['location'] ?? null;
+      return $loc ? ['lat' => $loc['lat'], 'lng' => $loc['lng']] : null;
     });
   }
+
 
   public function enrich(array $data): array {
     $lat = $data['lat'] ?? null; $lng = $data['lng'] ?? null;
