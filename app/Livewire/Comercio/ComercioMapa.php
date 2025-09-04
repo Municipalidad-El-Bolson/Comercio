@@ -6,7 +6,8 @@ use App\Livewire\Admin\AdminComponent;
 use App\Models\Ubicacion;
 use App\Models\Rubro;
 use App\Models\ComercioEstado;
-use App\Services\GeoService; // 👈 agregá esto
+use App\Services\GeoService;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
 class ComercioMapa extends AdminComponent
@@ -31,6 +32,8 @@ class ComercioMapa extends AdminComponent
 
     public function mount(GeoService $geo) // 👈 inyectamos GeoService
     {
+        abort_unless(Gate::allows('view-maps'), 403);
+        
         // Megas
         $this->megas = Rubro::query()
             ->select('mega_rubro')->distinct()->orderBy('mega_rubro')

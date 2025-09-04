@@ -22,20 +22,26 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group(function () {
 
-    // Tu “home” del sistema: Ubicaciones (post‑login cae acá)
-    Route::get('/panel', Ubicaciones::class)->name('panel');
+    // “Home” post-login: derivamos según rol (ver punto 5)
+    Route::get('/panel', fn () => redirect()->route('mapas'))->name('panel');
 
-    // Alias opcional por compatibilidad con tu código anterior
-    Route::get('/ubicaciones', Ubicaciones::class)->name('ubicaciones');
+    // Visible para todos los logueados, pero acceso controlado por middleware de rol
+    Route::middleware('role:admin,writer,reader')->group(function () {
+        Route::get('/mapas', ComercioMapa::class)->name('mapas');
+    });
 
-    Route::get('/mapas', ComercioMapa::class)->name('mapas');
-    Route::get('/historial', Historial::class)->name('historial');
-    Route::get('/reportes', Reportes::class)->name('reportes');
-    Route::get('/register-user', RegisterUser::class)->name('register-user');
+    Route::middleware('role:admin,writer')->group(function () {
+        Route::get('/ubicaciones', Ubicaciones::class)->name('ubicaciones');
+        Route::get('/comercios/{ubicacion}', ComercioData::class)->name('comercio.data');
+    });
 
-    Route::get('/comercios/{ubicacion}', ComercioData::class)->name('comercio.data');
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/historial', Historial::class)->name('historial');
+        Route::get('/reportes', Reportes::class)->name('reportes');
+        Route::get('/register-user', RegisterUser::class)->name('register-user');
+    });
 
-    // Archivos públicos (si querés que sólo los vean usuarios logueados, dejalo aquí)
+    // Archivos (si deben ser privados, dejalos bajo auth)
     Route::get('/files/{path}', function (string $path) {
         $path = ltrim($path, '/');
         abort_unless(Storage::disk('public')->exists($path), 404);

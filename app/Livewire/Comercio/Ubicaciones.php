@@ -13,6 +13,7 @@ use Livewire\WithPagination;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Gate;
 
 
 class Ubicaciones extends AdminComponent
@@ -84,6 +85,8 @@ class Ubicaciones extends AdminComponent
 
     public function mount()
     {
+        abort_unless(Gate::allows('manage-ubicaciones'), 403);
+        
         $this->docDefaults = array_fill_keys(
             array_merge($this->docKeysGeneral, $this->docKeysJuridica),
             false

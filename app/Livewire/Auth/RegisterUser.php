@@ -8,6 +8,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Illuminate\Support\Facades\Gate;
+
 
 #[Layout('admin.layouts.app')]
 class RegisterUser extends Component
@@ -19,10 +21,15 @@ class RegisterUser extends Component
     public string $role = 'reader';
 
     public array $roleOptions = [
-        ['value' => 'admin',  'label' => 'Admin'],
-        ['value' => 'writer', 'label' => 'Writer'],
-        ['value' => 'reader', 'label' => 'Reader'],
+        ['value' => 'admin',  'label' => 'Administrador'],
+        ['value' => 'writer', 'label' => 'Escritor'],
+        ['value' => 'reader', 'label' => 'Lector'],
     ];
+
+    public function mount()
+    {
+        abort_unless(Gate::allows('access-admin'), 403);
+    }
 
     public function rules(): array
     {

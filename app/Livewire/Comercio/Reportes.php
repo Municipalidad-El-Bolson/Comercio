@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Ubicacion;
 use App\Models\Rubro;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Gate;
 use App\Livewire\Admin\AdminComponent;
 
 class Reportes extends Component
@@ -25,6 +26,8 @@ class Reportes extends Component
 
     public function mount()
     {
+        abort_unless(Gate::allows('access-admin'), 403);
+        
         $this->rubros = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
         $this->desde = Carbon::now()->startOfYear()->toDateString();
         $this->hasta = Carbon::now()->toDateString();

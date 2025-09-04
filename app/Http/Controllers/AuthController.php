@@ -11,7 +11,7 @@ class AuthController extends Controller
     public function showLogin()
     {
         if (Auth::check()) {
-            return redirect()->route('panel');
+            return redirect()->route('mapas');
         }
         return view('auth.login'); // resources/views/auth/login.blade.php
     }
@@ -26,7 +26,7 @@ class AuthController extends Controller
 
         if (Auth::attempt($cred, $request->boolean('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended(route('panel'));
+            return redirect()->intended(route('mapas'));
         }
 
         return back()

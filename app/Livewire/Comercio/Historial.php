@@ -9,6 +9,7 @@ use Livewire\WithPagination;
 use App\Models\User;
 use App\Models\Comercio;
 use App\Models\Movimiento;
+use Illuminate\Support\Facades\Gate;
 
 #[Layout('admin.layouts.app')]
 class Historial extends Component
@@ -32,6 +33,11 @@ class Historial extends Component
     ];
 
     protected $paginationTheme = 'bootstrap';
+
+    public function mount()
+    {
+        abort_unless(Gate::allows('access-admin'), 403);
+    }
 
     public function updating($field)
     {
