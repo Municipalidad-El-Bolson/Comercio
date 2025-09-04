@@ -13,6 +13,7 @@ use App\Livewire\Comercio\Historial;
 use App\Livewire\Comercio\Reportes;
 use App\Livewire\Comercio\ComercioData;
 use App\Livewire\Auth\RegisterUser;
+use App\Livewire\Admin\UsersIndex;
 
 Route::redirect('/', '/login');
 
@@ -39,6 +40,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/historial', Historial::class)->name('historial');
         Route::get('/reportes', Reportes::class)->name('reportes');
         Route::get('/register-user', RegisterUser::class)->name('register-user');
+        Route::get('/usuarios', UsersIndex::class)->name('users.index');
     });
 
     // Archivos (si deben ser privados, dejalos bajo auth)
