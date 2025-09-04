@@ -109,6 +109,84 @@
                 </div>
               </div>
             </div>
+
+            <script>
+              (function () {
+                const KEY = 'map.filters.collapsed';
+
+                function setCollapsed({ bodyEl, iconEl }, collapsed) {
+                  if (!bodyEl || !iconEl) return;
+                  bodyEl.style.display = collapsed ? 'none' : '';
+                  iconEl.classList.toggle('fa-chevron-up', !collapsed);
+                  iconEl.classList.toggle('fa-chevron-down', collapsed);
+                  try { localStorage.setItem(KEY, collapsed ? '1' : '0'); } catch {}
+                  // si cambia el alto, avisamos al mapa
+                  setTimeout(() => { try { map.resize(); } catch {} }, 150);
+                }
+
+                function bindHandlers(root) {
+                  const cardEl = root.querySelector('#filtros-card');
+                  const bodyEl = root.querySelector('#filtros-body');
+                  const btnEl  = root.querySelector('#btnToggleFilters');
+                  const iconEl = root.querySelector('#icoToggleFilters');
+                  const floEl  = root.querySelector('#btnToggleFiltersFloating');
+
+                  if (!cardEl || !bodyEl || !btnEl || !iconEl) return;
+
+                  // DEFAULT = COLAPSADO (si no hay valor guardado)
+                  let collapsed = true;
+                  try {
+                    const saved = localStorage.getItem(KEY);
+                    if (saved === '0') collapsed = false; // respetar lo guardado
+                  } catch {}
+
+                  // aplicar estado inicial
+                  setCollapsed({ bodyEl, iconEl }, collapsed);
+
+                  // evitar duplicar listeners si Livewire re-renderiza
+                  btnEl.onclick = () => {
+                    collapsed = !collapsed;
+                    setCollapsed({ bodyEl, iconEl }, collapsed);
+                  };
+
+                  if (floEl) {
+                    floEl.onclick = () => {
+                      collapsed = !collapsed;
+                      setCollapsed({ bodyEl, iconEl }, collapsed);
+                    };
+                  }
+                }
+
+                // 1) Bind inicial cuando el DOM está listo
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', () => bindHandlers(document));
+                } else {
+                  bindHandlers(document);
+                }
+
+                // 2) Re-bind cuando Livewire actualiza el DOM (v3)
+                window.addEventListener('livewire:init', () => {
+                  // en v3 “morph” reemplaza nodos; nos re-enlazamos post-actualización
+                  document.addEventListener('livewire:navigated', () => bindHandlers(document));
+                });
+
+                // 3) Fallback universal: si el card se re-crea por cualquier causa
+                const mo = new MutationObserver((muts) => {
+                  for (const m of muts) {
+                    if (m.addedNodes?.length) {
+                      const added = Array.from(m.addedNodes);
+                      if (added.some(n => (n.id === 'filtros-card') || (n.querySelector && n.querySelector('#filtros-card')))) {
+                        bindHandlers(document);
+                        break;
+                      }
+                    }
+                  }
+                });
+                mo.observe(document.body, { childList: true, subtree: true });
+              })();
+            </script>
+
+
               {{-- CAPAS: TOGGLES --}}
             <div class="mb-2">
               <div class="form-check form-check-inline">
@@ -282,179 +360,213 @@
     setLayerVisibility('cpu', e.target.checked);
   });
 
-  // ======= TU LÓGICA EXISTENTE (marcadores, eventos Livewire, etc.) =======
   let ubicaciones = @json($ubicaciones);
-  const markers = [];
-  const markerIconUrl = "https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2_hdpi.png";
+  // --- util ---
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-  function clearMarkers() {
-    while (markers.length) {
-      const m = markers.pop();
-      try { m.remove(); } catch {}
+  // Convierte tus ubicaciones en GeoJSON
+  function ubicacionesToGeoJSON(list) {
+    const feats = [];
+    for (const rec of (list || [])) {
+      const lat = parseFloat(rec.lat ?? rec.latitud);
+      const lng = parseFloat(rec.lng ?? rec.longitud);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+      feats.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [lng, lat] },
+        properties: {
+          nombre: rec.nombre_comercial ?? rec.razon_social ?? '',
+          direccion: rec.domicilio_comercio ?? '',
+          barrio: rec.barrio ?? '-',
+          estado: rec.estado ?? '-',
+          rubro: rec?.rubro?.subrubro ?? ''
+        }
+      });
     }
+    return { type: 'FeatureCollection', features: feats };
   }
 
-  async function placeMarker(record) {
-  let lat = parseFloat(record.lat ?? record.latitud);
-  let lng = parseFloat(record.lng ?? record.longitud);
+  // Geocodifica sólo los que no traen lat/lng (rápido y sencillo)
+  async function geocodeMissingCoords(list, {maxToGeocode=50, delayMs=120} = {}) {
+    if (!googleApiKey) return list; // sin key, no hacemos nada
 
-  if (!(Number.isFinite(lat) && Number.isFinite(lng))) {
+    let count = 0;
+    for (const rec of list) {
+      const hasLatLng = Number.isFinite(parseFloat(rec.lat ?? rec.latitud))
+                     && Number.isFinite(parseFloat(rec.lng ?? rec.longitud));
+      if (hasLatLng) continue;
+      if (!rec.domicilio_comercio) continue;
+      if (count >= maxToGeocode) break;
+
+      try {
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(rec.domicilio_comercio)}&key=${googleApiKey}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const loc = data?.results?.[0]?.geometry?.location;
+        if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) {
+          // Guardamos en las mismas keys que usás
+          rec.lat = loc.lat;
+          rec.lng = loc.lng;
+          count++;
+          await sleep(delayMs); // para no quemar el rate limit
+        }
+      } catch (e) {
+        // silencioso
+      }
+    }
+    console.log(`[Mapa] Geocodificados en front: ${count}`);
+    return list;
+  }
+
+  // Popup
+  function popupHTML(p) {
+    return `
+      <div class="popup-card">
+        <div class="popup-title">
+          <i class="fas fa-store"></i>
+          <span>${escapeHtml(p.nombre || '')}</span>
+        </div>
+        <div class="popup-row">
+          <i class="fas fa-map-marker-alt"></i>
+          <div>${escapeHtml(p.direccion || '')}</div>
+        </div>
+        <div class="popup-row">
+          <i class="fas fa-tags"></i>
+          <div>${escapeHtml(p.rubro || '-')}</div>
+        </div>
+        <div class="popup-row">
+          <i class="fas fa-city"></i>
+          <div>${escapeHtml(p.barrio || '-')}</div>
+        </div>
+        <div class="popup-row">
+          <i class="fas fa-clipboard-check"></i>
+          <div>${escapeHtml(p.estado || '-')}</div>
+        </div>
+      </div>
+    `;
+  }
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'",'&#39;');
+  }
+
+  // ====== BLOQUE PRINCIPAL ======
+  map.on('load', async () => {
+    // 1) Rellenar coords faltantes (temporal, mejor hacerlo en backend)
     try {
-      const geocodeURL = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(record.domicilio_comercio || '')}&key=${googleApiKey}`;
-      const res = await fetch(geocodeURL);
-      const data = await res.json();
-      const loc = data?.results?.[0]?.geometry?.location;
-      if (loc) { lat = loc.lat; lng = loc.lng; }
-    } catch(e) {}
-  }
+      ubicaciones = await geocodeMissingCoords(ubicaciones, { maxToGeocode: 200, delayMs: 110 });
+    } catch {}
 
-  if (!(Number.isFinite(lat) && Number.isFinite(lng))) return;
+    // 2) Crear source con clustering
+    map.addSource('comercios-src', {
+      type: 'geojson',
+      data: ubicacionesToGeoJSON(ubicaciones),
+      cluster: true,
+      clusterMaxZoom: 16,
+      clusterRadius: 40
+    });
 
-  const el = document.createElement('div');
-  el.style.backgroundImage = `url('${markerIconUrl}')`;
-  el.style.width = '30px';
-  el.style.height = '30px';
-  el.style.backgroundSize = 'contain';
-  el.style.backgroundRepeat = 'no-repeat';
+    // 3) Capas de clusters y puntos
+    map.addLayer({
+      id: 'comercios-clusters',
+      type: 'circle',
+      source: 'comercios-src',
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-color': [
+          'step', ['get', 'point_count'],
+          '#5b8def', 5,
+          '#3fa06f', 15,
+          '#e67e22'
+        ],
+        'circle-radius': [
+          'step', ['get', 'point_count'],
+          14, 5,
+          18, 15,
+          24
+        ],
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 2
+      }
+    });
 
-  const marker = new mapboxgl.Marker(el)
-    .setLngLat([lng, lat])
-    .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
-      <h3 class="mb-1">${record.nombre_comercial ?? record.razon_social ?? ''}</h3>
-      <div><strong>Dirección:</strong> ${record.domicilio_comercio ?? ''}</div>
-      <div><strong>Rubro:</strong> ${record.rubro?.subrubro ?? ''}</div>
-      <div><strong>Barrio:</strong> ${record.barrio ?? '-'}</div>
-      <div><strong>Estado:</strong> ${record.estado ?? '-'}</div>
-    `))
-    .addTo(map);
+    map.addLayer({
+      id: 'comercios-cluster-count',
+      type: 'symbol',
+      source: 'comercios-src',
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': ['get', 'point_count_abbreviated'],
+        'text-size': 12,
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold']
+      },
+      paint: { 'text-color': '#ffffff' }
+    });
 
-  markers.push(marker);
-  currentMarkerLngLats.push([lng, lat]);
-}
+    map.addLayer({
+      id: 'comercios-unclustered',
+      type: 'circle',
+      source: 'comercios-src',
+      filter: ['!', ['has', 'point_count']],
+      paint: {
+        'circle-color': '#1e90ff',
+        'circle-radius': 7,
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 2
+      }
+    });
 
-async function updateMarkers() {
-  clearMarkers();
-  currentMarkerLngLats = [];
+    // 4) Interacciones
+    map.on('click', 'comercios-clusters', (e) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: ['comercios-clusters'] });
+      const clusterId = features[0].properties.cluster_id;
+      map.getSource('comercios-src').getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err) return;
+        map.easeTo({ center: features[0].geometry.coordinates, zoom });
+      });
+    });
 
-  const checked = Array.from(document.querySelectorAll('input.rubro-checkbox:checked'))
-    .map(cb => (cb.value || '').toLowerCase().trim());
-  const filterFn = checked.length
-    ? (rec) => checked.includes((rec.rubro?.subrubro || '').toLowerCase().trim())
-    : () => true;
+    const popup = new mapboxgl.Popup({ closeButton: true, offset: 16 });
+    map.on('click', 'comercios-unclustered', (e) => {
+      const f = e.features[0];
+      popup.setLngLat(f.geometry.coordinates).setHTML(popupHTML(f.properties)).addTo(map);
+    });
 
-  for (const record of (ubicaciones || []).filter(filterFn)) {
-    await placeMarker(record);
-  }
+    ['comercios-clusters','comercios-unclustered'].forEach(id => {
+      map.on('mouseenter', id, () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', id, () => map.getCanvas().style.cursor = '');
+    });
 
-  // aplicar filtros visuales a polígonos
-  applyPolygonFilters();
+    // 5) Fit a todo lo visible (si querés)
+    try {
+      const data = map.getSource('comercios-src')._data || map.getSource('comercios-src')._options.data;
+      const feats = data?.features || [];
+      if (feats.length > 1) {
+        const bounds = new mapboxgl.LngLatBounds();
+        feats.forEach(f => bounds.extend(f.geometry.coordinates));
+        map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 600 });
+      }
+    } catch {}
+  });
 
-  // === FIT A LO QUE SE VE ===
-  // 1) si hay pines, ajustamos a pines
-  let bounds = null;
-  for (const [lng, lat] of currentMarkerLngLats) {
-    bounds = extendBounds(bounds, lng, lat);
-  }
-
-  // 2) si NO hay pines, pero hay barrio/CPU seleccionado, ajustamos al polígono
-  if (!bounds) {
-    const barrio = document.querySelector('[wire\\:model\\.live="selectedBarrio"]')?.value || '';
-    const nomen  = document.querySelector('[wire\\:model\\.live="selectedNomen"]')?.value || '';
-
-    if (barrio && GEO_BARRIOS) {
-      bounds = boundsOfFeatureByProp(GEO_BARRIOS, 'BARRIO', barrio);
-    }
-    if (!bounds && nomen && GEO_CATASTRO) {
-      bounds = boundsOfFeatureByProp(GEO_CATASTRO, 'RefName', nomen);
-    }
-  }
-
-  // 3) fallback: centro por defecto
-  fitToBounds(bounds);
-}
-
-
-  // Livewire -> actualizar ubicaciones y refrescar mapa
-  window.addEventListener('ubicacionesUpdated', (ev) => {
+  // Livewire → refrescar source cuando cambien ubicaciones
+  window.addEventListener('ubicacionesUpdated', async (ev) => {
     ubicaciones = ev.detail?.ubicaciones ?? [];
-    updateMarkers();
+    // Intentamos completar coords de nuevos registros sin lat/lng
+    try { ubicaciones = await geocodeMissingCoords(ubicaciones, { maxToGeocode: 80, delayMs: 110 }); } catch {}
+    const src = map.getSource('comercios-src');
+    if (src) src.setData(ubicacionesToGeoJSON(ubicaciones));
   });
-
-  // Si usás selects de barrio/CPU con wire:model.live, reaccioná a cambios del DOM
-  // (esto cubre cuando el usuario cambia los selects y Livewire re-renderiza)
-  const observer = new MutationObserver(() => {
-    // Reaplicar filtros de polígonos si cambió algo en la UI
-    applyPolygonFilters();
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-
-  // Primera pinta
-  updateMarkers();
-
-
-  // === Toggle de filtros con persistencia ===
-  (function(){
-    const KEY = 'map.filters.collapsed';
-    const card  = document.getElementById('filtros-card');
-    const body  = document.getElementById('filtros-body');
-    const btn   = document.getElementById('btnToggleFilters');
-    const ico   = document.getElementById('icoToggleFilters');
-
-    if (!card || !body || !btn || !ico) return;
-
-    function setCollapsed(flag){
-      body.style.display = flag ? 'none' : '';
-      ico.classList.toggle('fa-chevron-up', !flag);
-      ico.classList.toggle('fa-chevron-down', flag);
-      try { localStorage.setItem(KEY, flag ? '1' : '0'); } catch {}
-      // Ajustar el mapa por si cambió el alto disponible
-      setTimeout(() => { try { map.resize(); } catch {} }, 150);
-    }
-
-    let collapsed = false;
-    try { collapsed = localStorage.getItem(KEY) === '1'; } catch {}
-    setCollapsed(collapsed);
-
-    btn.addEventListener('click', () => {
-      collapsed = !collapsed;
-      setCollapsed(collapsed);
-    });
-
-    // Si Livewire re-renderiza el bloque, re-aplicamos estado
-    document.addEventListener('livewire:init', () => {
-      Livewire.hook('message.processed', () => setCollapsed(
-        (localStorage.getItem(KEY) === '1')
-      ));
-    });
-  })();
 </script>
 <style>
-  @media (max-width: 576px) {
-    #btnToggleFiltersFloating{
-      position: fixed;
-      right: 12px;
-      bottom: 12px;
-      z-index: 1100;
-      border-radius: 999px;
-      box-shadow: 0 4px 12px rgba(0,0,0,.2);
-    }
+  #filtros-body {
+    transition: height .18s ease, opacity .18s ease;
   }
 </style>
 
-<button id="btnToggleFiltersFloating" type="button"
-        class="btn btn-primary d-sm-none">
-  <i class="fas fa-sliders-h"></i>
-</button>
-
-<script>
-  // Click del botón flotante = mismo comportamiento del botón del card
-  (function(){
-    const flo = document.getElementById('btnToggleFiltersFloating');
-    const btn = document.getElementById('btnToggleFilters');
-    if (!flo || !btn) return;
-    flo.addEventListener('click', () => btn.click());
-  })();
-</script>
-
-
-
+<style> .mapboxgl-popup-content { padding: 0 !important; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.18); min-width: 260px; } .popup-card { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; } .popup-title { display: flex; font-size: 18px; align-items: center; gap: .5rem; background: #0d6efd; color: #fff; padding: .6rem .8rem; font-weight: 600; } .popup-row { display: grid; grid-template-columns: 20px 1fr; gap: .6rem; padding: .55rem .8rem; border-top: 1px solid #f0f1f3; font-size: .95rem; align-items: start; } .popup-row i { opacity: .7; margin-top: .15rem; } </style>
