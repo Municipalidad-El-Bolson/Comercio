@@ -1,13 +1,21 @@
 {{-- resources/views/livewire/admin/users-index.blade.php --}}
 <div> {{-- ÚNICO ROOT --}}
     <div class="container-fluid pt-4"> {{-- separación superior --}}
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-12 col-md-6">
+                        <h1 class="m-0">Lista de usuarios</h1>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="row justify-content-center">
             <div class="col-12 col-lg-10 col-xl-8">
                 <div class="card shadow-sm">
                     <div class="card-body">
 
                         <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-2 mb-3">
-                            <h5 class="mb-0 font-semibold">USUARIOS</h5>
 
                             <div class="d-flex gap-2 align-items-center">
 

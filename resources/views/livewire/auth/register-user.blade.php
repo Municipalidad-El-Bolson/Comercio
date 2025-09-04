@@ -1,18 +1,19 @@
 {{-- resources/views/livewire/auth/register-user.blade.php --}}
 <div> {{-- ÚNICO ROOT --}}
   <div class="container-fluid pt-4">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-12 col-md-6">
+                    <h1 class="m-0">Registra usuarios</h1>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="row justify-content-center">
       <div class="col-12 col-md-8 col-lg-6">
         <div class="card shadow-sm">
           <div class="card-body">
-
-            {{-- Encabezado --}}
-            <div class="d-flex align-items-center justify-content-between mb-4">
-              <h5 class="mb-0 fw-semibold">Registrar Usuario</h5>
-              <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-arrow-left me-1"></i> Atrás
-              </a>
-            </div>
 
             {{-- Mensaje de estado --}}
             @if (session('status'))

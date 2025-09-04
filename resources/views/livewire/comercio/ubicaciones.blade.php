@@ -8,12 +8,7 @@
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-12 col-md-6">
-                    <h1 class="m-0">Panel Principal</h1>
-                </div>
-                <div class="col-12 col-md-6">
-                    <ol class="breadcrumb float-md-right">
-                        <li class="breadcrumb-item active">Home</li>
-                    </ol>
+                    <h1 class="m-0">Lista de comercios</h1>
                 </div>
             </div>
         </div>
