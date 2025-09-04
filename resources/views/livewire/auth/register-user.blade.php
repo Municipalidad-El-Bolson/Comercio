@@ -1,75 +1,85 @@
-<div class="mx-auto max-w-md">
-    <div class="bg-white shadow-lg rounded-lg p-6">
-        <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">
-            Registrar Usuario
-        </h1>
+{{-- resources/views/livewire/auth/register-user.blade.php --}}
+<div> {{-- ÚNICO ROOT --}}
+  <div class="container-fluid pt-4">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+          <div class="card-body">
 
-        @if (session('status'))
-            <div class="p-3 mb-6 rounded bg-green-100 text-green-800 text-sm font-medium">
+            {{-- Encabezado --}}
+            <div class="d-flex align-items-center justify-content-between mb-4">
+              <h5 class="mb-0 fw-semibold">Registrar Usuario</h5>
+              <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Atrás
+              </a>
+            </div>
+
+            {{-- Mensaje de estado --}}
+            @if (session('status'))
+              <div class="alert alert-success py-2 mb-4">
                 {{ session('status') }}
-            </div>
-        @endif
+              </div>
+            @endif
 
-        <form wire:submit.prevent="submit" class="space-y-6">
-            <!-- Nombre -->
-            <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+            {{-- Formulario --}}
+            <form wire:submit.prevent="submit" class="row g-3">
+              {{-- Nombre --}}
+              <div class="col-12">
+                <label for="name" class="form-label fw-medium">Nombre</label>
                 <input id="name" type="text" wire:model.defer="name"
-                       class="w-full border-gray-300 rounded-lg shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                @error('name') 
-                    <p class="text-red-600 text-xs mt-2">{{ $message }}</p> 
-                @enderror
-            </div>
+                       class="form-control form-control-sm @error('name') is-invalid @enderror">
+                @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+              </div>
 
-            <!-- Email -->
-            <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                <input id="email" type="email" wire:model.defer="email"
-                       class="w-full border-gray-300 rounded-lg shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                @error('email') 
-                    <p class="text-red-600 text-xs mt-2">{{ $message }}</p> 
-                @enderror
-            </div>
+              {{-- Email --}}
+                <div class="col-12">
+                    <label for="email" class="form-label fw-medium">Email</label>
+                    <input id="email" type="email" wire:model.defer="email"
+                        class="form-control form-control-sm @error('email') is-invalid @enderror">
+                    @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
 
-            <!-- Rol -->
-            <div>
-                <label for="role" class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
-                <select id="role" wire:model="role"
-                        class="w-full border-gray-300 rounded-lg shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option value="" disabled>Seleccioná un rol</option>
-                    @foreach ($roleOptions as $opt)
-                        <option value="{{ $opt['value'] }}">{{ $opt['label'] }}</option>
-                    @endforeach
-                </select>
-                @error('role') 
-                    <p class="text-red-600 text-xs mt-2">{{ $message }}</p> 
-                @enderror
-            </div>
+              {{-- Contraseña (izquierda arriba) --}}
+                <div class="col-md-6">
+                    <label for="password" class="form-label fw-medium">Contraseña</label>
+                    <input id="password" type="password" wire:model.defer="password"
+                        class="form-control form-control-sm @error('password') is-invalid @enderror">
+                    @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
 
-            <!-- Contraseña -->
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
-                <input id="password" type="password" wire:model.defer="password"
-                       class="w-full border-gray-300 rounded-lg shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                @error('password') 
-                    <p class="text-red-600 text-xs mt-2">{{ $message }}</p> 
-                @enderror
-            </div>
+                {{-- Rol (derecha, centrado abajo en su grid) --}}
+                <div class="col-md-6 d-flex align-items-end justify-content-center h-100">
+                    <div class="w-100">
+                        <label for="role" class="form-label fw-medium">Rol</label>
+                        <select id="role" wire:model="role"
+                                class="form-select form-select-sm @error('role') is-invalid @enderror">
+                        <option value="" disabled>Seleccioná un rol</option>
+                        @foreach ($roleOptions as $opt)
+                            <option value="{{ $opt['value'] }}">{{ $opt['label'] }}</option>
+                        @endforeach
+                        </select>
+                        @error('role') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                </div>
 
-            <!-- Confirmar contraseña -->
-            <div>
-                <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-2">Confirmar contraseña</label>
-                <input id="password_confirmation" type="password" wire:model.defer="password_confirmation"
-                       class="w-full border-gray-300 rounded-lg shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            </div>
 
-            <!-- Botón -->
-            <div class="flex justify-center mt-8">
-                <button type="submit"
-                        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition btn-dark">
-                    Registrar
-                </button>
-            </div>
-        </form>
+              {{-- Confirmar contraseña (izquierda abajo) --}}
+                <div class="col-md-6">
+                    <label for="password_confirmation" class="form-label fw-medium">Confirmar contraseña</label>
+                    <input id="password_confirmation" type="password" wire:model.defer="password_confirmation"
+                        class="form-control form-control-sm">
+                </div>
+
+              {{-- Botón Registrar (derecha abajo) --}}
+                <div class="col-md-6 d-flex align-items-end justify-content-end">
+                    <button type="submit" class="btn btn-primary px-4">
+                    <i class="fas fa-save me-1"></i> Registrar
+                    </button>
+                </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
