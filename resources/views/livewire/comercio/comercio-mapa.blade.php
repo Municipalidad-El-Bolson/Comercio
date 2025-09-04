@@ -1,129 +1,139 @@
 <!-- Main content -->
 <section class="content">
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Habilitaciones Comerciales - Mapa</h1>
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+            <h1 class="m-0">Habilitaciones Comerciales - Mapa</h1>
+        </div>
+        <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+                <li class="breadcrumb-item active"><a href="/">Home</a></li>
+                <li class="breadcrumb-item">Mapa</li>
+            </ol>
+        </div>
+      </div>
+      <div>
+        <div>
+          <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+          <link rel="stylesheet"
+              href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+
+          <div class="card mb-3" id="filtros-card">
+          <div class="card-header d-flex align-items-center justify-content-between py-2">
+            <strong class="mb-0">Filtros</strong>
+            <button id="btnToggleFilters" type="button" class="btn btn-sm btn-outline-secondary">
+              <i id="icoToggleFilters" class="fas fa-chevron-up"></i>
+            </button>
+          </div>
+
+          <div class="card-body py-2" id="filtros-body">
+            {{-- ================= Filtros adicionales ================= --}}
+            <div class="mb-2">
+              <div class="form-row">
+                <div class="form-group col-md-3 mb-2">
+                  <label class="mb-1">Barrio</label>
+                  <select class="form-control form-control-sm" wire:model.live="selectedBarrio">
+                    <option value="">-- Todos --</option>
+                    @foreach($barrios as $b)
+                      <option value="{{ $b }}">{{ $b }}</option>
+                    @endforeach
+                  </select>
                 </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item active"><a href="/">Home</a></li>
-                        <li class="breadcrumb-item">Mapa</li>
-                    </ol>
+
+                <div class="form-group col-md-3 mb-2">
+                  <label class="mb-1">Estado</label>
+                  <select class="form-control form-control-sm" wire:model.live="selectedEstado">
+                    <option value="">-- Todos --</option>
+                    @foreach($estados as $value => $label)
+                      <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                  </select>
                 </div>
+
+                <div class="form-group col-md-6 mb-2 position-relative">
+                  <label class="mb-1">Nombre de fantasía</label>
+                  <input type="text" class="form-control form-control-sm"
+                        placeholder="Escribí para buscar (mín. 2 letras)"
+                        wire:model.live.debounce.300ms="fantasiaQuery" />
+
+                  {{-- Sugerencias --}}
+                  @if(!empty($fantasiaQuery) && count($fantasiaSuggestions) > 0)
+                    <ul class="list-group position-absolute w-50" style="z-index:1000;">
+                      @foreach($fantasiaSuggestions as $sug)
+                        <li class="list-group-item list-group-item-action p-1"
+                            style="cursor:pointer"
+                            wire:click="$set('fantasiaQuery','{{ addslashes($sug) }}')">
+                          {{ $sug }}
+                        </li>
+                      @endforeach
+                    </ul>
+                  @endif
+                </div>
+              </div>
             </div>
-            <div>
-                <div>
-                    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
-                    <link rel="stylesheet"
-                        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
-                   <div>
-                    {{-- ================= Filtros adicionales ================= --}}
-                    <div class="mb-2">
-                        <div class="form-row">
-                            <div class="form-group col-md-3 mb-2">
-                            <label class="mb-1">Barrio</label>
-                            <select class="form-control form-control-sm" wire:model.live="selectedBarrio">
-                                <option value="">-- Todos --</option>
-                                @foreach($barrios as $b)
-                                <option value="{{ $b }}">{{ $b }}</option>
-                                @endforeach
-                            </select>
-                            </div>
+              {{-- Filtros de rubro --}}
+            <div class="mb-3">
+              <div class="form-row">
+                <div class="form-group col-md-4 mb-2">
+                  <label class="mb-1">Mega rubro</label>
+                  <select id="f-mega" class="form-control form-control-sm" wire:model.live="selectedMega">
+                    <option value="">-- Seleccione Mega rubro --</option>
+                    @foreach ($megas as $mega)
+                      <option value="{{ $mega }}">{{ $mega }}</option>
+                    @endforeach
+                  </select>
+                </div>
 
-                            <div class="form-group col-md-3 mb-2">
-                            <label class="mb-1">Estado</label>
-                            <select class="form-control form-control-sm" wire:model.live="selectedEstado">
-                                <option value="">-- Todos --</option>
-                                @foreach($estados as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
-                            </div>
+                <div class="form-group col-md-4 mb-2">
+                  <label class="mb-1">Rubro madre</label>
+                  <select id="f-madre" class="form-control form-control-sm"
+                          wire:model.live="selectedMadre" @disabled(empty($selectedMega))>
+                    <option value="">-- Seleccione Rubro madre --</option>
+                    @foreach ($madres as $madre)
+                      <option value="{{ $madre }}">{{ $madre }}</option>
+                    @endforeach
+                  </select>
+                </div>
 
-                            <div class="form-group col-md-6 mb-2">
-                            <label class="mb-1">Nombre de fantasía</label>
-                            <input type="text" class="form-control form-control-sm"
-                                    placeholder="Escribí para buscar (mín. 2 letras)"
-                                    wire:model.live.debounce.300ms="fantasiaQuery" />
+                <div class="form-group col-md-4 mb-2">
+                  <label class="mb-1">Subrubro</label>
+                  <select id="f-sub" class="form-control form-control-sm"
+                          wire:model.live="selectedSubId" @disabled(empty($selectedMadre))>
+                    <option value="">-- Seleccione Subrubro --</option>
+                    @foreach ($subs as $op)
+                      <option value="{{ $op['id'] }}">{{ $op['sub'] }}</option>
+                    @endforeach
+                  </select>
+                </div>
+              </div>
+            </div>
+              {{-- CAPAS: TOGGLES --}}
+            <div class="mb-2">
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="toggleBarrios" checked>
+                <label class="form-check-label" for="toggleBarrios">Capa Barrios</label>
+              </div>
+              {{--<div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="toggleCatastro" checked>
+                <label class="form-check-label" for="toggleCatastro">Capa Catastro</label>
+              </div>--}}
+            </div>
+          </div>
+        </div>
 
-                            {{-- Sugerencias en vivo (lista simple) --}}
-                            @if(!empty($fantasiaQuery) && count($fantasiaSuggestions) > 0)
-                                <ul class="list-group position-absolute w-50" style="z-index: 1000;">
-                                @foreach($fantasiaSuggestions as $sug)
-                                    <li class="list-group-item list-group-item-action p-1"
-                                        style="cursor:pointer"
-                                        wire:click="$set('fantasiaQuery','{{ addslashes($sug) }}')">
-                                    {{ $sug }}
-                                    </li>
-                                @endforeach
-                                </ul>
-                            @endif
-                            </div>
-                        </div>
-                    </div>
+        <div class="card">
+            <div class="card-body">
+                <div id="map" wire:ignore style="height: 500px; width: 100%; min-width: 200px;"></div>
+            </div>
+        </div> 
+      </div>
+    </div>
+  </div>
+</section>
 
-                    {{-- Filtros --}}
-                    <div class="mb-3">
-                        <div class="form-row">
-                            <div class="form-group col-md-4 mb-2">
-                                <label class="mb-1">Mega rubro</label>
-                                <select id="f-mega" class="form-control form-control-sm" wire:model.live="selectedMega">
-                                    <option value="">-- Seleccione Mega rubro --</option>
-                                    @foreach ($megas as $mega)
-                                        <option value="{{ $mega }}">{{ $mega }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="form-group col-md-4 mb-2">
-                                <label class="mb-1">Rubro madre</label>
-                                <select id="f-madre" class="form-control form-control-sm"
-                                        wire:model.live="selectedMadre"
-                                        @disabled(empty($selectedMega))>
-                                    <option value="">-- Seleccione Rubro madre --</option>
-                                    @foreach ($madres as $madre)
-                                        <option value="{{ $madre }}">{{ $madre }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="form-group col-md-4 mb-2">
-                                <label class="mb-1">Subrubro</label>
-                                <select id="f-sub" class="form-control form-control-sm"
-                                        wire:model.live="selectedSubId"
-                                        @disabled(empty($selectedMadre))>
-                                    <option value="">-- Seleccione Subrubro --</option>
-                                    @foreach ($subs as $op)
-                                        <option value="{{ $op['id'] }}">{{ $op['sub'] }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- CAPAS: TOGGLES --}}
-                    <div class="mb-2">
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" id="toggleBarrios" checked>
-                        <label class="form-check-label" for="toggleBarrios">Capa Barrios</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" id="toggleCpu" checked>
-                        <label class="form-check-label" for="toggleCpu">Capa CPU (Nomenclatura)</label>
-                    </div>
-                    </div>
-
-
-                    <div class="card">
-                        <div class="card-body">
-                            <div id="map" wire:ignore style="height: 500px; width: 100%; min-width: 200px;"></div>
-                        </div>
-                    </div>
-
-                    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+<script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
 <script>
   const googleApiKey = "AIzaSyAyL3dQW5_PKAJLxYhs7EuzN3KGfbF7Ang";
 
@@ -138,19 +148,19 @@
   // ===== CARGA INICIAL DEL MAPA + CAPAS =====
     // Cache local para calcular bounds de polígonos
     let GEO_BARRIOS = null;
-    let GEO_CPU = null;
+    let GEO_CATASTRO = null;
 
     // Cargar GeoJSON en memoria (además de usarlos como sources)
     fetch('/geo/BARRIOS1.json').then(r=>r.json()).then(j=>{ GEO_BARRIOS=j; });
-    fetch('/geo/CPU_MEB.json').then(r=>r.json()).then(j=>{ GEO_CPU=j; });
+    fetch('/geo/CATASTRO_GEO.json').then(r=>r.json()).then(j=>{ GEO_CATASTRO=j; });
 
-  map.on('load', async function() {
-    // 1) Limpiar POIs/places
-    const layers = map.getStyle()?.layers ?? [];
-    layers.forEach((layer) => {
-      if (layer.id?.includes('poi') || layer.id?.includes('place')) {
-        try { map.setLayoutProperty(layer.id, 'visibility', 'none'); } catch {}
-      }
+    map.on('load', async function() {
+      // 1) Limpiar POIs/places
+      const layers = map.getStyle()?.layers ?? [];
+      layers.forEach((layer) => {
+        if (layer.id?.includes('poi') || layer.id?.includes('place')) {
+          try { map.setLayoutProperty(layer.id, 'visibility', 'none'); } catch {}
+        }
     });
 
     // 2) FUENTES (GeoJSON servidos por tu app)
@@ -159,10 +169,9 @@
       type: 'geojson',
       data: '/geo/BARRIOS1.json'
     });
-    map.addSource('cpu-src', {
-      type: 'geojson',
-      data: '/geo/CPU_MEB.json'
-    });
+    map.addSource('catastro-hl-src', {
+      type:'geojson', 
+      data: { "type":"FeatureCollection", "features":[] }});
 
     // 3) CAPAS: BARRIOS
     map.addLayer({
@@ -178,18 +187,17 @@
       paint: { 'line-color': '#0080ff', 'line-width': 1.5 }
     });
 
-    // 4) CAPAS: CPU
     map.addLayer({
-      id: 'cpu-fill',
+      id: 'catastro-hl-fill',
       type: 'fill',
-      source: 'cpu-src',
-      paint: { 'fill-color': '#ff7f0e', 'fill-opacity': 0.12 }
+      source: 'catastro-hl-src',
+      paint: { 'fill-color': '#ff0000', 'fill-opacity': 0.25 }
     });
     map.addLayer({
-      id: 'cpu-line',
+      id: 'catastro-hl-line',
       type: 'line',
-      source: 'cpu-src',
-      paint: { 'line-color': '#ff7f0e', 'line-width': 1.2 }
+      source: 'catastro-hl-src',
+      paint: { 'line-color': '#ff0000', 'line-width': 2 }
     });
 
     // 5) Aplicar filtros iniciales de resaltado de polígonos (si hay selects en Livewire)
@@ -250,7 +258,7 @@
   // Lee valores actuales de selects Livewire (si existen) y filtra polígonos
   function applyPolygonFilters() {
     const barrio = document.querySelector('[wire\\:model\\.live="selectedBarrio"]')?.value || '';
-    const cpu    = document.querySelector('[wire\\:model\\.live="selectedCpu"]')?.value || '';
+    const nomen  = document.querySelector('[wire\\:model\\.live="selectedNomen"]')?.value || '';
 
     if (map.getLayer('barrios-fill')) {
       const filter = barrio ? ['==', ['get','BARRIO'], barrio] : true;
@@ -258,10 +266,11 @@
       map.setFilter('barrios-line', filter);
     }
 
-    if (map.getLayer('cpu-fill')) {
-      const filter = cpu ? ['==', ['get','CPU_COD'], cpu] : true;
-      map.setFilter('cpu-fill', filter);
-      map.setFilter('cpu-line', filter);
+    if (map.getLayer('catastro-fill')) {
+      // El archivo usa RefName (ej. "J749 052F000")  → filtrar por esa propiedad
+      const f = nomen ? ['==', ['get','RefName'], nomen] : true;
+      map.setFilter('catastro-fill', f);
+      map.setFilter('catastro-line', f);
     }
   }
 
@@ -320,12 +329,12 @@
     .addTo(map);
 
   markers.push(marker);
-  currentMarkerLngLats.push([lng, lat]); // 👈 guardar para bounds
+  currentMarkerLngLats.push([lng, lat]);
 }
 
 async function updateMarkers() {
   clearMarkers();
-  currentMarkerLngLats = []; // 👈 reset por cada actualización
+  currentMarkerLngLats = [];
 
   const checked = Array.from(document.querySelectorAll('input.rubro-checkbox:checked'))
     .map(cb => (cb.value || '').toLowerCase().trim());
@@ -350,13 +359,13 @@ async function updateMarkers() {
   // 2) si NO hay pines, pero hay barrio/CPU seleccionado, ajustamos al polígono
   if (!bounds) {
     const barrio = document.querySelector('[wire\\:model\\.live="selectedBarrio"]')?.value || '';
-    const cpu    = document.querySelector('[wire\\:model\\.live="selectedCpu"]')?.value || '';
+    const nomen  = document.querySelector('[wire\\:model\\.live="selectedNomen"]')?.value || '';
 
     if (barrio && GEO_BARRIOS) {
       bounds = boundsOfFeatureByProp(GEO_BARRIOS, 'BARRIO', barrio);
     }
-    if (!bounds && cpu && GEO_CPU) {
-      bounds = boundsOfFeatureByProp(GEO_CPU, 'CPU_COD', cpu);
+    if (!bounds && nomen && GEO_CATASTRO) {
+      bounds = boundsOfFeatureByProp(GEO_CATASTRO, 'RefName', nomen);
     }
   }
 
@@ -381,7 +390,71 @@ async function updateMarkers() {
 
   // Primera pinta
   updateMarkers();
+
+
+  // === Toggle de filtros con persistencia ===
+  (function(){
+    const KEY = 'map.filters.collapsed';
+    const card  = document.getElementById('filtros-card');
+    const body  = document.getElementById('filtros-body');
+    const btn   = document.getElementById('btnToggleFilters');
+    const ico   = document.getElementById('icoToggleFilters');
+
+    if (!card || !body || !btn || !ico) return;
+
+    function setCollapsed(flag){
+      body.style.display = flag ? 'none' : '';
+      ico.classList.toggle('fa-chevron-up', !flag);
+      ico.classList.toggle('fa-chevron-down', flag);
+      try { localStorage.setItem(KEY, flag ? '1' : '0'); } catch {}
+      // Ajustar el mapa por si cambió el alto disponible
+      setTimeout(() => { try { map.resize(); } catch {} }, 150);
+    }
+
+    let collapsed = false;
+    try { collapsed = localStorage.getItem(KEY) === '1'; } catch {}
+    setCollapsed(collapsed);
+
+    btn.addEventListener('click', () => {
+      collapsed = !collapsed;
+      setCollapsed(collapsed);
+    });
+
+    // Si Livewire re-renderiza el bloque, re-aplicamos estado
+    document.addEventListener('livewire:init', () => {
+      Livewire.hook('message.processed', () => setCollapsed(
+        (localStorage.getItem(KEY) === '1')
+      ));
+    });
+  })();
+</script>
+<style>
+  @media (max-width: 576px) {
+    #btnToggleFiltersFloating{
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      z-index: 1100;
+      border-radius: 999px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.2);
+    }
+  }
+</style>
+
+<button id="btnToggleFiltersFloating" type="button"
+        class="btn btn-primary d-sm-none">
+  <i class="fas fa-sliders-h"></i>
+</button>
+
+<script>
+  // Click del botón flotante = mismo comportamiento del botón del card
+  (function(){
+    const flo = document.getElementById('btnToggleFiltersFloating');
+    const btn = document.getElementById('btnToggleFilters');
+    if (!flo || !btn) return;
+    flo.addEventListener('click', () => btn.click());
+  })();
 </script>
 
 
-</section>
+
