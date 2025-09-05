@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $t->string('role')->default('reader')->index();
-        });
+        if (!Schema::hasColumn('users', 'role')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('role')->default('reader')->index();
+            });
+        }
     }
 
     /**
@@ -21,8 +23,13 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            //
-        });
+        if (Schema::hasColumn('users', 'role')) {
+            Schema::table('users', function (Blueprint $table) {
+                // Si tu motor lo requiere, primero bajá el índice:
+                // $table->dropIndex(['role']); // o $table->dropIndex('users_role_index');
+                $table->dropColumn('role');
+            });
+        }
     }
 };
+

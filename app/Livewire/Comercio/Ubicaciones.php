@@ -118,14 +118,12 @@ class Ubicaciones extends AdminComponent
 
     public function render()
     {
+        $t = '%'.$this->searchTerm.'%';
+
         $ubicaciones = Ubicacion::with(['rubro','estadoModel'])
-            ->where(function($q){
-                $t = '%'.$this->searchTerm.'%';
-                $q->where('razon_social','like',$t)
-                  ->orWhere('apellido','like',$t)
-                  ->orWhere('nombres','like',$t);
-            })
-            ->orderBy('razon_social')->paginate(10);
+            ->where('nombre_comercial','like',$t)
+            ->orderBy('nombre_comercial')
+            ->paginate(10);
 
         return view('livewire.comercio.ubicaciones', [
             'ubicaciones' => $ubicaciones,
@@ -135,28 +133,7 @@ class Ubicaciones extends AdminComponent
         ])->layout('admin.layouts.app');
     }
 
-    private function recomputarVtoEnState(): void
-    {
-        $estado   = $this->state['estado']    ?? null;
-        $tipoHab  = $this->state['tipo_hab']  ?? 'prev';       // 'definitiva' | 'prev'
-        $fechaAlta= $this->state['fecha_alta']?? null;         // 'YYYY-MM-DD'
 
-        if (in_array($estado, ['vigente','irregular']) && $fechaAlta) {
-            $alta = Carbon::parse($fechaAlta);
-            $vto  = $tipoHab === 'definitiva'
-                ? $alta->copy()->addYearNoOverflow()
-                : $alta->copy()->addMonthsNoOverflow(6);
-            // formatear para <input type="date">
-            $this->state['fecha_vto'] = $vto->format('Y-m-d');
-        } else {
-            $this->state['fecha_vto'] = null;
-        }
-    }
-
-    // hooks de Livewire: se disparan cuando cambia cada campo
-    public function updatedStateFechaAlta($value): void   { $this->recomputarVtoEnState(); }
-    public function updatedStateTipoHab($value): void     { $this->recomputarVtoEnState(); }
-    public function updatedStateEstado($value): void      { $this->recomputarVtoEnState(); }
 
     /** Botón "Nuevo Comercio" */
     public function nuevoComercio()
@@ -313,11 +290,16 @@ class Ubicaciones extends AdminComponent
 
         $rules = [
             'state.persona_tipo'          => ['required', Rule::in(['fisica','juridica'])],
-            'state.dni_cuit'              => ['bail','required', 'string', $uniqueDniCuit, 'regex:/^\d{7,8}$|^\d{11}$/', function ($attr, $value, $fail) {
-                if (strlen(preg_replace('/\D/','', $value)) === 11 && !$this->isValidCuit($value)) {
-                    $fail('El CUIT no es válido.');
+            'state.dni_cuit' => [
+                'bail','required', 'string', $uniqueDniCuit,
+                'regex:/^\d{7,8}$|^\d{2}-\d{7,8}-\d{1}$|^\d{11}$/',
+                function ($attr, $value, $fail) {
+                    if (strlen(preg_replace('/\D/','', $value)) === 11 && !$this->isValidCuit($value)) {
+                        $fail('El CUIT no es válido.');
+                    }
                 }
-            }],
+            ],
+
             'state.rubro_id'              => ['required','exists:rubros,id'],
 
             'state.apellido'              => ['nullable','string','min:2','max:60'],
@@ -325,11 +307,11 @@ class Ubicaciones extends AdminComponent
             'state.razon_social'          => ['nullable','string','min:2','max:120'],
             'state.nombre_comercial'      => ['nullable','string','min:2','max:120'],
 
-            'state.domicilio_responsable' => ['required','string','min:3','max:160'],
-            'state.domicilio_comercio'    => ['nullable','string','min:3','max:160','required_without:state.nomenclatura'],
+            'state.domicilio_responsable' => ['nullable','string','min:3','max:160'],
+            'state.domicilio_comercio'    => ['nullable','string','min:3','max:160'],
             'state.correo'                => ['nullable','email:rfc,dns','max:120'],
             'state.telefono'              => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
-            'state.nomenclatura'          => ['nullable','string','max:80','required_without:state.domicilio_comercio'],
+            'state.nomenclatura'          => ['nullable','string','max:80'],
             'state.monto_pagar'           => ['nullable','numeric','min:0','regex:/^\d{1,9}(\.\d{1,2})?$/'],
             'state.observaciones'         => ['nullable','string','max:500'],
             'state.estado'                => ['required', Rule::in(['entramite','vigente','irregular','baja'])],
@@ -455,6 +437,12 @@ class Ubicaciones extends AdminComponent
             unset($documentos['doc_recaudacion_rn']);
         }
 
+        // NORMALIZAR dni_cuit a dígitos antes de guardar:
+        $data['dni_cuit'] = preg_replace('/\D/', '', $data['dni_cuit'] ?? '');
+
+        // NO GUARDAR ESTOS CAMPOS
+        unset($data['domicilio_responsable'], $data['nomenclatura']);
+
         $enricher = app(\App\Services\UbicacionGeoEnricher::class);
         $data = $enricher->enrich($data);
         $ubic = Ubicacion::create($data);
@@ -549,7 +537,12 @@ class Ubicaciones extends AdminComponent
         // Filtrar a columnas válidas en documentos
         $permitidos = array_flip((new UbicacionDocumento)->getFillable());
         $documentos = array_intersect_key($documentos, $permitidos);
+        
+        // NORMALIZAR dni_cuit a dígitos antes de guardar:
+        $data['dni_cuit'] = preg_replace('/\D/', '', $data['dni_cuit'] ?? '');
 
+        // NO GUARDAR ESTOS CAMPOS
+        unset($data['domicilio_responsable'], $data['nomenclatura']);
         // Guardar Ubicación (el modelo normaliza fechas por estado)
         $this->ubicacion->update($data);
 
@@ -612,7 +605,7 @@ class Ubicaciones extends AdminComponent
 
         if (!$estado->aplica_fecha_alta) $this->state['fecha_alta'] = null;
         if (!$estado->aplica_fecha_baja) $this->state['fecha_baja'] = null;
-        if (!$estado->aplica_fecha_vto)  $this->state['fecha_vto']  = null;
+        // IMPORTANTE: NO tocar fecha_vto; queda manual
     }
 
     private function reglasFechasPorEstado(bool $esCreate): array

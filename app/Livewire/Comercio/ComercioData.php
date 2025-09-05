@@ -178,19 +178,20 @@ class ComercioData extends Component
         $this->dispatch('show-form');
     }
 
+
     public function updateComercio()
     {
-        // NO mandamos 'situacion': la setea el modelo en saving()
+        // No mandamos 'situacion': la calcula el modelo en saving()
         unset($this->state['situacion']);
 
         // Estado normalizado actual y anterior
-        $estadoNorm   = $this->normalizarEstado($this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite');
-        $prevNorm     = $this->normalizarEstado($this->ubicacion->getOriginal('estado') ?? $this->ubicacion->estado ?? 'entramite');
+        $estadoNorm = $this->normalizarEstado($this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite');
+        $prevNorm   = $this->normalizarEstado($this->ubicacion->getOriginal('estado') ?? $this->ubicacion->estado ?? 'entramite');
 
-        $yaTeniaAlta      = !empty($this->ubicacion?->fecha_alta);
-        $vieneAltaAhora   = !empty($this->state['fecha_alta']);
+        $yaTeniaAlta    = !empty($this->ubicacion?->fecha_alta);
+        $vieneAltaAhora = !empty($this->state['fecha_alta']);
 
-        // Reglas base
+        // Reglas base (correo opcional; domicilio_responsable/nomenclatura opcionales porque NO se guardan)
         $rules = [
             'persona_tipo'          => 'required|in:fisica,juridica',
             'apellido'              => 'nullable|string|min:2|max:60',
@@ -198,17 +199,18 @@ class ComercioData extends Component
             'razon_social'          => 'nullable|string|min:2|max:120',
             'dni_cuit'              => 'required|string',
             'rubro_id'              => 'required|exists:rubros,id',
-            'domicilio_responsable' => 'required|string|min:3|max:160',
+            'domicilio_responsable' => 'nullable|string|min:3|max:160',
             'correo'                => 'nullable|email:rfc,dns|max:120',
             'telefono'              => 'nullable|regex:/^[\d\s()+\-]{6,20}$/',
             'nombre_comercial'      => 'nullable|string|min:2|max:120',
-            'domicilio_comercio'    => 'nullable|string|min:3|max:160', // si usás required_without:nomenclatura, agregalo
+            'domicilio_comercio'    => 'nullable|string|min:3|max:160',
             'nomenclatura'          => 'nullable|string|max:80',
             'observaciones'         => 'nullable|string|max:500',
             'estado'                => 'required|in:entramite,vigente,irregular,baja',
             'tipo_hab'              => 'required|in:definitiva,prev',
             'fecha_alta'            => 'nullable|date',
             'fecha_baja'            => 'nullable|date',
+            'fecha_vto'             => 'nullable|date',   // <== vencimiento manual
             'documentos'            => 'array',
         ];
 
@@ -220,31 +222,19 @@ class ComercioData extends Component
             $rules['razon_social'] = 'required|string|min:2|max:120';
         }
 
-        // ===== Reglas de fechas "a prueba de balas" =====
+        // Reglas de fechas por estado
         switch ($estadoNorm) {
-            case 'entramite':
-                // No forzamos fechas
-                break;
-
             case 'vigente':
-                // Sólo exigimos fecha_alta si venís desde 'entramite' y no había ni hay fecha_alta
                 if ($prevNorm === 'entramite' && !$yaTeniaAlta && !$vieneAltaAhora) {
                     $rules['fecha_alta'] = 'required|date';
                 }
                 break;
-
             case 'irregular':
-                // Irregular siempre necesita fecha de alta
                 $rules['fecha_alta'] = 'required|date';
                 break;
-
             case 'baja':
                 $tieneAltaAntes = $yaTeniaAlta || $vieneAltaAhora;
-
-                // Baja siempre requiere fecha_baja
                 $rules['fecha_baja'] = 'required|date' . ($tieneAltaAntes ? '|after_or_equal:fecha_alta' : '') . '|before_or_equal:today';
-
-                // Si no había alta ni ahora tampoco, exigila (para consistencia histórica)
                 if (!$tieneAltaAntes) {
                     $rules['fecha_alta'] = 'required|date|before_or_equal:today';
                 }
@@ -254,16 +244,21 @@ class ComercioData extends Component
         // Validar
         $validated = \Illuminate\Support\Facades\Validator::make($this->state, $rules)->validate();
 
-        // Normalizaciones cosmeticas
+        // Normalizaciones (título/capitalización)
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
             if (!empty($validated[$c])) $validated[$c] = \Illuminate\Support\Str::title($validated[$c]);
         }
+
+        // Normalizar DNI/CUIL a solo dígitos antes de guardar
+        $validated['dni_cuit'] = preg_replace('/\D/','', $validated['dni_cuit'] ?? '');
+
+        // NO guardar estos campos
+        unset($validated['domicilio_responsable'], $validated['nomenclatura']);
 
         // Documentos
         $documentos = $this->normalizeDocsArray($validated['documentos'] ?? []);
         unset($validated['documentos']);
 
-        // NO seteamos 'situacion' a mano; la calcula el modelo en saving()
         // Guardar Ubicación
         $this->ubicacion->update($validated);
 
@@ -277,6 +272,7 @@ class ComercioData extends Component
 
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
     }
+
 
 
     private function normalizarEstado(?string $estado): string

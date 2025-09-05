@@ -86,7 +86,7 @@
           </div>
 
           {{-- Contacto y domicilios --}}
-          <div class="form-row">
+          {{--<div class="form-row">
             <div class="form-group col-md-6 mb-2">
               <label class="mb-1" for="domicilio_responsable">Domicilio Responsable</label>
               <input type="text" id="domicilio_responsable" wire:model.defer="state.domicilio_responsable"
@@ -94,17 +94,16 @@
                 placeholder="Domicilio del responsable">
               @error('state.domicilio_responsable') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
+          </div>--}}
 
-            <div class="form-group col-md-6 mb-2">
+          <div class="form-row">
+            <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="domicilio_comercio">Domicilio del Comercio</label>
               <input type="text" id="domicilio_comercio" wire:model.defer="state.domicilio_comercio"
                 class="form-control form-control-sm text-capitalize @error('state.domicilio_comercio') is-invalid @enderror"
                 placeholder="Domicilio del comercio">
               @error('state.domicilio_comercio') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
-          </div>
-
-          <div class="form-row">
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="correo">Correo electrónico</label>
               <input type="email" id="correo" wire:model.defer="state.correo"
@@ -121,13 +120,13 @@
               @error('state.telefono') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
-            <div class="form-group col-md-4 mb-2">
+            {{--<div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="nomenclatura">Nomenclatura (opcional)</label>
               <input type="text" id="nomenclatura" wire:model.defer="state.nomenclatura"
                 class="form-control form-control-sm @error('state.nomenclatura') is-invalid @enderror"
                 placeholder="Nomenclatura">
               @error('state.nomenclatura') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
+            </div>--}}
           </div>
           {{-- Mega Rubro -> Rubro Madre -> Subrubro --}}
           <div class="form-row">
@@ -212,32 +211,39 @@
             </div>
           </div>
 
-          {{-- === FECHAS ABAJO === --}}
-          <div class="form-row align-items-end">
-            {{-- Fecha de alta: visible salvo en trámite --}}
+          @php
+            $estadoActual = data_get($state, 'estado'); // mantiene tu comportamiento
+          @endphp
+
+          <div class="form-row">
+            {{-- Fecha de alta: visible salvo "en trámite" --}}
             @if($estadoActual && $estadoActual !== 'entramite')
-              <div class="form-group col-md-4 mb-2">
+              <div class="form-group col-md-4 mb-2" id="grp-fecha-alta">
                 <label class="mb-1" for="fecha_alta">Fecha de alta</label>
-                <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta"
+                <input type="date" id="fecha_alta"
+                      wire:model.defer="state.fecha_alta"
                       class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
                 @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
               </div>
             @endif
 
-            {{-- Fecha de vencimiento: solo en vigente/irregular (readonly; la calcula el modelo con tipo_hab) --}}
+            {{-- Fecha de vencimiento: mostrar SOLO en vigente / irregular, pero EDITABLE (manual) --}}
             @if(in_array($estadoActual, ['vigente','irregular']))
-              <div class="form-group col-md-4 mb-2">
-                <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
-                <input type="date" id="fecha_vto" wire:model="state.fecha_vto"
-                  class="form-control form-control-sm" readonly>
+              <div class="form-group col-md-4 mb-2" id="grp-fecha-vto">
+                <label class="mb-1" for="fecha_vto">Fecha de vencimiento (manual)</label>
+                <input type="date" id="fecha_vto"
+                      wire:model.defer="state.fecha_vto"
+                      class="form-control form-control-sm @error('state.fecha_vto') is-invalid @enderror">
+                @error('state.fecha_vto') <div class="invalid-feedback">{{ $message }}</div> @enderror
               </div>
             @endif
 
             {{-- Fecha de baja: solo en baja (editable) --}}
             @if($estadoActual === 'baja')
-              <div class="form-group col-md-4 mb-2">
+              <div class="form-group col-md-4 mb-2" id="grp-fecha-baja">
                 <label class="mb-1" for="fecha_baja">Fecha de baja</label>
-                <input type="date" id="fecha_baja" wire:model.defer="state.fecha_baja"
+                <input type="date" id="fecha_baja"
+                      wire:model.defer="state.fecha_baja"
                       class="form-control form-control-sm @error('state.fecha_baja') is-invalid @enderror">
                 @error('state.fecha_baja') <div class="invalid-feedback">{{ $message }}</div> @enderror
               </div>
@@ -310,133 +316,96 @@
   </div>
 </div>
 
-{{-- JS: Modal + Persona + Rubros --}}
+{{-- JS: Modal + Persona + Confirmación de cambio de estado --}}
 <script>
-    // Mostrar/ocultar modal por eventos Livewire
-    document.addEventListener('livewire:init', () => {
-        Livewire.on('show-form', () => $('#form').modal('show'));
-        Livewire.on('hide-form', () => $('#form').modal('hide'));
-        // re-aplicar modos luego de cada render
-        Livewire.hook('message.processed', () => {
-            aplicarModoPersona(leerTipoPersona());
-        });
+  // ===== Helpers Persona =====
+  function leerTipoPersona() {
+    const sel = document.getElementById('persona_tipo');
+    return sel ? sel.value : 'fisica';
+  }
+
+  function aplicarModoPersona(tipo) {
+    const esJ = (tipo === 'juridica');
+
+    const bApe = document.getElementById('bloque-fisica-apellido');
+    const bNom = document.getElementById('bloque-fisica-nombres');
+    const bRaz = document.getElementById('bloque-juridica-razon');
+    const docsJ = document.getElementById('docs-juridica');
+
+    const ape = document.getElementById('apellido');
+    const nom = document.getElementById('nombres');
+    const raz = document.getElementById('razon_social');
+
+    if (bApe) bApe.classList.toggle('d-none', esJ);
+    if (bNom) bNom.classList.toggle('d-none', esJ);
+    if (bRaz) bRaz.classList.toggle('d-none', !esJ);
+    if (docsJ) docsJ.classList.toggle('d-none', !esJ);
+
+    if (ape) ape.disabled = esJ;
+    if (nom) nom.disabled = esJ;
+    if (raz) raz.disabled = !esJ;
+  }
+
+  // ===== Livewire init / hooks =====
+  document.addEventListener('livewire:init', () => {
+    // Abrir/cerrar modal por eventos Livewire
+    Livewire.on('show-form', () => $('#form').modal('show'));
+    Livewire.on('hide-form', () => $('#form').modal('hide'));
+
+    // Reaplicar modo persona post-render Livewire
+    Livewire.hook('message.processed', () => {
+      aplicarModoPersona(leerTipoPersona());
     });
 
-    // Foco inicial
-    document.addEventListener('DOMContentLoaded', function() {
-        $('#form').on('shown.bs.modal', function() {
-            const persona = leerTipoPersona();
-            aplicarModoPersona(persona);
-            const input = persona === 'juridica' ? document.getElementById('razon_social') :
-                document.getElementById('apellido');
-            if (input) {
-                input.focus();
-                input.select();
-            }
-        });
+    // Confirmación "baja" (si usás estos eventos en el componente)
+    Livewire.on('confirm-baja', ({ message }) => {
+      if (confirm(message)) {
+        Livewire.dispatch('confirmarBajaHoy');
+      } else {
+        Livewire.dispatch('cancelarCambioBaja');
+      }
+    });
+  });
+
+  // ===== DOM listo =====
+  document.addEventListener('DOMContentLoaded', () => {
+    // Al mostrar modal: setear foco y aplicar modo persona
+    $('#form').on('shown.bs.modal', function () {
+      const persona = leerTipoPersona();
+      aplicarModoPersona(persona);
+      const input = persona === 'juridica'
+        ? document.getElementById('razon_social')
+        : document.getElementById('apellido');
+      if (input) { input.focus(); input.select(); }
     });
 
-    // --- Persona: Física/Jurídica (sin recargar) ---
-    function leerTipoPersona() {
-        const sel = document.getElementById('persona_tipo');
-        return sel ? sel.value : 'fisica';
+    // Cambio de persona en tiempo real
+    const selPersona = document.getElementById('persona_tipo');
+    if (selPersona) {
+      aplicarModoPersona(selPersona.value);
+      selPersona.addEventListener('change', () => aplicarModoPersona(selPersona.value));
     }
 
-    function aplicarModoPersona(tipo) {
-        const esJ = (tipo === 'juridica');
-
-        const bApe = document.getElementById('bloque-fisica-apellido');
-        const bNom = document.getElementById('bloque-fisica-nombres');
-        const bRaz = document.getElementById('bloque-juridica-razon');
-        const docsJ = document.getElementById('docs-juridica');
-
-        const ape = document.getElementById('apellido');
-        const nom = document.getElementById('nombres');
-        const raz = document.getElementById('razon_social');
-
-        if (bApe) bApe.classList.toggle('d-none', esJ);
-        if (bNom) bNom.classList.toggle('d-none', esJ);
-        if (bRaz) bRaz.classList.toggle('d-none', !esJ);
-        if (docsJ) docsJ.classList.toggle('d-none', !esJ);
-
-        if (ape) ape.disabled = esJ;
-        if (nom) nom.disabled = esJ;
-        if (raz) raz.disabled = !esJ;
+    // Confirmación al cambiar ESTADO (cambia situación downstream)
+    const selEstado = document.getElementById('estado');
+    if (selEstado) {
+      let prev = selEstado.value || '';
+      selEstado.addEventListener('change', (e) => {
+        const nuevo = e.target.value;
+        if (nuevo === prev) return;
+        const ok = confirm('Vas a cambiar el estado del comercio. ¿Confirmás este cambio?');
+        if (!ok) {
+          selEstado.value = prev;
+          selEstado.dispatchEvent(new Event('input', { bubbles: true }));
+          selEstado.dispatchEvent(new Event('change', { bubbles: true }));
+          return;
+        }
+        prev = nuevo;
+      });
     }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const sel = document.getElementById('persona_tipo');
-        if (sel) {
-            aplicarModoPersona(sel.value);
-            sel.addEventListener('change', () => aplicarModoPersona(sel.value));
-        }
-    });
-    function aplicarModoEstado() {
-        const estado = document.getElementById('estado')?.value || 'entramite';
-        const gAlta = document.getElementById('grp-fecha-alta');
-        const gVto  = document.getElementById('grp-fecha-vto');
-        const gBaja = document.getElementById('grp-fecha-baja');
-        const ayuda = document.getElementById('ayuda-vigente-desde-tramite');
-
-        // reset
-        [gAlta,gVto,gBaja].forEach(e => e && e.classList.add('d-none'));
-        if (ayuda) ayuda.classList.add('d-none');
-
-        if (estado === 'entramite') {
-            // ninguna fecha
-        }
-        if (estado === 'vigente') {
-            if (gAlta) gAlta.classList.remove('d-none');
-            if (gVto)  gVto.classList.remove('d-none');
-            if (@json($showEditModal ? true : false)) {
-            // sólo muestro el hint en edición
-            if (ayuda) ayuda.classList.remove('d-none');
-            }
-        }
-        if (estado === 'irregular') {
-            if (gAlta) gAlta.classList.remove('d-none');
-            if (gVto)  gVto.classList.remove('d-none');
-        }
-        if (estado === 'baja') {
-            if (gAlta) gAlta.classList.remove('d-none');
-            if (gBaja) gBaja.classList.remove('d-none');
-        }
-
-        // cálculo cliente de vto (solo vigente/irregular)
-        if ((estado === 'vigente' || estado === 'irregular')) {
-            const alta = document.getElementById('fecha_alta')?.value;
-            const vto  = document.getElementById('fecha_vto');
-            if (alta && vto) {
-            const d = new Date(alta);
-            d.setFullYear(d.getFullYear() + 1);
-            vto.value = d.toISOString().slice(0,10);
-            }
-        }
-    }
-
-        document.addEventListener('DOMContentLoaded', () => {
-        const selEstado = document.getElementById('estado');
-        const alta = document.getElementById('fecha_alta');
-        if (selEstado) selEstado.addEventListener('change', aplicarModoEstado);
-        if (alta) alta.addEventListener('change', aplicarModoEstado);
-        aplicarModoEstado();
-        });
-
-        // Reaplicar post-render Livewire
-        document.addEventListener('livewire:init', () => {
-        Livewire.hook('message.processed', aplicarModoEstado);
-        });
-
-    document.addEventListener('livewire:init', () => {
-        Livewire.on('confirm-baja', ({ message }) => {
-            if (confirm(message)) {
-            Livewire.dispatch('confirmarBajaHoy');   // setea hoy + readonly
-            } else {
-            Livewire.dispatch('cancelarCambioBaja'); // revierte el select
-            }
-        });
-    });
+  });
 </script>
+
 
 <style>
     @media (max-width: 576px) {

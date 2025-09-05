@@ -5,6 +5,7 @@
         <div class="col-sm-6"><h1 class="m-0">Reportes de Habilitaciones Comerciales</h1></div>
       </div>
 
+
       {{-- Filtros --}}
       <div class="card card-outline card-secondary mb-3">
         <div class="card-body">
@@ -51,6 +52,9 @@
               </select>
             </div>
           </div>
+          <button class="btn btn-outline-danger ml-2" wire:click="exportarPdf">
+            <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
+          </button>
         </div>
       </div>
 
@@ -63,7 +67,7 @@
                 <table class="table table-sm table-striped mb-0">
                   <thead class="thead-light">
                     <tr>
-                      <th>Razón social</th>
+                      <th>Nombre</th>
                       <th>Estado</th>
                       <th>Subrubro</th>
                       <th>Vto</th>
@@ -72,10 +76,10 @@
                   <tbody>
                     @foreach($this->listadoGeneral as $u)
                       <tr>
-                        <td>{{ $u->razon_social ?? ($u->apellido.' '.$u->nombres) }}</td>
+                        <td>{{ $u->nombre_comercial ?? '-' }}</td>
                         <td>{{ $u->estadoModel->descripcion ?? $u->estado }}</td>
                         <td>{{ $u->rubro->subrubro ?? '-' }}</td>
-                        <td>{{ $u->fecha_vto ?? '-' }}</td>
+                        <td>{{ $u->fecha_vto ? \Illuminate\Support\Carbon::parse($u->fecha_vto)->format('Y-m-d') : '—' }}</td>
                       </tr>
                     @endforeach
                   </tbody>
@@ -210,7 +214,7 @@
                 <table class="table table-sm table-striped mb-0">
                   <thead class="thead-light">
                     <tr>
-                      <th>Razón social</th>
+                      <th>Nombre</th>
                       <th>Subrubro</th>
                       <th>Vencimiento</th>
                     </tr>
@@ -218,9 +222,9 @@
                   <tbody>
                     @foreach($this->proximosAVencer as $u)
                       <tr>
-                        <td>{{ $u->razon_social }}</td>
+                        <td>{{ $u->nombre_comercial ?? '-' }}</td>
                         <td>{{ $u->rubro->subrubro ?? '-' }}</td>
-                        <td>{{ $u->fecha_vto }}</td>
+                        <td>{{ $u->fecha_vto ? \Illuminate\Support\Carbon::parse($u->fecha_vto)->format('Y-m-d') : '—' }}</td>
                       </tr>
                     @endforeach
                   </tbody>

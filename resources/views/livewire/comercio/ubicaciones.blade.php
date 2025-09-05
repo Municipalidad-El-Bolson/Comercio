@@ -30,10 +30,7 @@
                     <table class="table table-sm table-hover table-bordered mb-0">
                         <thead>
                             <tr class="text-center">
-                                <th class="text-sm">Persona</th>
-                                <th class="text-sm">Razón Social</th>
-                                <th class="text-sm">Apellido</th>
-                                <th class="text-sm">Nombres</th>
+                                <th class="text-sm">Nombre de Fantasía</th>
                                 <th class="text-sm">DNI / CUIT</th>
                                 <th class="text-sm">Rubro</th>
                                 <th class="text-sm">Domicilio Comercio</th>
@@ -47,10 +44,9 @@
                             @forelse ($ubicaciones as $ubicacion)
                                 <tr onclick="window.location='{{ route('comercio.data', $ubicacion) }}'"
                                     style="cursor:pointer;">
-                                    <td class="text-sm text-center">{{ ucfirst($ubicacion->persona_tipo) }}</td>
-                                    <td class="text-sm">{{ $ubicacion->razon_social }}</td>
-                                    <td class="text-sm">{{ $ubicacion->apellido }}</td>
-                                    <td class="text-sm">{{ $ubicacion->nombres }}</td>
+                                    <td class="text-sm font-weight-bold">
+                                        {{ $ubicacion->nombre_comercial ?: '—' }}
+                                    </td>
                                     <td class="text-sm">{{ $ubicacion->dni_cuit }}</td>
                                     <td class="text-sm">
                                         {{ data_get($ubicacion, 'rubro.subrubro', '') }}

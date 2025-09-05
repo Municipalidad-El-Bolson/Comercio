@@ -383,27 +383,30 @@
 
   // Geocodifica sólo los que no traen lat/lng (rápido y sencillo)
   async function geocodeMissingCoords(list, {maxToGeocode=50, delayMs=120} = {}) {
-    if (!googleApiKey) return list; // sin key, no hacemos nada
+    if (!googleApiKey) return list;
+
+    const BBOX = { minLat: -42.10, maxLat: -41.85, minLng: -71.65, maxLng: -71.35 };
+    const inBbox = (lat,lng) => lat>=BBOX.minLat && lat<=BBOX.maxLat && lng>=BBOX.minLng && lng<=BBOX.maxLng;
 
     let count = 0;
     for (const rec of list) {
       const hasLatLng = Number.isFinite(parseFloat(rec.lat ?? rec.latitud))
-                     && Number.isFinite(parseFloat(rec.lng ?? rec.longitud));
+                    && Number.isFinite(parseFloat(rec.lng ?? rec.longitud));
       if (hasLatLng) continue;
       if (!rec.domicilio_comercio) continue;
       if (count >= maxToGeocode) break;
 
       try {
-        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(rec.domicilio_comercio)}&key=${googleApiKey}`;
+        const addr = rec.domicilio_comercio + ', El Bolsón, Río Negro, Argentina';
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${googleApiKey}&language=es-AR&region=ar&components=country:AR|administrative_area:Rio%20Negro|locality:El%20Bolson`;
         const res = await fetch(url);
         const data = await res.json();
         const loc = data?.results?.[0]?.geometry?.location;
-        if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) {
-          // Guardamos en las mismas keys que usás
+        if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng) && inBbox(loc.lat, loc.lng)) {
           rec.lat = loc.lat;
           rec.lng = loc.lng;
           count++;
-          await sleep(delayMs); // para no quemar el rate limit
+          await sleep(delayMs);
         }
       } catch (e) {
         // silencioso
@@ -412,6 +415,7 @@
     console.log(`[Mapa] Geocodificados en front: ${count}`);
     return list;
   }
+
 
   // Popup
   function popupHTML(p) {
