@@ -1,7 +1,7 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand -->
     <a href="{{ url('/') }}" class="brand-link">
-        <img src="{{ asset('images/MEB.webp') }}" alt="Logo" style="width:50px; height:auto;">
+        <img src="{{ asset('images/MEB.webp') }}" alt="Logo" style="width:150px; height:auto;">
     </a>
 
     <!-- Sidebar -->
@@ -31,7 +31,7 @@
                 <li class="nav-item">
                     <a href="{{ route('historial') }}" class="nav-link">
                         <i class="nav-icon fas fa-book-open"></i>
-                        <p>Historial</p>
+                        <p>Auditoria</p>
                     </a>
                 </li>
                 <li class="nav-item">

@@ -95,12 +95,25 @@
                   <td class="text-sm">{{ $mov->estado ?? '—' }}</td>
                   <td class="text-sm">{{ $mov->descripcion ?? '—' }}</td>
                   <td class="text-sm">
-                    @php $url = $mov->archivo ? Storage::disk('public')->url($mov->archivo) : null; @endphp
-                    @if ($mov->archivo && $url)
-                      <a href="{{ $url }}" target="_blank" rel="noopener">Ver</a>
-                    @else
-                      —
-                    @endif
+                    @php
+                          $raw  = $mov->archivo ?? '';
+                          $path = ltrim(preg_replace('#^storage/#i', '', $raw), '/');
+                          $disk = \Illuminate\Support\Facades\Storage::disk('public');
+                          $ok   = $path !== '' && $disk->exists($path);
+                          $url  = $ok ? route('files.show', ['path' => $path]) : null;
+                          $isImg= $ok && preg_match('/\.(jpe?g|png|gif|webp|bmp)$/i', $path);
+                        @endphp
+                        @if ($ok && $url)
+                          @if ($isImg)
+                            <a href="{{ $url }}" target="_blank" rel="noopener">
+                              <img src="{{ $url }}" alt="archivo" style="max-width:80px;max-height:60px;object-fit:cover;">
+                            </a>
+                          @else
+                            <a href="{{ $url }}" target="_blank" rel="noopener">Ver</a>
+                          @endif
+                        @else
+                          —
+                        @endif
                   </td>
                   <td class="text-sm">{{ optional($mov->fecha)->format('d/m/Y H:i') }}</td>
                   <td class="text-center">
@@ -108,10 +121,12 @@
                             wire:click="editarMovimiento({{ $mov->id }})">
                       Editar
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger"
-                            wire:click="eliminarMovimiento({{ $mov->id }})">
-                      Borrar
-                    </button>
+                    <button type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                onclick="if(!confirm('¿Eliminar este movimiento?')) return;"
+                                wire:click.prevent="eliminarMovimiento({{ $mov->id }})">
+                          Borrar
+                        </button>
                   </td>
                 </tr>
               @empty

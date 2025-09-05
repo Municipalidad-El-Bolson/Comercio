@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="{{ asset('images/MEB.webp') }}" type="image/x-icon">
 
     <title>M.E.B | Comercio</title>
     <!-- Google Font: Source Sans Pro -->
