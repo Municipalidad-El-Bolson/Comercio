@@ -37,7 +37,6 @@
                                 <th class="text-sm">Estado</th>
                                 <th class="text-sm">Situación</th>
                                 <th class="text-sm text-bold text-center">Subir Actas</th>
-                                <th class="text-sm text-bold text-center">Ver Mapas</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -62,9 +61,6 @@
                                     <td class="small text-center">
                                         <button type="button" class="btn btn-primary btn-sm" title="Ver Movimientos / Actas" onclick="event.stopPropagation();" wire:click="mostrarMovimientos({{ $ubicacion->id }})">Actas</button>
                                     </td>
-                                    <td class="small text-center">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" title="Ver mapa" onclick="event.stopPropagation();" wire:click="abrirMapa({{ $ubicacion->id }})">Mapa</button>
-                                    </td>
                                 </tr>
                             @empty
                                 <tr>
@@ -84,24 +80,5 @@
 </div>
 
 <script>
-    window.addEventListener('mostrar-modal-mapa', async (e) => {
-    const payload = e.detail?.payload ?? e.detail ?? {};
-
-    renderInfo(payload);
-
-    const hasLatLng = payload.lat != null && payload.lng != null;
-
-    if (hasLatLng) {
-      initOrUpdateMap({
-        lat: payload.lat,
-        lng: payload.lng,
-        razon: payload.razon,
-        domicilio: payload.domicilio,
-        subrubro: payload.subrubro
-      });
-      $('#modalMapa').modal('show');
-      return;
-    }
-    });
     window.addEventListener('mostrar-modal-movimientos', () => {$('#modalMovimientos').modal('show');});
 </script>

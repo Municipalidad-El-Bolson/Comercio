@@ -81,6 +81,7 @@ class Ubicaciones extends AdminComponent
         ];
 
         $this->dispatch('mostrar-modal-mapa', payload: $payload);
+        
     }
 
     public function mount()
