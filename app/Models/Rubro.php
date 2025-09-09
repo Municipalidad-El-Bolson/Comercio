@@ -18,6 +18,11 @@ class Rubro extends Model
 
     public function ubicaciones()
     {
-        return $this->hasMany(Ubicacion::class);
+        return $this->hasMany(Ubicacion::class, 'rubro_id');
+    }
+
+    public function ubicacionesPivot()
+    {
+        return $this->belongsToMany(Ubicacion::class, 'ubicacion_rubro')->withTimestamps();
     }
 }

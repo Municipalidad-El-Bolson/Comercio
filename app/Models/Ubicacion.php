@@ -8,6 +8,9 @@ use Carbon\Carbon;
 use App\Models\ComercioEstado;
 use Illuminate\Support\Str;
 use App\Traits\AuditsModelChanges;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;   // (si querés tipar rubro())
+use Illuminate\Database\Eloquent\Relations\HasMany; 
 
 class Ubicacion extends Model
 {
@@ -24,6 +27,29 @@ class Ubicacion extends Model
 
 
     public function rubro(){ return $this->belongsTo(Rubro::class, 'rubro_id'); }
+
+    public function rubros(): BelongsToMany
+    {
+        return $this->belongsToMany(Rubro::class, 'ubicacion_rubro')
+            ->withTimestamps()
+            ->withPivot('orden')
+            ->orderBy('ubicacion_rubro.orden');
+    }
+    
+    public function telefonos(): HasMany
+    {
+        return $this->hasMany(\App\Models\UbicacionTelefono::class);
+    }
+
+    public function disposiciones(): HasMany
+    {
+        return $this->hasMany(\App\Models\UbicacionDisposicion::class);
+    }
+
+    public function habilitaciones(): HasMany
+    {
+        return $this->hasMany(\App\Models\UbicacionHabilitacion::class);
+    }
 
     public function documentos(){ return $this->hasOne(UbicacionDocumento::class);}
 
