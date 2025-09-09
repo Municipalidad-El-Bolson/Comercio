@@ -194,8 +194,8 @@ class RubrosTableSeeder extends Seeder
             'Empresas de radiollamadas y telecomunicaciones',
         ]);
 
-        // 9) Transporte y Turismo
-        $mega = 'Transporte y Turismo';
+        // 9) Transporte
+        $mega = 'Transporte';
         $add($mega, 'Transporte de Pasajeros', [
             'Transporte urbano de pasajeros',
             'Compañías de media y larga distancia',
@@ -216,18 +216,74 @@ class RubrosTableSeeder extends Seeder
             'Venta de combustibles (estaciones de servicio con o sin anexos)',
             'Lubricentros (cambio de aceites, filtros y servicios básicos de mantenimiento)',
         ]);
-        $add($mega, 'Turismo', [
-            'Agencias de viajes y turismo',
-            'Turismo activo (rafting, parapente, vuelos, mountain bike, trekking, etc.)',
-            'Cabalgatas',
-            'Campings, balnearios y recreos',
-            'Bungalows y cabañas',
-            'Hoteles',
-            'Hostels, hosterías y moteles',
+
+        // ================================
+        // NUEVOS RUBROS PEDIDOS
+        // ================================
+
+        // 0) Industria / Aserradero (subrubro)
+        $mega = 'Industria y Producción';
+        $add($mega, 'Madera y derivados', [
+            'Aserradero',
+        ]);
+
+        // 1) Cultura (museos y otros espacios culturales)
+        $mega = 'Cultura';
+        $add($mega, 'Espacios Culturales', [
+            'Museos',
+            'Centros culturales',
+            'Bibliotecas',
+            'Salas de teatro',
+            'Galerías de arte',
+            'Salas de exposiciones',
+            'Casas de la cultura',
+        ]);
+
+        // 2) Deporte (gimnasios, canchas, etc.)
+        $mega = 'Deporte';
+        $add($mega, 'Actividades y Entrenamiento', [
+            'Gimnasios',
+            'Pilates',
+            'Yoga',
+            'Crossfit',
+        ]);
+        $add($mega, 'Canchas', [
+            'Fútbol',
+            'Pádel',
+            'Tenis',
+            'Básquet',
+            'Vóley',
+        ]);
+
+        // 3) Turismo (ALOJAMIENTOS discriminados por tipo)
+        //    Rubro Madre = Alojamientos ; Subrubro = tipo de alojamiento
+        $mega = 'Turismo';
+        $add($mega, 'Alojamientos', [
+            'Hotel',
+            'Hospedaje',
+            'Hostel',
+            'Cabaña de alquiler turístico',
+            'Departamento de alquiler turístico',
+            'Bed and breakfast',
             'Refugios de montaña',
-            'Residenciales',
+            'Campings',
+        ]);
+        $add($mega, 'Turismo activo', [
+            'Rafting', 
+            'Parapente', 
+            'Vuelos', 
+            'Mountain bike', 
+            'Trekking',
+            'Cabalgatas',
+        ]);
+        $add($mega, 'Varios', [
+            'Agencias de viajes y turismo',
+            'Guías de turismo',
+            'Organizadores de eventos turísticos',
+            'Servicios de transporte turístico',
+            'Alquiler de equipos para actividades turísticas (bicicletas, kayaks, etc.)',
+            'Servicios de información turística',
             'Puestos en feria regional',
-            'Venta de pasajes turísticos',
         ]);
 
         // =======================================

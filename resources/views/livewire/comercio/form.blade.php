@@ -1,8 +1,8 @@
 @php
   $__formKey = 'form-'.md5(json_encode([
-      'mode'  => $showEditModal ? 'edit' : 'new',
-      'rubros'=> count($state['rubros'] ?? []),
-      'tels'  => count($state['telefonos'] ?? []),
+      'mode'   => $showEditModal ? 'edit' : 'new',
+      'rubros' => count($state['rubros'] ?? []),
+      'tels'   => count($state['telefonos'] ?? []),
   ]));
 @endphp
 
@@ -33,7 +33,7 @@
         <div class="form-row">
           <div class="form-group col-md-4 mb-2">
             <label class="mb-1" for="persona_tipo">Tipo de Persona</label>
-            <select id="persona_tipo" wire:model.defer="state.persona_tipo"
+            <select id="persona_tipo" wire:model.live="state.persona_tipo"
               class="form-control form-control-sm @error('state.persona_tipo') is-invalid @enderror">
               <option value="fisica">Física</option>
               <option value="juridica">Jurídica</option>
@@ -58,34 +58,38 @@
           </div>
         </div>
 
-        {{-- Identificación --}}
-        <div class="form-row">
-          <div class="form-group col-md-6 mb-2" id="bloque-fisica-apellido">
-            <label class="mb-1" for="apellido">Apellido</label>
-            <input type="text" id="apellido" wire:model.defer="state.apellido"
-              class="form-control form-control-sm text-capitalize @error('state.apellido') is-invalid @enderror"
-              placeholder="Apellido">
-            @error('state.apellido') <div class="invalid-feedback">{{ $message }}</div> @enderror
-          </div>
+        {{-- Identificación (condicional sin JS) --}}
+        @if( data_get($state, 'persona_tipo', 'fisica') === 'fisica' )
+          <div class="form-row">
+            <div class="form-group col-md-6 mb-2">
+              <label class="mb-1" for="apellido">Apellido</label>
+              <input type="text" id="apellido" wire:model.defer="state.apellido"
+                class="form-control form-control-sm text-capitalize @error('state.apellido') is-invalid @enderror"
+                placeholder="Apellido">
+              @error('state.apellido') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
 
-          <div class="form-group col-md-6 mb-2" id="bloque-fisica-nombres">
-            <label class="mb-1" for="nombres">Nombres</label>
-            <input type="text" id="nombres" wire:model.defer="state.nombres"
-              class="form-control form-control-sm text-capitalize @error('state.nombres') is-invalid @enderror"
-              placeholder="Nombres">
-            @error('state.nombres') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            <div class="form-group col-md-6 mb-2">
+              <label class="mb-1" for="nombres">Nombres</label>
+              <input type="text" id="nombres" wire:model.defer="state.nombres"
+                class="form-control form-control-sm text-capitalize @error('state.nombres') is-invalid @enderror"
+                placeholder="Nombres">
+              @error('state.nombres') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
           </div>
-
-          <div class="form-group col-md-12 mb-2 d-none" id="bloque-juridica-razon">
-            <label class="mb-1" for="razon_social">Razón Social</label>
-            <input type="text" id="razon_social" wire:model.defer="state.razon_social"
-              class="form-control form-control-sm text-capitalize @error('state.razon_social') is-invalid @enderror"
-              placeholder="Razón Social">
-            @error('state.razon_social') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @else
+          <div class="form-row">
+            <div class="form-group col-md-12 mb-2">
+              <label class="mb-1" for="razon_social">Razón Social</label>
+              <input type="text" id="razon_social" wire:model.defer="state.razon_social"
+                class="form-control form-control-sm text-capitalize @error('state.razon_social') is-invalid @enderror"
+                placeholder="Razón Social">
+              @error('state.razon_social') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
           </div>
-        </div>
+        @endif
 
-        {{-- Domicilio / Correo / Teléfonos (repeater) --}}
+        {{-- Domicilio / Correo / Teléfonos --}}
         <div class="form-row">
           <div class="form-group col-md-4 mb-2">
             <label class="mb-1" for="domicilio_comercio">Domicilio del Comercio</label>
@@ -139,6 +143,11 @@
           </label>
 
           @foreach(($state['rubros'] ?? [['mega'=>'','madre'=>'','sub_id'=>null]]) as $i => $row)
+            @php
+              // Fallbacks SEGUROS si no existen $madresOptions/$subsOptions
+              $madOps = (isset($madresOptions) && isset($madresOptions[$i])) ? $madresOptions[$i] : [];
+              $subOps = (isset($subsOptions) && isset($subsOptions[$i])) ? $subsOptions[$i] : [];
+            @endphp
             <div class="form-row align-items-end mb-2 border rounded p-2" wire:key="rubro-row-{{ $i }}">
               <div class="form-group col-md-4 mb-1">
                 <label class="mb-1">Mega rubro</label>
@@ -157,7 +166,7 @@
                         @disabled(empty($state['rubros'][$i]['mega'] ?? ''))
                         wire:model.live="state.rubros.{{ $i }}.madre">
                   <option value="">-- Seleccione Rubro madre --</option>
-                  @foreach (($madresOptions[$i] ?? []) as $madre)
+                  @foreach ($madOps as $madre)
                     <option value="{{ $madre }}">{{ $madre }}</option>
                   @endforeach
                 </select>
@@ -169,7 +178,7 @@
                         @disabled(empty($state['rubros'][$i]['madre'] ?? ''))
                         wire:model.live="state.rubros.{{ $i }}.sub_id">
                   <option value="">-- Seleccione Subrubro --</option>
-                  @foreach (($subsOptions[$i] ?? []) as $op)
+                  @foreach ($subOps as $op)
                     <option value="{{ $op['id'] }}">{{ $op['sub'] }}</option>
                   @endforeach
                 </select>
@@ -178,8 +187,8 @@
 
               <div class="form-group col-md-1 mb-1 text-right">
                 <button type="button" class="btn btn-sm btn-outline-danger"
-                        wire:click="removeRubroRow({{ $i }})" 
-                        @disabled($i===0 && count($state['rubros'] ?? []) <= 1) 
+                        wire:click="removeRubroRow({{ $i }})"
+                        @disabled($i===0 && count($state['rubros'] ?? []) <= 1)
                         title="Eliminar fila">
                   <i class="fa fa-trash"></i>
                 </button>
@@ -294,12 +303,8 @@
           <div class="d-flex align-items-center justify-content-between mb-2">
             <h6 class="mb-0">Documentación</h6>
             <div class="btn-group btn-group-sm">
-              <button type="button" class="btn btn-success" wire:click="marcarTodosLosDocs(true)">
-                Presentó toda la documentación
-              </button>
-              <button type="button" class="btn btn-outline-secondary" wire:click="marcarTodosLosDocs(false)">
-                Limpiar
-              </button>
+              <button type="button" class="btn btn-success" wire:click="marcarTodosLosDocs(true)">Presentó toda la documentación</button>
+              <button type="button" class="btn btn-outline-secondary" wire:click="marcarTodosLosDocs(false)">Limpiar</button>
             </div>
           </div>
 
@@ -361,21 +366,23 @@
               </label>
             </div>
 
-            <div class="col-md-6 d-none" id="docs-juridica">
-              <strong class="d-block mb-1">Personas Jurídicas</strong>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_acta_constitucion">
-                <span class="form-check-label">Acta de constitución</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_contrato_societario">
-                <span class="form-check-label">Contrato societario</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_docs_representantes">
-                <span class="form-check-label">Documentación de representantes</span>
-              </label>
-            </div>
+            @if( data_get($state,'persona_tipo','fisica') === 'juridica' )
+              <div class="col-md-6">
+                <strong class="d-block mb-1">Personas Jurídicas</strong>
+                <label class="form-check mb-1">
+                  <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_acta_constitucion">
+                  <span class="form-check-label">Acta de constitución</span>
+                </label>
+                <label class="form-check mb-1">
+                  <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_contrato_societario">
+                  <span class="form-check-label">Contrato societario</span>
+                </label>
+                <label class="form-check mb-1">
+                  <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_docs_representantes">
+                  <span class="form-check-label">Documentación de representantes</span>
+                </label>
+              </div>
+            @endif
           </div>
         </div>
       </div>
@@ -394,81 +401,11 @@
   </div>
 </div>
 
-{{-- JS: Modal + Persona + Confirmación de cambio de estado --}}
+{{-- Solo eventos de modal; sin JS de persona (ya no hace falta) --}}
 <script>
-  function leerTipoPersona() {
-    const sel = document.getElementById('persona_tipo');
-    return sel ? sel.value : 'fisica';
-  }
-  function aplicarModoPersona(tipo) {
-    const esJ = (tipo === 'juridica');
-    const bApe = document.getElementById('bloque-fisica-apellido');
-    const bNom = document.getElementById('bloque-fisica-nombres');
-    const bRaz = document.getElementById('bloque-juridica-razon');
-    const docsJ = document.getElementById('docs-juridica');
-    const ape = document.getElementById('apellido');
-    const nom = document.getElementById('nombres');
-    const raz = document.getElementById('razon_social');
-
-    if (bApe) bApe.classList.toggle('d-none', esJ);
-    if (bNom) bNom.classList.toggle('d-none', esJ);
-    if (bRaz) bRaz.classList.toggle('d-none', !esJ);
-    if (docsJ) docsJ.classList.toggle('d-none', !esJ);
-
-    if (ape) ape.disabled = esJ;
-    if (nom) nom.disabled = esJ;
-    if (raz) raz.disabled = !esJ;
-  }
-
   document.addEventListener('livewire:init', () => {
     Livewire.on('show-form', () => $('#form').modal('show'));
     Livewire.on('hide-form', () => $('#form').modal('hide'));
-
-    Livewire.hook('message.processed', () => {
-      aplicarModoPersona(leerTipoPersona());
-    });
-
-    Livewire.on('confirm-baja', ({ message }) => {
-      if (confirm(message)) {
-        Livewire.dispatch('confirmarBajaHoy');
-      } else {
-        Livewire.dispatch('cancelarCambioBaja');
-      }
-    });
-  });
-
-  document.addEventListener('DOMContentLoaded', () => {
-    $('#form').on('shown.bs.modal', function () {
-      const persona = leerTipoPersona();
-      aplicarModoPersona(persona);
-      const input = persona === 'juridica'
-        ? document.getElementById('razon_social')
-        : document.getElementById('apellido');
-      if (input) { input.focus(); input.select(); }
-    });
-
-    const selPersona = document.getElementById('persona_tipo');
-    if (selPersona) {
-      aplicarModoPersona(selPersona.value);
-      selPersona.addEventListener('change', () => aplicarModoPersona(selPersona.value));
-    }
-
-    const selEstado = document.getElementById('estado');
-    if (selEstado) {
-      let prev = selEstado.value || '';
-      selEstado.addEventListener('change', (e) => {
-        const nuevo = e.target.value;
-        if (nuevo === prev) return;
-        const ok = confirm('Vas a cambiar el estado del comercio. ¿Confirmás este cambio?');
-        if (!ok) {
-          selEstado.value = prev;
-          selEstado.dispatchEvent(new Event('input', { bubbles: true }));
-          selEstado.dispatchEvent(new Event('change', { bubbles: true }));
-          return;
-        }
-        prev = nuevo;
-      });
-    }
   });
 </script>
 
