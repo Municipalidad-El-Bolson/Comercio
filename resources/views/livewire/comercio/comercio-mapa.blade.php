@@ -558,7 +558,14 @@
     // Intentamos completar coords de nuevos registros sin lat/lng
     try { ubicaciones = await geocodeMissingCoords(ubicaciones, { maxToGeocode: 80, delayMs: 110 }); } catch {}
     const src = map.getSource('comercios-src');
-    if (src) src.setData(ubicacionesToGeoJSON(ubicaciones));
+    const data = ubicacionesToGeoJSON(ubicaciones);
+    if (src) src.setData(data);
+    const feats = data?.features || [];
+    if (feats.length > 0) {
+      const bounds = new mapboxgl.LngLatBounds();
+      feats.forEach(f => bounds.extend(f.geometry.coordinates));
+      map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 600 });
+    }
   });
 </script>
 <style>
