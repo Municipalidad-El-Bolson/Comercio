@@ -170,5 +170,12 @@ class ComercioMapa extends AdminComponent
         ])->layout('admin.layouts.app');
     }
 
+    #[On('ubicacion-actualizada')]
+    public function onUbicacionActualizada($id = null): void
+    {
+        // Re-ejecuta la consulta y emite a JS
+        $this->emitUbicaciones();
+    }
+
     public static string $layout = 'admin.layouts.app';
 }

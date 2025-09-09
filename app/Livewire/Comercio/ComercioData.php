@@ -241,34 +241,38 @@ class ComercioData extends Component
                 break;
         }
 
-        // Validar
-        $validated = \Illuminate\Support\Facades\Validator::make($this->state, $rules)->validate();
+        $validated = \Validator::make($this->state, $rules)->validate();
 
-        // Normalizaciones (título/capitalización)
+        // Normalizaciones
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
             if (!empty($validated[$c])) $validated[$c] = \Illuminate\Support\Str::title($validated[$c]);
         }
-
-        // Normalizar DNI/CUIL a solo dígitos antes de guardar
         $validated['dni_cuit'] = preg_replace('/\D/','', $validated['dni_cuit'] ?? '');
-
-        // NO guardar estos campos
         unset($validated['domicilio_responsable'], $validated['nomenclatura']);
 
-        // Documentos
+        // ---- CLAVE: re-geocodificar si cambió la dirección
+        $dirVieja = trim((string)$this->ubicacion->getOriginal('domicilio_comercio'));
+        $dirNueva = trim((string)($validated['domicilio_comercio'] ?? ''));
+        if ($dirNueva !== '' && $dirNueva !== $dirVieja) {
+            $enricher = app(\App\Services\UbicacionGeoEnricher::class);
+            $validated = $enricher->enrich($validated);
+        }
+
+        // Documentos (como ya tenías)
         $documentos = $this->normalizeDocsArray($validated['documentos'] ?? []);
         unset($validated['documentos']);
 
-        // Guardar Ubicación
+        // Guardar
         $this->ubicacion->update($validated);
-
-        // Guardar checklist (crea si no existe)
-        $cols = \Illuminate\Support\Facades\Schema::getColumnListing('ubicacion_documentos');
+        $cols = \Schema::getColumnListing('ubicacion_documentos');
         $payload = array_intersect_key($documentos, array_flip($cols));
         $this->ubicacion->documentos()->updateOrCreate(
             ['ubicacion_id' => $this->ubicacion->id],
             $payload + ['ubicacion_id' => $this->ubicacion->id]
         );
+
+        // Avisar al mapa
+        $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
 
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
     }

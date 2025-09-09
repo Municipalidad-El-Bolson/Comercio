@@ -480,36 +480,25 @@ class Ubicaciones extends AdminComponent
 
 
     /** Actualizar */
+    // app/Livewire/Comercio/Ubicaciones.php
+
     public function updateComercio()
     {
         $this->state['estado'] = $this->normalizarEstado($this->state['estado'] ?? null);
-
         $this->aplicarFlagsEstadoEnState();
 
-        if (array_key_exists('situacion', $this->state)) {
-            unset($this->state['situacion']);
-        }
+        unset($this->state['situacion']);
 
         $reglas = array_merge($this->reglasComunes(true), $this->reglasFechasPorEstado(false));
         unset($reglas['state.situacion']);
 
-        $validated = $this->validate(
-            $reglas,
-            $this->mensajes(),
-            $this->atributos()
-        );
-
+        $validated = $this->validate($reglas, $this->mensajes(), $this->atributos());
         $data = $validated['state'];
-        $data['estado'] = $this->normalizarEstado($data['estado'] ?? null);
-        
-        unset($data['situacion']);
 
-        // Formateos
+        // Normalizaciones varias (como ya hacías)
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
             if (!empty($data[$c])) $data[$c] = Str::title($data[$c]);
         }
-
-        // Identidad coherente
         $esFisica = ($data['persona_tipo'] ?? 'fisica') === 'fisica';
         if ($esFisica) {
             $data['razon_social'] = $data['razon_social'] ?? null;
@@ -518,10 +507,23 @@ class Ubicaciones extends AdminComponent
             $data['nombres']  = $data['nombres']  ?? null;
         }
 
-        // Documentos
+        // ---- CLAVE: re-geocodificar si cambió la dirección
+        $direccionVieja = trim((string)$this->ubicacion->getOriginal('domicilio_comercio'));
+        $direccionNueva = trim((string)($data['domicilio_comercio'] ?? ''));
+
+        if ($direccionNueva !== '' && $direccionNueva !== $direccionVieja) {
+            $enricher = app(\App\Services\UbicacionGeoEnricher::class);
+            // Sugerencia: que enrich() detecte cambios y pise lat/lng/barrio/calle/alt etc.
+            $data = $enricher->enrich($data); // <-- actualiza lat/lng si cambió el domicilio
+        }
+
+        // Limpiezas que NO guardás
+        $data['dni_cuit'] = preg_replace('/\D/', '', $data['dni_cuit'] ?? '');
+        unset($data['domicilio_responsable'], $data['nomenclatura']);
+
+        // Documentos (como ya tenías)
         $documentos = $data['documentos'] ?? [];
         unset($data['documentos']);
-
         if (array_key_exists('doc_afip_constancia', $documentos)) {
             if (($this->state['persona_tipo'] ?? 'fisica') === 'juridica') {
                 $documentos['doc_afip_constancia_juridica'] = (bool)$documentos['doc_afip_constancia'];
@@ -534,28 +536,25 @@ class Ubicaciones extends AdminComponent
             $documentos['doc_constancia_recaudacion'] = (bool)$documentos['doc_recaudacion_rn'];
             unset($documentos['doc_recaudacion_rn']);
         }
-
-        // Filtrar a columnas válidas en documentos
-        $permitidos = array_flip((new UbicacionDocumento)->getFillable());
+        $permitidos = array_flip((new \App\Models\UbicacionDocumento)->getFillable());
         $documentos = array_intersect_key($documentos, $permitidos);
-        
-        // NORMALIZAR dni_cuit a dígitos antes de guardar:
-        $data['dni_cuit'] = preg_replace('/\D/', '', $data['dni_cuit'] ?? '');
 
-        // NO GUARDAR ESTOS CAMPOS
-        unset($data['domicilio_responsable'], $data['nomenclatura']);
-        // Guardar Ubicación (el modelo normaliza fechas por estado)
+        // Guardar Ubicación
         $this->ubicacion->update($data);
 
-        // Guardar checklist (crea si no existe)
+        // Guardar checklist
         $this->ubicacion->documentos()->updateOrCreate(
             ['ubicacion_id' => $this->ubicacion->id],
             array_merge($this->docDefaults, $documentos, ['ubicacion_id' => $this->ubicacion->id])
         );
 
+        // Notificar a otros componentes (p.ej. el mapa) que esta ubicación cambió
+        $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
+
         $this->resetPage();
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
     }
+
 
     /** Botón "Presentó toda la documentación" / "Limpiar" */
     public function marcarTodosLosDocs(bool $valor = true): void
