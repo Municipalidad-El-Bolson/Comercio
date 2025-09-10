@@ -392,16 +392,11 @@ class Ubicaciones extends AdminComponent
 
     private function reglasComunes(bool $isUpdate = false): array
     {
-        // Unique para dni_cuit
-        $uniqueDniCuit = Rule::unique('ubicaciones', 'dni_cuit'); // ajustar si la tabla es otra
-        if ($isUpdate && $this->ubicacion?->id) {
-            $uniqueDniCuit = $uniqueDniCuit->ignore($this->ubicacion->id);
-        }
 
         $rules = [
             'state.persona_tipo'          => ['required', Rule::in(['fisica','juridica'])],
             'state.dni_cuit' => [
-                'bail','required', 'string', $uniqueDniCuit,
+                'bail','required', 'string',
                 'regex:/^\d{7,8}$|^\d{2}-\d{7,8}-\d{1}$|^\d{11}$/',
                 function ($attr, $value, $fail) {
                     if (strlen(preg_replace('/\D/','', $value)) === 11 && !$this->isValidCuit($value)) {
@@ -460,7 +455,6 @@ class Ubicaciones extends AdminComponent
             'state.persona_tipo.in'       => 'El tipo debe ser física o jurídica.',
             'state.dni_cuit.required'     => 'Ingresá DNI o CUIT.',
             'state.dni_cuit.regex'        => 'Usá DNI (7–8 dígitos) o CUIT (11 dígitos).',
-            'state.dni_cuit.unique'       => 'Ya existe un registro con ese DNI/CUIT.',
             'state.rubro_id.required'     => 'Seleccioná el subrubro.',
             'state.rubro_id.exists'       => 'El subrubro seleccionado no es válido.',
 

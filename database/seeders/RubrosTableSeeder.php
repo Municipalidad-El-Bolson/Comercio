@@ -285,6 +285,55 @@ class RubrosTableSeeder extends Seeder
             'Servicios de información turística',
             'Puestos en feria regional',
         ]);
+        
+        // ================================
+        // NUEVOS RUBROS SOLICITADOS
+        // ================================
+
+        // 1) Comercio y Ventas → Almacenes y Tiendas
+        $mega = 'Comercio y Ventas';
+        $add($mega, 'Almacenes y Tiendas', [
+            'Zapatería',
+            'Marroquinería',
+            'Accesorios',
+            'Regalería',
+        ]);
+
+        // 2) Comercio y Ventas → Artículos para el Hogar
+        $add($mega, 'Artículos para el Hogar', [
+            'Mueblería',
+            'Artículos para el hogar',    // si ya existe, se deduplica
+            'Venta de bicicletas',
+            'Calefacción',
+            'Aire acondicionado',
+        ]);
+
+        // 3) Comercio y Ventas → Rubro Animal y Agro (agrego "Viveros")
+        $add($mega, 'Rubro Animal y Agro', [
+            'Viveros',
+        ]);
+
+        // 4) Construcción y Hogar → Ferreterías y Pinturerías
+        $mega = 'Construcción y Hogar';
+        $add($mega, 'Ferreterías y Pinturerías', [
+            'Alquiler de herramientas',
+        ]);
+
+        // 5) Servicios Generales → Encomiendas y Mensajería (nuevo Rubro Madre)
+        $mega = 'Servicios Generales';
+        $add($mega, 'Encomiendas y Mensajería', [
+            'Servicio de paquetería',
+        ]);
+
+        // 6) Transporte → Servicios y Comercio Automotor
+        $mega = 'Transporte';
+        $add($mega, 'Servicios y Comercio Automotor', [
+            'Venta de accesorios para motor',
+            'Venta de autopartes para auto',
+            'Venta de repuestos',
+            'Venta de lubricantes y aditivos (sueltos y envasados)',
+        ]);
+
 
         // =======================================
         // 2) Deduplicar por clave compuesta
