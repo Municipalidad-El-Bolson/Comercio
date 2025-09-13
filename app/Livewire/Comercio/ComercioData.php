@@ -7,6 +7,7 @@ use App\Models\Ubicacion;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Str;
 use App\Models\Rubro;
+use Livewire\Attributes\On;
 
 class ComercioData extends Component
 {
@@ -101,7 +102,7 @@ class ComercioData extends Component
     /** ====== Ciclo de vida ====== */
     public function mount(Ubicacion $ubicacion)
     {
-        $this->ubicacion = $ubicacion->load('rubro', 'documentos', 'movimientos');
+        $this->ubicacion = $ubicacion->load('rubro', 'rubros', 'documentos', 'movimientos', 'telefonos', 'disposiciones', 'habilitaciones');
 
         // Opciones de rubros (solo subrubro + id)
         $this->rubros = Rubro::select('id','subrubro')
@@ -119,6 +120,16 @@ class ComercioData extends Component
         $this->anexoOpts = $this->rubroOpts;
 
         $this->formKey = (string) Str::uuid();
+    }
+
+    #[On('ubicacion-actualizada')]
+    public function refrescarDatos($id = null): void
+    {
+        if (!$id || (int)$id === (int)$this->ubicacion->id) {
+            $this->ubicacion->refresh()->load(
+                'rubro','rubros','telefonos','documentos','movimientos','disposiciones','habilitaciones'
+            );
+        }
     }
 
     /** ====== Editar modal ====== */
@@ -437,6 +448,8 @@ class ComercioData extends Component
 
     public function render()
     {
+        $this->ubicacion->loadMissing('rubros','telefonos');
+
         $esJuridica = ($this->ubicacion->persona_tipo ?? 'fisica') === 'juridica';
         $labels = $esJuridica ? ($this->labelsGenerales + $this->labelsJuridicas) : $this->labelsGenerales;
 
@@ -445,26 +458,20 @@ class ComercioData extends Component
 
         $total = count($labels);
         $presentadas = 0;
-        foreach (array_keys($labels) as $k) {
-            if (!empty($docs[$k])) $presentadas++;
-        }
+        foreach (array_keys($labels) as $k) if (!empty($docs[$k])) $presentadas++;
 
         $historial = $this->ubicacion->movimientos()->get()->keyBy('etapa');
 
         return view('livewire.comercio.comercio-data', [
-            'ubicacion'        => $this->ubicacion,
-            'historial'        => $historial,
-
-            // Para el nuevo selector (una vez que actualices el form.blade)
-            'rubros'           => $this->rubros,
-
-            // Documentación
-            'docs'             => $docs,
-            'labelsGenerales'  => $this->labelsGenerales,
-            'labelsJuridicas'  => $this->labelsJuridicas,
-            'esJuridica'       => $esJuridica,
-            'docsTotal'        => $total,
-            'docsOK'           => $presentadas,
+            'ubicacion'  => $this->ubicacion,
+            'historial'  => $historial,
+            'rubros'     => $this->rubros,
+            'docs'       => $docs,
+            'labelsGenerales' => $this->labelsGenerales,
+            'labelsJuridicas' => $this->labelsJuridicas,
+            'esJuridica' => $esJuridica,
+            'docsTotal'  => $total,
+            'docsOK'     => $presentadas,
         ])->layout('admin.layouts.app');
     }
 }

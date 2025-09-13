@@ -30,6 +30,11 @@
     <div class="card mb-3">
       <div class="card-header bg-light"><strong>Identificación</strong></div>
       <div class="card-body">
+        @php
+          $tels = $ubicacion->telefonos->pluck('telefono')->filter()->implode(' / ');
+        @endphp
+
+        {{-- Fila 1: siempre visibles --}}
         <div class="row">
           <div class="col-md-3 mb-2">
             <div class="text-muted small">Tipo de persona</div>
@@ -39,37 +44,50 @@
             <div class="text-muted small">DNI / CUIT</div>
             <div class="font-weight-bold">{{ $ubicacion->dni_cuit ?: '—' }}</div>
           </div>
-          <div class="col-md-3 mb-2">
-            <div class="text-muted small">Razón social</div>
-            <div class="font-weight-bold">{{ $ubicacion->razon_social ?: '—' }}</div>
-          </div>
-          <div class="col-md-3 mb-2">
-            <div class="text-muted small">Nombre comercial</div>
-            <div class="font-weight-bold">{{ $ubicacion->nombre_comercial ?: '—' }}</div>
-          </div>
+
+          @if($esJuridica)
+            <div class="col-md-3 mb-2">
+              <div class="text-muted small">Razón social</div>
+              <div class="font-weight-bold">{{ $ubicacion->razon_social ?: '—' }}</div>
+            </div>
+            <div class="col-md-3 mb-2">
+              <div class="text-muted small">Nombre comercial</div>
+              <div class="font-weight-bold">{{ $ubicacion->nombre_comercial ?: '—' }}</div>
+            </div>
+          @else
+            <div class="col-md-3 mb-2">
+              <div class="text-muted small">Apellido</div>
+              <div class="font-weight-bold">{{ $ubicacion->apellido ?: '—' }}</div>
+            </div>
+            <div class="col-md-3 mb-2">
+              <div class="text-muted small">Nombres</div>
+              <div class="font-weight-bold">{{ $ubicacion->nombres ?: '—' }}</div>
+            </div>
+          @endif
         </div>
+
+        {{-- Fila 2: correo/teléfonos (+ nombre comercial si es física) --}}
         <div class="row">
-          <div class="col-md-3 mb-2">
-            <div class="text-muted small">Apellido</div>
-            <div class="font-weight-bold">{{ $ubicacion->apellido ?: '—' }}</div>
-          </div>
-          <div class="col-md-3 mb-2">
-            <div class="text-muted small">Nombres</div>
-            <div class="font-weight-bold">{{ $ubicacion->nombres ?: '—' }}</div>
-          </div>
-          <div class="col-md-3 mb-2">
+          @if(!$esJuridica)
+            <div class="col-md-3 mb-2">
+              <div class="text-muted small">Nombre comercial</div>
+              <div class="font-weight-bold">{{ $ubicacion->nombre_comercial ?: '—' }}</div>
+            </div>
+          @endif
+
+          <div class="col-md-{{ $esJuridica ? '6' : '3' }} mb-2">
             <div class="text-muted small">Correo</div>
             <div class="font-weight-bold">{{ $ubicacion->correo ?: '—' }}</div>
           </div>
-          <div class="col-md-3 mb-2">
-            <div class="text-muted small">Teléfono</div>
-            <div class="font-weight-bold">{{ $ubicacion->telefono ?: '—' }}</div>
+          <div class="col-md-{{ $esJuridica ? '6' : '3' }} mb-2">
+            <div class="text-muted small">Teléfono(s)</div>
+            <div class="font-weight-bold">{{ $tels !== '' ? $tels : '—' }}</div>
           </div>
         </div>
       </div>
     </div>
 
-    {{-- Rubro y estado --}}
+    {{-- Rubro y estado (solo el bloque de anexos cambia) --}}
     <div class="card mb-3">
       <div class="card-header bg-light"><strong>Rubro y Estado</strong></div>
       <div class="card-body">
@@ -110,50 +128,56 @@
           </div>
         </div>
 
+        @php
+          $tieneAlta = !empty($ubicacion->fecha_alta);
+          $tieneBaja = !empty($ubicacion->fecha_baja);
+          $tieneVto  = !empty($ubicacion->fecha_vto);
+        @endphp
 
         <div class="row">
           <div class="col-md-4 mb-2">
             <div class="text-muted small">Situación</div>
             <div class="font-weight-bold">{{ ucfirst($ubicacion->situacion) }}</div>
           </div>
-          <div class="col-md-4 mb-2">
-            <div class="text-muted small">Fecha de alta</div>
-            <div class="font-weight-bold">
-              {{ $ubicacion->fecha_alta ? \Illuminate\Support\Carbon::parse($ubicacion->fecha_alta)->format('Y-m-d') : '—' }}
+
+          @if($tieneAlta)
+            <div class="col-md-4 mb-2">
+              <div class="text-muted small">Fecha de alta</div>
+              <div class="font-weight-bold">
+                {{ \Illuminate\Support\Carbon::parse($ubicacion->fecha_alta)->format('d/m/Y') }}
+              </div>
             </div>
-          </div>
-          <div class="col-md-4 mb-2">
-            <div class="text-muted small">Fecha de baja</div>
-            <div class="font-weight-bold">
-              {{ $ubicacion->fecha_baja ? \Illuminate\Support\Carbon::parse($ubicacion->fecha_baja)->format('Y-m-d') : '—' }}
+          @endif
+
+          @if($tieneBaja)
+            <div class="col-md-4 mb-2">
+              <div class="text-muted small">Fecha de baja</div>
+              <div class="font-weight-bold">
+                {{ \Illuminate\Support\Carbon::parse($ubicacion->fecha_baja)->format('d/m/Y') }}
+              </div>
             </div>
-          </div>
+          @endif
         </div>
 
-        {{-- Vencimiento dentro de la misma card, con badge --}}
-        <div class="row">
-          <div class="col-md-4 mb-2">
-            <div class="text-muted small">Vencimiento</div>
-            @php
-              $vto = $ubicacion->fecha_vto ? \Illuminate\Support\Carbon::parse($ubicacion->fecha_vto) : null;
-              $badgeVto = 'secondary';
-              if ($vto) {
-                if ($vto->isPast()) {
-                  $badgeVto = 'danger';
-                } elseif ($vto->diffInDays(now()) <= 30) {
-                  $badgeVto = 'warning';
-                } else {
-                  $badgeVto = 'success';
-                }
-              }
-            @endphp
-            <div class="font-weight-bold">
-              <span class="badge badge-{{ $badgeVto }}" style="font-size:95%">
-                {{ $vto ? $vto->format('Y-m-d') : '—' }}
-              </span>
+        {{-- Vencimiento solo si existe --}}
+        @if($tieneVto)
+          <div class="row">
+            <div class="col-md-4 mb-2">
+              <div class="text-muted small">Vencimiento</div>
+              @php
+                $vto = \Illuminate\Support\Carbon::parse($ubicacion->fecha_vto);
+                $badgeVto = $vto->isPast()
+                  ? 'danger'
+                  : ($vto->diffInDays(now()) <= 30 ? 'warning' : 'success');
+              @endphp
+              <div class="font-weight-bold">
+                <span class="badge badge-{{ $badgeVto }}" style="font-size:95%">
+                  {{ $vto->format('d/m/Y') }}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        @endif
       </div>
     </div>
 
@@ -184,7 +208,7 @@
       </div>
     </div>
 
-    {{-- Actas e inspecciones (abierto por defecto, sin x-cloak) --}}
+    {{-- Actas e inspecciones --}}
     @php
       $movs = $ubicacion->movimientos()->where('tipo','acta')->latest()->get();
       $totalMovs = $movs->count();
@@ -275,7 +299,7 @@
       @include('livewire.comercio.form')
     </div>
 
-    {{-- Documentación (card + collapse Livewire-friendly; por defecto cerrada) --}}
+    {{-- Documentación --}}
     <div class="card mb-4" x-data="{open:false}">
       <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
