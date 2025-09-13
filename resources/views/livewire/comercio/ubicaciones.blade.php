@@ -79,6 +79,11 @@
     </div>
 </div>
 
+@push('scripts')
 <script>
-    window.addEventListener('mostrar-modal-movimientos', () => {$('#modalMovimientos').modal('show');});
+  window.addEventListener('mostrar-modal-movimientos', () => {
+    $('#modalMovimientos').modal('show');
+  });
 </script>
+@endpush
+

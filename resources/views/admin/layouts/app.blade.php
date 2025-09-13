@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 
+
 <head>
+    @stack('styles')
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="{{ asset('images/MEB.webp') }}" type="image/x-icon">
@@ -32,6 +34,8 @@
 
     @vite(['resources/css/app.css','resources/js/app.js'])
     @livewireStyles
+{{-- HEAD --}}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap4.min.css">
 
 </head>
 
@@ -106,6 +110,10 @@
     <script>
         console.log('App Layout ==> OK');
     </script>
+    {{-- FOOTER --}}
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+    @stack('scripts')
 
     @livewireScripts
 

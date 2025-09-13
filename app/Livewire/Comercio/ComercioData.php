@@ -4,100 +4,44 @@ namespace App\Livewire\Comercio;
 
 use Livewire\Component;
 use App\Models\Ubicacion;
-use App\Models\UbicacionDocumento;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Validator;
 use App\Models\Rubro;
 
 class ComercioData extends Component
 {
     public Ubicacion $ubicacion;
 
-    public $showEditModal = false;
-    public $rubros;
-    public $state = [];
-    public array $megas = [];
-    public array $madres = [];
-    public array $subs = [];
-    public string $selectedMega = '';
-    public string $selectedMadre = '';
+    public bool $showEditModal = false;
 
-    public array $madresOptions = [];   // índice = fila, valor = array de "rubro_madre"
-    public array $subsOptions   = [];   // índice = fila, valor = array de ['id'=>..., 'sub'=>...]
+    public string $rubroQuery = '';
+    public string $anexoQuery = '';
+    public array $rubroOpts = [];
+    public array $anexoOpts = [];
 
-    public function addTelefono(): void
-    {
-        $tels = $this->state['telefonos'] ?? [];
-        if (!is_array($tels)) $tels = [];
-        $tels[] = '';
-        $this->state['telefonos'] = array_values($tels);
-    }
+    public $rubros = [];
+    public array $state = [];
+    public string $formKey = '';
 
-    public function removeTelefono(int $index): void
-    {
-        $tels = $this->state['telefonos'] ?? [];
-        if (!is_array($tels) || count($tels) <= 1) {
-            // Siempre dejar al menos una fila
-            return;
-        }
-        unset($tels[$index]);
-        $this->state['telefonos'] = array_values($tels);
-    }
-
-    public function addRubroRow(): void
-    {
-        $rows = $this->state['rubros'] ?? [];
-        if (!is_array($rows)) $rows = [];
-        $rows[] = ['mega' => '', 'madre' => '', 'sub_id' => null];
-        $this->state['rubros'] = array_values($rows);
-
-        $i = count($this->state['rubros']) - 1;
-        $this->madresOptions[$i] = [];
-        $this->subsOptions[$i]   = [];
-    }
-
-    public function removeRubroRow(int $index): void
-    {
-        $rows = $this->state['rubros'] ?? [];
-        if (!is_array($rows) || count($rows) <= 1) {
-            // Siempre dejar al menos una fila
-            return;
-        }
-        unset($rows[$index]);
-        $this->state['rubros'] = array_values($rows);
-
-        // Reindexar las opciones por fila para que coincidan con los índices nuevos
-        $newMadres = [];
-        $newSubs   = [];
-        foreach (array_keys($this->state['rubros']) as $i) {
-            $newMadres[$i] = $this->madresOptions[$i] ?? [];
-            $newSubs[$i]   = $this->subsOptions[$i] ?? [];
-        }
-        $this->madresOptions = $newMadres;
-        $this->subsOptions   = $newSubs;
-    }
-
-    /** Labels visibles (centralizamos en el componente) */
+    /** ====== Documentación ====== */
     public array $labelsGenerales = [
-        'doc_libre_deuda_municipal' => 'Certificado de libre deuda municipal',
-        'doc_planeamiento_urbano' => 'Dirección de Planeamiento Urbano',
+        'doc_libre_deuda_municipal'       => 'Certificado de libre deuda municipal',
+        'doc_planeamiento_urbano'         => 'Dirección de Planeamiento Urbano',
         'doc_solicitud_habilitacion_pago' => 'Solicitud de habilitación + pago',
-        'doc_comprobante_uso_local' => 'Comprobante de uso del local',
-        'doc_afip_constancia' => 'Constancia de inscripción AFIP',
-        'doc_recaudacion_rn' => 'Constancia de inscripción Agencia Recaudación RN',
-        'doc_fotocopia_dni' => 'Fotocopia de DNI',
-        'doc_comprobante_uso_inmueble' => 'Comprobante de uso del inmueble',
-        'doc_libre_deuda_tasas_inmueble' => 'Libre deuda de tasas del inmueble',
-        'doc_aptitud_tecnica_local' => 'Certificado de aptitud técnica',
-        'doc_cocap_rhi' => 'Certificado CO.CA.P.RHI',
-        'doc_nota_carteleria_obras' => 'Nota a Obras por cartelería',
-        'doc_libro_actas_100' => 'Libro de actas (100 hojas)',
+        'doc_comprobante_uso_local'       => 'Comprobante de uso del local',
+        'doc_afip_constancia'             => 'Constancia de inscripción AFIP',
+        'doc_recaudacion_rn'              => 'Constancia de inscripción Agencia Recaudación RN',
+        'doc_fotocopia_dni'               => 'Fotocopia de DNI',
+        'doc_comprobante_uso_inmueble'    => 'Comprobante de uso del inmueble',
+        'doc_libre_deuda_tasas_inmueble'  => 'Libre deuda de tasas del inmueble',
+        'doc_aptitud_tecnica_local'       => 'Certificado de aptitud técnica',
+        'doc_cocap_rhi'                   => 'Certificado CO.CA.P.RHI',
+        'doc_nota_carteleria_obras'       => 'Nota a Obras por cartelería',
+        'doc_libro_actas_100'             => 'Libro de actas (100 hojas)',
     ];
 
-
     public array $labelsJuridicas = [
-        'doc_acta_constitucion' => 'Acta de constitución',
+        'doc_acta_constitucion'   => 'Acta de constitución',
         'doc_contrato_societario' => 'Contrato societario',
         'doc_docs_representantes' => 'Documentación de representantes',
     ];
@@ -122,116 +66,81 @@ class ComercioData extends Component
         'doc_docs_representantes'         => false,
     ];
 
+    /** ====== Repeater Teléfonos ====== */
+    public function addTelefono(): void
+    {
+        $tels = $this->state['telefonos'] ?? [];
+        if (!is_array($tels)) $tels = [];
+        $tels[] = '';
+        $this->state['telefonos'] = array_values($tels);
+    }
+
+    public function removeTelefono(int $index): void
+    {
+        $tels = $this->state['telefonos'] ?? [];
+        if (!is_array($tels) || count($tels) <= 1) return; // dejar al menos uno
+        unset($tels[$index]);
+        $this->state['telefonos'] = array_values($tels);
+    }
+
+    /** Marcar/limpiar checklist documentos */
     public function marcarTodosLosDocs(bool $valor = true): void
     {
         $this->state['documentos'] = $this->state['documentos'] ?? [];
         foreach (array_keys($this->docDefaults) as $k) {
             // Si es persona física, no marcar los 3 de jurídica
-            if (($this->state['persona_tipo'] ?? $this->ubicacion->persona_tipo ?? 'fisica') === 'fisica' &&
-            in_array($k, ['doc_acta_constitucion','doc_contrato_societario','doc_docs_representantes'], true)) {
-            $this->state['documentos'][$k] = false;
-            continue;
+            if (($this->state['persona_tipo'] ?? $this->ubicacion->persona_tipo ?? 'fisica') === 'fisica'
+                && in_array($k, ['doc_acta_constitucion','doc_contrato_societario','doc_docs_representantes'], true)) {
+                $this->state['documentos'][$k] = false;
+                continue;
             }
             $this->state['documentos'][$k] = $valor;
         }
     }
 
+    /** ====== Ciclo de vida ====== */
     public function mount(Ubicacion $ubicacion)
     {
         $this->ubicacion = $ubicacion->load('rubro', 'documentos', 'movimientos');
-        $this->rubros = Rubro::select('id', 'rubro_madre', 'subrubro')
-            ->orderBy('rubro_madre')
+
+        // Opciones de rubros (solo subrubro + id)
+        $this->rubros = Rubro::select('id','subrubro')
             ->orderBy('subrubro')
             ->get();
 
-        $this->megas = Rubro::query()
-            ->select('mega_rubro')->distinct()->orderBy('mega_rubro')
-            ->pluck('mega_rubro')->toArray();
+        // Estado inicial mínimo (para ver detalle antes de abrir modal)
+        $this->state = [
+            'rubro_id'       => $this->ubicacion->rubro_id,
+            'rubros_anexos'  => [], // se completa al editar
+        ];
 
-        $this->rehidratarRubrosDesde($this->ubicacion->rubro_id);
+        $this->rubroOpts = Rubro::orderBy('subrubro')
+            ->limit(50)->get(['id','subrubro'])->toArray();
+        $this->anexoOpts = $this->rubroOpts;
+
+        $this->formKey = (string) Str::uuid();
     }
 
-    private function rehidratarRubrosDesde(?int $rubroId): void
-    {
-        if (!$rubroId) {
-            $this->selectedMega = '';
-            $this->selectedMadre = '';
-            $this->madres = [];
-            $this->subs = [];
-            $this->state['rubro_id'] = null;
-            return;
-        }
-
-        $r = Rubro::find($rubroId);
-        if (!$r) {
-            $this->rehidratarRubrosDesde(null);
-            return;
-        }
-
-        $this->selectedMega = $r->mega_rubro ?? '';
-        $this->madres = Rubro::where('mega_rubro', $this->selectedMega)
-            ->select('rubro_madre')->distinct()->orderBy('rubro_madre')->pluck('rubro_madre')->toArray();
-
-        $this->selectedMadre = $r->rubro_madre ?? '';
-        $this->subs = Rubro::where('mega_rubro', $this->selectedMega)
-            ->where('rubro_madre', $this->selectedMadre)
-            ->orderBy('subrubro')
-            ->get(['id','subrubro'])
-            ->map(fn($x)=>['id'=>$x->id,'sub'=>$x->subrubro])
-            ->toArray();
-
-        $this->state['rubro_id'] = (int) $rubroId;
-    }
-
-
-    public function updatedSelectedMega($value)
-    {
-        $this->selectedMadre = '';
-        $this->state['rubro_id'] = null;
-
-        $this->madres = $value
-            ? Rubro::where('mega_rubro', $value)
-                ->select('rubro_madre')->distinct()->orderBy('rubro_madre')
-                ->pluck('rubro_madre')->toArray()
-            : [];
-
-        $this->subs = [];
-    }
-
-    public function updatedSelectedMadre($value)
-    {
-        $this->state['rubro_id'] = null;
-
-        $this->subs = ($this->selectedMega && $value)
-            ? Rubro::where('mega_rubro', $this->selectedMega)
-                ->where('rubro_madre', $value)
-                ->orderBy('subrubro')
-                ->get(['id','subrubro'])
-                ->map(fn($x)=>['id'=>$x->id,'sub'=>$x->subrubro])
-                ->toArray()
-            : [];
-    }
-
-
+    /** ====== Editar modal ====== */
     public function editaComercio(Ubicacion $ubicacion)
     {
         $this->showEditModal = true;
 
-        // Cargar relaciones necesarias (incluye múltiples)
+        // Relaciones necesarias para el form
         $this->ubicacion = $ubicacion->loadMissing([
-            'rubro',            // compat legado
-            'rubros',           // many-to-many
+            'rubro',            // principal (legacy/actual)
+            'rubros',           // many-to-many (para anexos + principal incluido)
             'documentos',
-            'telefonos',        // 1-N
-            'disposiciones',    // 1-N
-            'habilitaciones',   // 1-N
-            'movimientos',      // si tu vista los usa
+            'telefonos',
+            'disposiciones',
+            'habilitaciones',
+            'movimientos',
         ]);
 
-        // Base de state desde el modelo
+        // Base del state
         $this->state = $this->ubicacion->toArray();
 
-        // Fechas a Y-m-d para inputs
+        // Fechas en Y-m-d para inputs
         foreach (['fecha_alta','fecha_baja','fecha_vto'] as $f) {
             $this->state[$f] = !empty($this->ubicacion->{$f})
                 ? $this->ubicacion->{$f}->format('Y-m-d')
@@ -241,50 +150,26 @@ class ComercioData extends Component
         // Normalizar estado
         $this->state['estado'] = $this->normalizarEstado($this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite');
 
-        // =======================
-        // RUBROS (MÚLTIPLES)
-        // =======================
-        $rubrosPivot = $this->ubicacion->rubros
-            ->sortBy(fn($r) => $r->pivot->orden ?? 9999)
-            ->values();
+        // ===== Rubro principal + anexos =====
+        // Orden por 'orden' en pivot (si existe) para respetar prioridad
+        $idsOrdenados = $this->ubicacion->rubros
+            ->map(fn($r) => ['id' => $r->id, 'orden' => $r->pivot->orden ?? 9999])
+            ->sortBy('orden')
+            ->pluck('id')
+            ->values()
+            ->all();
 
-        $this->state['rubros'] = $rubrosPivot->map(function($r){
-            return [
-                'mega'   => $r->mega_rubro,
-                'madre'  => $r->rubro_madre,
-                'sub_id' => $r->id,
-            ];
-        })->all();
-        $this->buildRubrosOptionsFromState();
+        $principal = $this->ubicacion->rubro_id ?: ($idsOrdenados[0] ?? null);
+        $anexos = collect($idsOrdenados)->filter(fn($id) => $id !== $principal)->values()->all();
 
+        $this->state['rubro_id']      = $principal;
+        $this->state['rubros_anexos'] = $anexos;
 
-        // Fallback si no hay en pivot: usar rubro_id legado o fila vacía
-        if (empty($this->state['rubros'])) {
-            if ($this->ubicacion->rubro_id) {
-                $r = \App\Models\Rubro::find($this->ubicacion->rubro_id);
-                $this->state['rubros'] = [[
-                    'mega'   => $r?->mega_rubro ?? '',
-                    'madre'  => $r?->rubro_madre ?? '',
-                    'sub_id' => $r?->id ?? null,
-                ]];
-            } else {
-                $this->state['rubros'] = [['mega'=>'','madre'=>'','sub_id'=>null]];
-            }
-        }
-
-
-        // Compatibilidad con tus selects legados (single): hidratar desde rubro_id
-        $this->rehidratarRubrosDesde($this->ubicacion->rubro_id ?: null);
-
-        // =======================
-        // TELÉFONOS (MÚLTIPLES)
-        // =======================
+        // ===== Teléfonos =====
         $tels = $this->ubicacion->telefonos->pluck('telefono')->filter()->values()->all();
         $this->state['telefonos'] = !empty($tels) ? $tels : [''];
 
-        // =======================
-        // DISPOSICIONES (MÚLTIPLES)
-        // =======================
+        // ===== Disposiciones =====
         $this->state['disposiciones'] = $this->ubicacion->disposiciones->map(function($d){
             return [
                 'numero' => (string)$d->numero,
@@ -295,9 +180,7 @@ class ComercioData extends Component
             $this->state['disposiciones'] = [['numero'=>'','fecha'=>null]];
         }
 
-        // =======================
-        // HABILITACIONES (MÚLTIPLES)
-        // =======================
+        // ===== Habilitaciones =====
         $this->state['habilitaciones'] = $this->ubicacion->habilitaciones->map(function($h){
             return [
                 'numero' => (string)$h->numero,
@@ -308,66 +191,35 @@ class ComercioData extends Component
             $this->state['habilitaciones'] = [['numero'=>'','fecha'=>null]];
         }
 
-        // =======================
-        // DOCUMENTOS (checklist)
-        // =======================
+        // ===== Documentos (checklist) =====
         $docsRaw = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
-        $docs = $this->normalizeDocsArray($docsRaw);
+        $docs    = $this->normalizeDocsArray($docsRaw);
         $this->state['documentos'] = array_merge($this->docDefaults, $docs);
+        
+        $idsNecesarios = array_values(array_unique(array_filter(array_merge([$principal], $anexos))));
+        $seleccionados = Rubro::whereIn('id', $idsNecesarios)->get(['id','subrubro'])->toArray();
 
-        // Mostrar modal
-        $this->dispatch('show-form');
+        // merge sin duplicados por id (preferimos mantener el orden actual y anexar faltantes)
+        $this->rubroOpts = $this->mergeOpts($this->rubroOpts, $seleccionados);
+        $this->anexoOpts = $this->mergeOpts($this->anexoOpts, $seleccionados);
+
+        $this->formKey = (string) Str::uuid();
+        $this->dispatch('show-form', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
     }
 
-    public function buildRubrosOptionsFromState(): void
-    {
-        $rows = $this->state['rubros'] ?? [];
-        $this->madresOptions = [];
-        $this->subsOptions   = [];
-
-        foreach ($rows as $i => $row) {
-            $mega  = (string)($row['mega']  ?? '');
-            $madre = (string)($row['madre'] ?? '');
-
-            // Madres para el mega actual
-            $this->madresOptions[$i] = $mega !== ''
-                ? \App\Models\Rubro::where('mega_rubro', $mega)
-                    ->select('rubro_madre')->distinct()->orderBy('rubro_madre')
-                    ->pluck('rubro_madre')->toArray()
-                : [];
-
-            // Subs para mega+madre actuales
-            $this->subsOptions[$i] = ($mega !== '' && $madre !== '')
-                ? \App\Models\Rubro::where('mega_rubro', $mega)
-                    ->where('rubro_madre', $madre)
-                    ->orderBy('subrubro')
-                    ->get(['id','subrubro'])
-                    ->map(fn($x)=>['id'=>$x->id,'sub'=>$x->subrubro])
-                    ->toArray()
-                : [];
-        }
-    }
-
-
+    /** ====== Guardar cambios ====== */
     public function updateComercio()
     {
-        // No mandamos 'situacion': la calcula el modelo en saving()
-        unset($this->state['situacion']);
+        unset($this->state['situacion']); // la calcula el modelo
 
-        // Compat: si vienen rubros múltiples, setear rubro_id = primer sub_id (para reglas legacy)
-        if (empty($this->state['rubro_id'] ?? null)) {
-            $firstSub = collect($this->state['rubros'] ?? [])->pluck('sub_id')->filter()->first();
-            if ($firstSub) $this->state['rubro_id'] = (int)$firstSub;
-        }
-
-        // Estado normalizado actual y anterior
+        // Normalizaciones de estado
         $estadoNorm = $this->normalizarEstado($this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite');
         $prevNorm   = $this->normalizarEstado($this->ubicacion->getOriginal('estado') ?? $this->ubicacion->estado ?? 'entramite');
 
         $yaTeniaAlta    = !empty($this->ubicacion?->fecha_alta);
         $vieneAltaAhora = !empty($this->state['fecha_alta']);
 
-        // ===== Reglas base (en this->state, no con prefijo state.) =====
+        // ===== Reglas =====
         $rules = [
             'persona_tipo'          => 'required|in:fisica,juridica',
             'apellido'              => 'nullable|string|min:2|max:60',
@@ -375,6 +227,8 @@ class ComercioData extends Component
             'razon_social'          => 'nullable|string|min:2|max:120',
             'dni_cuit'              => 'required|string',
             'rubro_id'              => 'required|exists:rubros,id',
+            'rubros_anexos'         => 'array',
+            'rubros_anexos.*'       => 'integer|exists:rubros,id|different:rubro_id|distinct',
             'domicilio_responsable' => 'nullable|string|min:3|max:160',
             'correo'                => 'nullable|email:rfc,dns|max:120',
             'nombre_comercial'      => 'nullable|string|min:2|max:120',
@@ -385,15 +239,12 @@ class ComercioData extends Component
             'tipo_hab'              => 'required|in:definitiva,prev',
             'fecha_alta'            => 'nullable|date',
             'fecha_baja'            => 'nullable|date',
-            'fecha_vto'             => 'nullable|date',   // vencimiento manual
+            'fecha_vto'             => 'nullable|date',
             'documentos'            => 'array',
 
-            // ===== Punto 3.5: repeaters =====
+            // Repeaters
             'telefonos'               => 'array|min:1',
             'telefonos.*'             => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
-
-            'rubros'                  => 'array|min:1',
-            'rubros.*.sub_id'         => 'required|exists:rubros,id',
 
             'disposiciones'           => 'array',
             'disposiciones.*.numero'  => 'nullable|string|max:60',
@@ -412,7 +263,7 @@ class ComercioData extends Component
             $rules['razon_social'] = 'required|string|min:2|max:120';
         }
 
-        // Reglas de fechas por estado
+        // Reglas por estado
         switch ($estadoNorm) {
             case 'vigente':
                 if ($prevNorm === 'entramite' && !$yaTeniaAlta && !$vieneAltaAhora) {
@@ -431,12 +282,12 @@ class ComercioData extends Component
                 break;
         }
 
-        // Validar contra $this->state
+        // Validar
         $validated = \Validator::make($this->state, $rules)->validate();
 
         // ===== Normalizaciones =====
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
-            if (!empty($validated[$c])) $validated[$c] = \Illuminate\Support\Str::title($validated[$c]);
+            if (!empty($validated[$c])) $validated[$c] = Str::title($validated[$c]);
         }
         $validated['dni_cuit'] = preg_replace('/\D/','', $validated['dni_cuit'] ?? '');
         unset($validated['domicilio_responsable'], $validated['nomenclatura']);
@@ -464,16 +315,22 @@ class ComercioData extends Component
             $payload + ['ubicacion_id' => $this->ubicacion->id]
         );
 
-        // ===== Persistencia de repeaters =====
+        // ===== Rubro principal + anexos (pivot) =====
+        $principal = (int)($this->state['rubro_id'] ?? 0);
+        $anexos = collect($this->state['rubros_anexos'] ?? [])
+            ->map(fn($v)=>(int)$v)
+            ->filter()
+            ->reject(fn($id)=>$id === $principal)
+            ->unique()
+            ->values()
+            ->all();
 
-        // RUBROS (pivot) + compat rubro_id
-        $rubrosIds = collect($this->state['rubros'] ?? [])
-            ->pluck('sub_id')->filter()->unique()->values()->all();
-        $this->ubicacion->rubros()->sync($rubrosIds);
-        $this->ubicacion->rubro_id = $rubrosIds[0] ?? null; // compat para vistas legadas
+        $pivotIds = array_values(array_unique(array_merge([$principal], $anexos)));
+        $this->ubicacion->rubros()->sync($pivotIds);
+        $this->ubicacion->rubro_id = $principal ?: null; // compat
         $this->ubicacion->save();
 
-        // TELÉFONOS (reescritura simple)
+        // ===== Teléfonos =====
         $this->ubicacion->telefonos()->delete();
         $telSan = collect($this->state['telefonos'] ?? [])
             ->map(fn($t)=>trim((string)$t))
@@ -484,7 +341,7 @@ class ComercioData extends Component
             $this->ubicacion->telefonos()->create(['telefono'=>$t]);
         }
 
-        // DISPOSICIONES
+        // ===== Disposiciones =====
         $this->ubicacion->disposiciones()->delete();
         foreach (($this->state['disposiciones'] ?? []) as $d) {
             $num = trim((string)($d['numero'] ?? ''));
@@ -495,7 +352,7 @@ class ComercioData extends Component
             ]);
         }
 
-        // HABILITACIONES
+        // ===== Habilitaciones =====
         $this->ubicacion->habilitaciones()->delete();
         foreach (($this->state['habilitaciones'] ?? []) as $h) {
             $num = trim((string)($h['numero'] ?? ''));
@@ -506,16 +363,12 @@ class ComercioData extends Component
             ]);
         }
 
-        // Avisar (ej: re-centrar mapa si corresponde)
+        // Notificar UI
         $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
-
-        // Cerrar modal
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
     }
 
-
-
-
+    /** ====== Helpers ====== */
     private function normalizarEstado(?string $estado): string
     {
         $e = trim(mb_strtolower($estado ?? ''));
@@ -530,35 +383,65 @@ class ComercioData extends Component
 
     private function normalizeDocsArray(array $docs): array
     {
-    // Asegurar booleanos
-    $docs = array_map(static fn($v) => (bool)$v, $docs);
+        // Asegurar booleanos
+        $docs = array_map(static fn($v) => (bool)$v, $docs);
 
+        // AFIP (unificamos)
+        if (array_key_exists('doc_afip_constancia_fisica', $docs) || array_key_exists('doc_afip_constancia_juridica', $docs)) {
+            $docs['doc_afip_constancia'] =
+                (bool)($docs['doc_afip_constancia_fisica'] ?? false)
+                || (bool)($docs['doc_afip_constancia_juridica'] ?? false);
+        }
 
-    // AFIP (unificamos)
-    if (array_key_exists('doc_afip_constancia_fisica', $docs) || array_key_exists('doc_afip_constancia_juridica', $docs)) {
-    $docs['doc_afip_constancia'] = (bool)($docs['doc_afip_constancia_fisica'] ?? false)
-    || (bool)($docs['doc_afip_constancia_juridica'] ?? false);
+        // Recaudación RN (unificamos)
+        if (array_key_exists('doc_constancia_recaudacion', $docs)) {
+            $docs['doc_recaudacion_rn'] = (bool)$docs['doc_constancia_recaudacion'];
+        }
+
+        // Sólo claves soportadas
+        return array_intersect_key($docs, $this->docDefaults);
     }
 
-
-    // Recaudación RN (unificamos)
-    if (array_key_exists('doc_constancia_recaudacion', $docs)) {
-    $docs['doc_recaudacion_rn'] = (bool)$docs['doc_constancia_recaudacion'];
+    public function updatedRubroQuery(string $q): void
+    {
+        $q = trim($q);
+        $this->rubroOpts = Rubro::when($q !== '', fn($qq)=>$qq->where('subrubro','like',"%{$q}%"))
+            ->orderBy('subrubro')->limit(50)->get(['id','subrubro'])->toArray();
     }
 
-
-    // Filtrar sólo las claves canónicas soportadas
-    return array_intersect_key($docs, $this->docDefaults);
+    public function updatedAnexoQuery(string $q): void
+    {
+        $q = trim($q);
+        $this->anexoOpts = Rubro::when($q !== '', fn($qq)=>$qq->where('subrubro','like',"%{$q}%"))
+            ->orderBy('subrubro')->limit(50)->get(['id','subrubro'])->toArray();
     }
+
+    private function mergeOpts(array $opts, array $extra): array
+    {
+        $byId = [];
+        foreach ($opts as $op) $byId[$op['id']] = $op;
+        foreach ($extra as $op) $byId[$op['id']] = $op; // sobreescribe/añade
+        return array_values($byId);
+    }
+
+    public function updatedStatePersonaTipo($tipo): void
+    {
+        if ($tipo === 'fisica') {
+            $this->state['documentos'] = $this->state['documentos'] ?? [];
+            foreach (['doc_acta_constitucion','doc_contrato_societario','doc_docs_representantes'] as $k) {
+                $this->state['documentos'][$k] = false;
+            }
+        }
+    }
+
 
     public function render()
     {
-        // Datos para la vista (sin PHP pesado en Blade)
         $esJuridica = ($this->ubicacion->persona_tipo ?? 'fisica') === 'juridica';
         $labels = $esJuridica ? ($this->labelsGenerales + $this->labelsJuridicas) : $this->labelsGenerales;
-        $docsDB = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
-        $docs = $this->normalizeDocsArray($docsDB);
 
+        $docsDB = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
+        $docs   = $this->normalizeDocsArray($docsDB);
 
         $total = count($labels);
         $presentadas = 0;
@@ -566,24 +449,22 @@ class ComercioData extends Component
             if (!empty($docs[$k])) $presentadas++;
         }
 
-
         $historial = $this->ubicacion->movimientos()->get()->keyBy('etapa');
 
-
         return view('livewire.comercio.comercio-data', [
-            'ubicacion' => $this->ubicacion,
-            'historial' => $historial,
-            'rubros' => $this->rubros,
-            'megas'  => $this->megas,
-            'madres' => $this->madres,
-            'subs'   => $this->subs,
+            'ubicacion'        => $this->ubicacion,
+            'historial'        => $historial,
+
+            // Para el nuevo selector (una vez que actualices el form.blade)
+            'rubros'           => $this->rubros,
+
             // Documentación
-            'docs' => $docs,
-            'labelsGenerales' => $this->labelsGenerales,
-            'labelsJuridicas' => $this->labelsJuridicas,
-            'esJuridica' => $esJuridica,
-            'docsTotal' => $total,
-            'docsOK' => $presentadas,
+            'docs'             => $docs,
+            'labelsGenerales'  => $this->labelsGenerales,
+            'labelsJuridicas'  => $this->labelsJuridicas,
+            'esJuridica'       => $esJuridica,
+            'docsTotal'        => $total,
+            'docsOK'           => $presentadas,
         ])->layout('admin.layouts.app');
     }
 }

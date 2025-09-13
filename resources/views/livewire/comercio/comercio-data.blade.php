@@ -75,13 +75,31 @@
       <div class="card-body">
         <div class="row">
           <div class="col-md-4 mb-2">
-            <div class="text-muted small">Rubro madre</div>
-            <div class="font-weight-bold">{{ optional($ubicacion->rubro)->rubro_madre ?: '—' }}</div>
-          </div>
-          <div class="col-md-4 mb-2">
-            <div class="text-muted small">Subrubro</div>
+            <div class="text-muted small">Rubro (principal)</div>
             <div class="font-weight-bold">{{ optional($ubicacion->rubro)->subrubro ?: '—' }}</div>
           </div>
+
+          <div class="col-md-4 mb-2">
+            <div class="text-muted small">Rubros anexos</div>
+            @php
+              $anexos = $ubicacion->rubros
+                ->when($ubicacion->rubro_id, fn($c) => $c->where('id', '!=', $ubicacion->rubro_id))
+                ->pluck('subrubro')
+                ->filter()
+                ->values()
+                ->all();
+            @endphp
+            @if(empty($anexos))
+              <div class="text-muted">—</div>
+            @else
+              <div>
+                @foreach($anexos as $a)
+                  <span class="badge badge-secondary mr-1 mb-1">{{ $a }}</span>
+                @endforeach
+              </div>
+            @endif
+          </div>
+
           <div class="col-md-4 mb-2">
             <div class="text-muted small">Estado</div>
             @php
@@ -91,6 +109,7 @@
             <span class="badge badge-{{ $badgeEstado }}">{{ ucfirst($ubicacion->estado ?? '-') }}</span>
           </div>
         </div>
+
 
         <div class="row">
           <div class="col-md-4 mb-2">

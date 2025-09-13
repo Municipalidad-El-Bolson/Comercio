@@ -9,37 +9,35 @@
       <div class="card card-outline card-secondary mb-3">
         <div class="card-body">
           <div class="form-row">
-            <div class="form-group col-md-3">
-              <label>Mega rubro</label>
-              <select class="form-control" wire:model.live="mega">
-                <option value="">-- Todos --</option>
-                @foreach($megas as $m)
-                  <option value="{{ $m }}">{{ $m }}</option>
+            {{-- Búsqueda por rubro (sin JS, con datalist) --}}
+            <div class="form-group col-md-4">
+              <label>Rubro (buscar)</label>
+              <input type="text"
+                     class="form-control"
+                     list="rubros-list"
+                     placeholder="Escribí para filtrar rubros…"
+                     wire:model.live="rubro_search">
+              <datalist id="rubros-list">
+                @foreach($rubrosOpts as $r)
+                  <option value="{{ $r['subrubro'] }}"></option>
                 @endforeach
-              </select>
+              </datalist>
+              <small class="text-muted">Tipiá para acotar la lista de rubros.</small>
             </div>
 
-            <div class="form-group col-md-3">
-              <label>Rubro madre</label>
-              <select class="form-control" wire:model.live="madre" @disabled(empty($mega))>
+            {{-- Selección exacta de rubro principal --}}
+            <div class="form-group col-md-4">
+              <label>Rubro (principal)</label>
+              <select class="form-control" wire:model.live="rubro_id">
                 <option value="">-- Todos --</option>
-                @foreach($madresOpts as $m)
-                  <option value="{{ $m }}">{{ $m }}</option>
-                @endforeach
-              </select>
-            </div>
-
-            <div class="form-group col-md-3">
-              <label>Subrubro</label>
-              <select class="form-control" wire:model.live="rubro_id" @disabled(empty($madre))>
-                <option value="">-- Todos --</option>
-                @foreach($subrubroOpts as $r)
+                @foreach($rubrosOpts as $r)
                   <option value="{{ $r['id'] }}">{{ $r['subrubro'] }}</option>
                 @endforeach
               </select>
+              <small class="text-muted">Lista filtrada por lo que escribas arriba.</small>
             </div>
 
-            <div class="form-group col-md-3">
+            <div class="form-group col-md-4">
               <label>Estado</label>
               <select class="form-control" wire:model.live="estado">
                 <option value="">-- Todos --</option>
@@ -78,8 +76,8 @@
         </div>
       </div>
 
-
       <div class="row">
+        {{-- Listado general --}}
         <div class="col-lg-6">
           <div class="card border-secondary h-100">
             <div class="card-header">Listado general</div>
@@ -90,16 +88,29 @@
                     <tr>
                       <th>Nombre</th>
                       <th>Estado</th>
-                      <th>Subrubro</th>
+                      <th>Rubro (principal)</th>
+                      <th>Anexos</th>
                       <th>Vto</th>
                     </tr>
                   </thead>
                   <tbody>
                     @foreach($this->listadoGeneral as $u)
+                      @php
+                        $anexos = $u->rubros
+                          ->when($u->rubro_id, fn($c) => $c->where('id', '!=', $u->rubro_id))
+                          ->pluck('subrubro')->filter()->values()->all();
+                      @endphp
                       <tr>
                         <td>{{ $u->nombre_comercial ?? '-' }}</td>
                         <td>{{ $u->estadoModel->descripcion ?? $u->estado }}</td>
                         <td>{{ $u->rubro->subrubro ?? '-' }}</td>
+                        <td>
+                          @forelse($anexos as $a)
+                            <span class="badge badge-secondary mr-1 mb-1">{{ $a }}</span>
+                          @empty
+                            —
+                          @endforelse
+                        </td>
                         <td>{{ $u->fecha_vto ? \Illuminate\Support\Carbon::parse($u->fecha_vto)->format('Y-m-d') : '—' }}</td>
                       </tr>
                     @endforeach
@@ -113,9 +124,10 @@
           </div>
         </div>
 
+        {{-- Comercios por rubro (principal) --}}
         <div class="col-lg-6">
           <div class="card border-secondary h-100">
-            <div class="card-header">Comercios por subrubro</div>
+            <div class="card-header">Comercios por rubro (principal)</div>
             <div class="card-body p-0">
               <div class="p-2">
                 <small class="text-muted">Total considerado: {{ $this->porRubro['total'] }}</small>
@@ -124,7 +136,7 @@
                 <table class="table table-sm table-striped mb-0">
                   <thead class="thead-light">
                     <tr>
-                      <th>Subrubro</th>
+                      <th>Rubro</th>
                       <th class="text-right">Cantidad</th>
                       <th class="text-right">% del total</th>
                     </tr>
@@ -144,69 +156,9 @@
           </div>
         </div>
 
-        <div class="col-lg-6 mt-3">
-          <div class="card border-secondary h-100">
-            <div class="card-header">Comercios por mega rubro</div>
-            <div class="card-body p-0">
-              <div class="p-2">
-                <small class="text-muted">Total considerado: {{ $this->porMegaRubro['total'] }}</small>
-              </div>
-              <div class="table-responsive">
-                <table class="table table-sm table-striped mb-0">
-                  <thead class="thead-light">
-                    <tr>
-                      <th>Mega rubro</th>
-                      <th class="text-right">Cantidad</th>
-                      <th class="text-right">% del total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @foreach($this->porMegaRubro['items'] as $r)
-                      <tr>
-                        <td>{{ $r->mega }}</td>
-                        <td class="text-right">{{ $r->cantidad }}</td>
-                        <td class="text-right">{{ $r->porcentaje }}%</td>
-                      </tr>
-                    @endforeach
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
+        {{-- (Se eliminan tarjetas por Mega rubro y Rubro madre) --}}
 
-        <div class="col-lg-6 mt-3">
-          <div class="card border-secondary h-100">
-            <div class="card-header">Comercios por rubro madre</div>
-            <div class="card-body p-0">
-              <div class="p-2">
-                <small class="text-muted">Total considerado: {{ $this->porRubroMadre['total'] }}</small>
-              </div>
-              <div class="table-responsive">
-                <table class="table table-sm table-striped mb-0">
-                  <thead class="thead-light">
-                    <tr>
-                      <th>Rubro madre</th>
-                      <th class="text-right">Cantidad</th>
-                      <th class="text-right">% del total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @foreach($this->porRubroMadre['items'] as $r)
-                      <tr>
-                        <td>{{ $r->madre }}</td>
-                        <td class="text-right">{{ $r->cantidad }}</td>
-                        <td class="text-right">{{ $r->porcentaje }}%</td>
-                      </tr>
-                    @endforeach
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
+        {{-- Comercios por estado --}}
         <div class="col-lg-6 mt-3">
           <div class="card border-secondary">
             <div class="card-header">Comercios por estado</div>
@@ -234,6 +186,7 @@
           </div>
         </div>
 
+        {{-- Nuevos habilitados --}}
         <div class="col-lg-6 mt-3">
           <div class="card border-secondary">
             <div class="card-header">Nuevos comercios habilitados ({{ $this->desde }} a {{ $this->hasta }})</div>
@@ -262,6 +215,7 @@
           </div>
         </div>
 
+        {{-- Bajas --}}
         <div class="col-lg-6 mt-3">
           <div class="card border-secondary">
             <div class="card-header">Comercios dados de baja ({{ $this->desde }} a {{ $this->hasta }})</div>
@@ -290,6 +244,7 @@
           </div>
         </div>
 
+        {{-- Próximos a vencer --}}
         <div class="col-lg-6 mt-3">
           <div class="card border-secondary">
             <div class="card-header">Habilitaciones próximas a vencer ({{ $this->proximos_vtos }} días)</div>
@@ -299,7 +254,7 @@
                   <thead class="thead-light">
                     <tr>
                       <th>Nombre</th>
-                      <th>Subrubro</th>
+                      <th>Rubro (principal)</th>
                       <th>Vencimiento</th>
                     </tr>
                   </thead>

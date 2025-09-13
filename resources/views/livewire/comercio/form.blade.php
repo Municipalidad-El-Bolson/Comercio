@@ -1,17 +1,9 @@
-@php
-  $__formKey = 'form-'.md5(json_encode([
-      'mode'   => $showEditModal ? 'edit' : 'new',
-      'rubros' => count($state['rubros'] ?? []),
-      'tels'   => count($state['telefonos'] ?? []),
-  ]));
-@endphp
-
 <div class="modal fade" id="form" tabindex="-1" role="dialog" aria-hidden="true" wire:ignore.self>
   <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
     <form autocomplete="off"
           wire:submit.prevent="{{ $showEditModal ? 'updateComercio' : 'createCliente' }}"
           class="modal-content"
-          wire:key="{{ $__formKey }}">
+          wire:key="form-{{ $formKey ?? 'x' }}">
 
       <div class="modal-header bg-primary text-white py-2">
         <h6 class="modal-title mb-0">{{ $showEditModal ? 'Editar Comercio' : 'Nuevo Comercio' }}</h6>
@@ -133,69 +125,60 @@
           </div>
         </div>
 
-        {{-- Rubros (repeater: mega/madre/sub) --}}
+        @php
+          // Usamos $rubros si viene desde ComercioData; si no, caemos a $rubroOpts/$anexoOpts
+          $opsRubro = $rubros ?? $rubroOpts ?? [];
+          $opsAnexo = $rubros ?? $anexoOpts ?? [];
+        @endphp
+
         <div class="col-12 px-0">
           <label class="mb-1 d-flex align-items-center justify-content-between">
-            <span>Rubros</span>
-            <button type="button" class="btn btn-sm btn-outline-primary" wire:click="addRubroRow">
-              <i class="fa fa-plus"></i>
-            </button>
+            <span>Rubro principal</span>
           </label>
 
-          @foreach(($state['rubros'] ?? [['mega'=>'','madre'=>'','sub_id'=>null]]) as $i => $row)
-            @php
-              // Fallbacks SEGUROS si no existen $madresOptions/$subsOptions
-              $madOps = (isset($madresOptions) && isset($madresOptions[$i])) ? $madresOptions[$i] : [];
-              $subOps = (isset($subsOptions) && isset($subsOptions[$i])) ? $subsOptions[$i] : [];
-            @endphp
-            <div class="form-row align-items-end mb-2 border rounded p-2" wire:key="rubro-row-{{ $i }}">
-              <div class="form-group col-md-4 mb-1">
-                <label class="mb-1">Mega rubro</label>
-                <select class="form-control form-control-sm"
-                        wire:model.live="state.rubros.{{ $i }}.mega">
-                  <option value="">-- Seleccione Mega rubro --</option>
-                  @foreach (($megas ?? []) as $mega)
-                    <option value="{{ $mega }}">{{ $mega }}</option>
-                  @endforeach
-                </select>
-              </div>
-
-              <div class="form-group col-md-4 mb-1">
-                <label class="mb-1">Rubro madre</label>
-                <select class="form-control form-control-sm"
-                        @disabled(empty($state['rubros'][$i]['mega'] ?? ''))
-                        wire:model.live="state.rubros.{{ $i }}.madre">
-                  <option value="">-- Seleccione Rubro madre --</option>
-                  @foreach ($madOps as $madre)
-                    <option value="{{ $madre }}">{{ $madre }}</option>
-                  @endforeach
-                </select>
-              </div>
-
-              <div class="form-group col-md-3 mb-1">
-                <label class="mb-1">Subrubro</label>
-                <select class="form-control form-control-sm @error('state.rubros.'.$i.'.sub_id') is-invalid @enderror"
-                        @disabled(empty($state['rubros'][$i]['madre'] ?? ''))
-                        wire:model.live="state.rubros.{{ $i }}.sub_id">
-                  <option value="">-- Seleccione Subrubro --</option>
-                  @foreach ($subOps as $op)
-                    <option value="{{ $op['id'] }}">{{ $op['sub'] }}</option>
-                  @endforeach
-                </select>
-                @error('state.rubros.'.$i.'.sub_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-              </div>
-
-              <div class="form-group col-md-1 mb-1 text-right">
-                <button type="button" class="btn btn-sm btn-outline-danger"
-                        wire:click="removeRubroRow({{ $i }})"
-                        @disabled($i===0 && count($state['rubros'] ?? []) <= 1)
-                        title="Eliminar fila">
-                  <i class="fa fa-trash"></i>
-                </button>
-              </div>
+          <div class="form-row align-items-end mb-2 border rounded p-2">
+            <div class="form-group col-md-12 mb-1" wire:ignore>
+              <label class="mb-1">Seleccioná rubro (podés tipear)</label>
+              <select id="select-rubro-principal"
+                      class="form-control form-control-sm @error('state.rubro_id') is-invalid @enderror">
+                <option value="">-- Seleccione Rubro --</option>
+                @foreach($opsRubro as $op)
+                  @php
+                    // Soporta colección Eloquent ($rubros) o array plano ($rubroOpts)
+                    $id  = is_array($op) ? $op['id'] : $op->id;
+                    $txt = is_array($op) ? $op['subrubro'] : $op->subrubro;
+                  @endphp
+                  <option value="{{ $id }}">{{ $txt }}</option>
+                @endforeach
+              </select>
+              @error('state.rubro_id') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
             </div>
-          @endforeach
+          </div>
+
+          <label class="mb-1 d-flex align-items-center justify-content-between">
+            <span>Rubros anexos (opcionales)</span>
+          </label>
+          <div class="form-row align-items-end mb-2 border rounded p-2">
+            <div class="form-group col-md-12 mb-1" wire:ignore>
+              <label class="mb-1">Seleccioná uno o más (también se puede tipear)</label>
+              <select multiple id="select-rubros-anexos"
+                      class="form-control form-control-sm @error('state.rubros_anexos') is-invalid @enderror" size="6">
+                @foreach($opsAnexo as $op)
+                  @php
+                    $id  = is_array($op) ? $op['id'] : $op->id;
+                    $txt = is_array($op) ? $op['subrubro'] : $op->subrubro;
+                  @endphp
+                  <option value="{{ $id }}">{{ $txt }}</option>
+                @endforeach
+              </select>
+              @error('state.rubros_anexos') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+              <small class="text-muted d-block mt-1">
+                Consejo: escribí para filtrar; con Enter confirmás; con Backspace quitás selección.
+              </small>
+            </div>
+          </div>
         </div>
+
 
         {{-- ÚNICOS: N° de disposición y N° de habilitación (sin fecha, sin múltiples) --}}
         <div class="form-row">
@@ -401,13 +384,101 @@
   </div>
 </div>
 
-{{-- Solo eventos de modal; sin JS de persona (ya no hace falta) --}}
+@push('scripts')
 <script>
+  function initTomSelectsOnce() {
+    // Rubro principal
+    const rp = document.getElementById('select-rubro-principal');
+    if (rp && !rp.tomselect) {
+      new TomSelect(rp, {
+        allowEmptyOption: true,
+        maxOptions: 4000,
+        plugins: ['dropdown_input']
+      });
+    }
+
+    // Rubros anexos (chips + ✖)
+    const ra = document.getElementById('select-rubros-anexos');
+    if (ra && !ra.tomselect) {
+      new TomSelect(ra, {
+        plugins: ['remove_button','checkbox_options','dropdown_input'],
+        maxOptions: 8000,
+        persist: false
+      });
+    }
+  }
+
+  function setTomSelectValues(payload = {}) {
+    const { rubroId = null, anexos = [] } = payload;
+
+    // Principal: setear primero el <select> nativo y luego TomSelect (si existe)
+    const rp = document.getElementById('select-rubro-principal');
+    if (rp) {
+      const val = rubroId ? String(rubroId) : '';
+      rp.value = val; // nativo
+      if (rp.tomselect) rp.tomselect.setValue(val, false); // TomSelect
+    }
+
+    // Anexos: idem, nativo + TomSelect
+    const ra = document.getElementById('select-rubros-anexos');
+    if (ra) {
+      const vals = (anexos || []).map(String);
+
+      // nativo
+      Array.from(ra.options).forEach(o => { o.selected = vals.includes(o.value); });
+
+      // TomSelect
+      if (ra.tomselect) {
+        ra.tomselect.clear();
+        if (vals.length) ra.tomselect.setValue(vals, false);
+      }
+    }
+  }
+
+  function bindTomSelectChangeToLivewire() {
+    // Empujar cambios a Livewire
+    const rp = document.getElementById('select-rubro-principal');
+    if (rp && !rp.dataset._bound) {
+      rp.addEventListener('change', e => {
+        const val = e.target.value || null;
+        @this.set('state.rubro_id', val ? parseInt(val) : null);
+      });
+      rp.dataset._bound = '1';
+    }
+
+    const ra = document.getElementById('select-rubros-anexos');
+    if (ra && !ra.dataset._bound) {
+      ra.addEventListener('change', e => {
+        const arr = Array.from(e.target.selectedOptions).map(o => parseInt(o.value));
+        @this.set('state.rubros_anexos', arr);
+      });
+      ra.dataset._bound = '1';
+    }
+  }
+
   document.addEventListener('livewire:init', () => {
-    Livewire.on('show-form', () => $('#form').modal('show'));
+    // Aseguramos init idempotente en cada render de Livewire
+    Livewire.hook('message.processed', () => {
+      initTomSelectsOnce();
+      bindTomSelectChangeToLivewire();
+    });
+
+    // Al abrir el modal: inicializar y setear valores del payload SIEMPRE
+    Livewire.on('show-form', (payload = {}) => {
+      $('#form').modal('show');
+      setTimeout(() => {
+        initTomSelectsOnce();
+        bindTomSelectChangeToLivewire();
+        setTomSelectValues(payload);
+      }, 50);
+    });
+
     Livewire.on('hide-form', () => $('#form').modal('hide'));
   });
 </script>
+@endpush
+
+
 
 <style>
   @media (max-width: 576px) {
