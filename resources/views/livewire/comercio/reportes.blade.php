@@ -61,19 +61,21 @@
         </div>
       </div>
 
-      {{-- FILA: dos tarjetas minimizadas por defecto --}}
-      <div class="row">
+      {{-- FILA: dos tarjetas minimizadas por defecto (comparten estado) --}}
+      <div class="row" x-data="{ open: null }">
         {{-- Listado general --}}
         <div class="col-lg-6">
-          <div class="card border-secondary h-100" x-data="{open:false}">
+          <div class="card border-secondary">
             <div class="card-header d-flex justify-content-between align-items-center">
               <strong>Listado general</strong>
-              <button class="btn btn-sm btn-outline-secondary" type="button" @click="open=!open">
-                <span class="mr-1" x-text="open ? 'ocultar' : 'ver'"></span>
-                <i :class="open ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+              <button class="btn btn-sm btn-outline-secondary" type="button"
+                      @click="open = (open === 'listado' ? null : 'listado')">
+                <span class="mr-1" x-text="open === 'listado' ? 'ocultar' : 'ver'"></span>
+                <i :class="open === 'listado' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
               </button>
             </div>
-            <div x-show="open" x-collapse x-cloak>
+
+            <div x-show="open === 'listado'" x-collapse x-cloak>
               <div class="card-body p-0">
                 <div class="table-responsive">
                   <table class="table table-sm table-striped mb-0">
@@ -120,15 +122,17 @@
 
         {{-- Comercios por rubro (principal) --}}
         <div class="col-lg-6">
-          <div class="card border-secondary h-100" x-data="{open:false}">
+          <div class="card border-secondary">
             <div class="card-header d-flex justify-content-between align-items-center">
               <strong>Comercios por rubro (principal)</strong>
-              <button class="btn btn-sm btn-outline-secondary" type="button" @click="open=!open">
-                <span class="mr-1" x-text="open ? 'ocultar' : 'ver'"></span>
-                <i :class="open ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+              <button class="btn btn-sm btn-outline-secondary" type="button"
+                      @click="open = (open === 'rubros' ? null : 'rubros')">
+                <span class="mr-1" x-text="open === 'rubros' ? 'ocultar' : 'ver'"></span>
+                <i :class="open === 'rubros' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
               </button>
             </div>
-            <div x-show="open" x-collapse x-cloak>
+
+            <div x-show="open === 'rubros'" x-collapse x-cloak>
               <div class="card-body p-0">
                 <div class="p-2">
                   <small class="text-muted">Total considerado: {{ $this->porRubro['total'] }}</small>
@@ -155,10 +159,12 @@
                 </div>
               </div>
             </div>
+
           </div>
         </div>
-      </div> {{-- row --}}
+      </div>
 
+      
       {{-- FILA: abajo de las listas, las dos tarjetas de estado y próximos vtos --}}
       <div class="row mt-3">
         {{-- Comercios por estado --}}
