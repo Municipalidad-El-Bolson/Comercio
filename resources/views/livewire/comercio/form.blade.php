@@ -53,7 +53,7 @@
         {{-- Identificación (condicional sin JS) --}}
         @if( data_get($state, 'persona_tipo', 'fisica') === 'fisica' )
           <div class="form-row">
-            <div class="form-group col-md-6 mb-2">
+            <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="apellido">Apellido</label>
               <input type="text" id="apellido" wire:model.defer="state.apellido"
                 class="form-control form-control-sm text-capitalize @error('state.apellido') is-invalid @enderror"
@@ -61,22 +61,40 @@
               @error('state.apellido') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
-            <div class="form-group col-md-6 mb-2">
+            <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="nombres">Nombres</label>
               <input type="text" id="nombres" wire:model.defer="state.nombres"
                 class="form-control form-control-sm text-capitalize @error('state.nombres') is-invalid @enderror"
                 placeholder="Nombres">
               @error('state.nombres') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
+
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="nomenclatura">Nomenclatura catastral</label>
+              <input type="text" id="nomenclatura"
+                wire:model.defer="state.nomenclatura"
+                class="form-control form-control-sm @error('state.nomenclatura') is-invalid @enderror"
+                placeholder="Ej: J749 052F000">
+              @error('state.nomenclatura') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
           </div>
         @else
           <div class="form-row">
-            <div class="form-group col-md-12 mb-2">
+            <div class="form-group col-md-6 mb-2">
               <label class="mb-1" for="razon_social">Razón Social</label>
               <input type="text" id="razon_social" wire:model.defer="state.razon_social"
                 class="form-control form-control-sm text-capitalize @error('state.razon_social') is-invalid @enderror"
                 placeholder="Razón Social">
               @error('state.razon_social') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="form-group col-md-6 mb-2">
+              <label class="mb-1" for="nomenclatura">Nomenclatura catastral</label>
+              <input type="text" id="nomenclatura"
+                    wire:model.defer="state.nomenclatura"
+                    class="form-control form-control-sm @error('state.nomenclatura') is-invalid @enderror"
+                    placeholder="Ej: J749 052F000">
+              @error('state.nomenclatura') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
           </div>
         @endif
@@ -122,16 +140,6 @@
                 @error('state.telefonos.'.$i) <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
               </div>
             @endforeach
-          </div>
-          <div class="form-row">
-            <div class="form-group col-md-4 mb-2">
-              <label class="mb-1" for="nomenclatura">Nomenclatura catastral</label>
-              <input type="text" id="nomenclatura"
-                    wire:model.defer="state.nomenclatura"
-                    class="form-control form-control-sm @error('state.nomenclatura') is-invalid @enderror"
-                    placeholder="Ej: J749 052F000">
-              @error('state.nomenclatura') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
           </div>
         </div>
 
