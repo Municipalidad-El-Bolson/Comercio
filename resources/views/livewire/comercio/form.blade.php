@@ -123,6 +123,16 @@
               </div>
             @endforeach
           </div>
+          <div class="form-row">
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="nomenclatura">Nomenclatura catastral</label>
+              <input type="text" id="nomenclatura"
+                    wire:model.defer="state.nomenclatura"
+                    class="form-control form-control-sm @error('state.nomenclatura') is-invalid @enderror"
+                    placeholder="Ej: J749 052F000">
+              @error('state.nomenclatura') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+          </div>
         </div>
 
         @php
@@ -138,7 +148,7 @@
 
           <div class="form-row align-items-end mb-2 border rounded p-2">
             <div class="form-group col-md-12 mb-1" wire:ignore>
-              <label class="mb-1">Seleccioná rubro (podés tipear)</label>
+              <label class="mb-1">Seleccioná rubro</label>
               <select id="select-rubro-principal"
                       class="form-control form-control-sm @error('state.rubro_id') is-invalid @enderror">
                 <option value="">-- Seleccione Rubro --</option>
@@ -156,11 +166,11 @@
           </div>
 
           <label class="mb-1 d-flex align-items-center justify-content-between">
-            <span>Rubros anexos (opcionales)</span>
+            <span>Rubros anexos</span>
           </label>
           <div class="form-row align-items-end mb-2 border rounded p-2">
             <div class="form-group col-md-12 mb-1" wire:ignore>
-              <label class="mb-1">Seleccioná uno o más (también se puede tipear)</label>
+              <label class="mb-1">Seleccioná uno o más</label>
               <select multiple id="select-rubros-anexos"
                       class="form-control form-control-sm @error('state.rubros_anexos') is-invalid @enderror" size="6">
                 @foreach($opsAnexo as $op)
@@ -172,9 +182,6 @@
                 @endforeach
               </select>
               @error('state.rubros_anexos') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
-              <small class="text-muted d-block mt-1">
-                Consejo: escribí para filtrar; con Enter confirmás; con Backspace quitás selección.
-              </small>
             </div>
           </div>
         </div>

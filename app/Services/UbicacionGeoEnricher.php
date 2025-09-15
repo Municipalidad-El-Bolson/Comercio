@@ -7,19 +7,13 @@ use Illuminate\Support\Facades\Http;
 class UbicacionGeoEnricher {
   public function __construct(private GeoService $geo) {}
 
-  /** BBOX de El Bolsón (aprox) */
-  private const BBOX = [
-    'minLat' => -42.10, 'maxLat' => -41.85,
-    'minLng' => -71.65, 'maxLng' => -71.35,
-  ];
+  private const BBOX = ['minLat'=>-42.10,'maxLat'=>-41.85,'minLng'=>-71.65,'maxLng'=>-71.35];
 
-  /** ¿Está (lat,lng) dentro del bbox? */
   private function inBbox(float $lat, float $lng): bool {
     return $lat >= self::BBOX['minLat'] && $lat <= self::BBOX['maxLat']
         && $lng >= self::BBOX['minLng'] && $lng <= self::BBOX['maxLng'];
   }
 
-  /** Asegura contexto local en la address */
   private function ensureLocalContext(string $addr): string {
     $txt = trim($addr);
     $hasBolson   = stripos($txt, 'Bolsón') !== false || stripos($txt, 'Bolson') !== false;
@@ -33,41 +27,24 @@ class UbicacionGeoEnricher {
 
   public function geocode(?string $addr): ?array {
     if (!$addr) return null;
-
     $addrFull = $this->ensureLocalContext($addr);
     return Cache::remember('geocode:'.md5($addrFull), 86400, function() use ($addrFull) {
       $key = config('services.google.maps_key');
-
       $baseParams = [
-        'key'        => $key,
-        'language'   => 'es-AR',
-        'region'     => 'ar',
-        'components' => 'country:AR|administrative_area:Rio Negro|locality:El Bolson',
+        'key'=>$key,'language'=>'es-AR','region'=>'ar',
+        'components'=>'country:AR|administrative_area:Rio Negro|locality:El Bolson',
       ];
-
-      // Intento principal
-      $r = Http::get('https://maps.googleapis.com/maps/api/geocode/json',
-            $baseParams + ['address' => $addrFull])->json();
-      $res = $r['results'][0] ?? null;
-      if (!$res) return null;
-
-      // Chequear país/provincia
+      $r = Http::get('https://maps.googleapis.com/maps/api/geocode/json', $baseParams + ['address'=>$addrFull])->json();
+      $res = $r['results'][0] ?? null; if (!$res) return null;
       $ac = collect($res['address_components'] ?? []);
-      $country = $ac->first(fn($c) => in_array('country', $c['types'] ?? []));
+      $country = $ac->first(fn($c)=>in_array('country',$c['types'] ?? []));
       if (($country['short_name'] ?? '') !== 'AR') return null;
-
-      $prov = $ac->first(fn($c) => in_array('administrative_area_level_1', $c['types'] ?? []));
-      if ($prov && strcasecmp($prov['long_name'] ?? '', 'Río Negro') !== 0) return null;
-
-      $loc = $res['geometry']['location'] ?? null;
-      if (!$loc) return null;
-
-      $lat = (float)$loc['lat']; 
-      $lng = (float)$loc['lng'];
-      if (!$this->inBbox($lat, $lng)) {
-        return null; // fuera de El Bolsón
-      }
-      return ['lat' => $lat, 'lng' => $lng];
+      $prov = $ac->first(fn($c)=>in_array('administrative_area_level_1',$c['types'] ?? []));
+      if ($prov && strcasecmp($prov['long_name'] ?? '','Río Negro') !== 0) return null;
+      $loc = $res['geometry']['location'] ?? null; if (!$loc) return null;
+      $lat = (float)$loc['lat']; $lng = (float)$loc['lng'];
+      if (!$this->inBbox($lat,$lng)) return null;
+      return ['lat'=>$lat,'lng'=>$lng];
     });
   }
 
@@ -75,32 +52,25 @@ class UbicacionGeoEnricher {
     $lat = $data['lat'] ?? null; 
     $lng = $data['lng'] ?? null;
 
+    // Si no hay coords y hay dirección → geocode
     if ((!$lat || !$lng) && !empty($data['domicilio_comercio'])) {
-      if ($p = $this->geocode($data['domicilio_comercio'])) { 
-        $lat=$p['lat']; 
-        $lng=$p['lng']; 
-      }
+      if ($p = $this->geocode($data['domicilio_comercio'])) { $lat=$p['lat']; $lng=$p['lng']; }
     }
 
+    // Si vino nomenclatura, usar su centroide como fallback
     if ((!$lat || !$lng) && !empty($data['nomenclatura'])) {
-      if ($c = $this->geo->centroidByCpu($data['nomenclatura'])) { 
-        $lat=$c[0]; 
-        $lng=$c[1]; 
-      }
-      $data['cpu_cod'] = $data['nomenclatura'];
+      if ($c = $this->geo->centroidByNomenclatura($data['nomenclatura'])) { $lat=$c[0]; $lng=$c[1]; }
     }
 
     if ($lat && $lng) {
       $data['lat'] = $lat; 
       $data['lng'] = $lng;
-      $data['barrio'] = $this->geo->matchBarrio($lat,$lng) ?? ($data['barrio'] ?? null);
-      if ($cpu = $this->geo->matchCpu($lat,$lng)) {
-        $data['cpu_cod'] = $data['cpu_cod'] ?? $cpu['cpu_cod'];
-        $data['cpu_nombre'] = $data['cpu_nombre'] ?? $cpu['cpu_nombre'];
-      }
+
+      // Completar barrio y nomenclatura si faltan
+      $data['barrio'] = $data['barrio'] ?? $this->geo->matchBarrio($lat,$lng);
+      $data['nomenclatura'] = $data['nomenclatura'] ?? $this->geo->matchNomenclatura($lat,$lng);
     }
 
     return $data;
   }
 }
-
