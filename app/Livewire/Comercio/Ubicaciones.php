@@ -119,6 +119,18 @@ class Ubicaciones extends AdminComponent
                 anexos: ($this->state['rubros_anexos'] ?? [])
             );
         }
+        if (request()->boolean('nuevo')) {
+            $this->nuevoComercio();
+            if ($d = request('domicilio'))     $this->state['domicilio_comercio'] = $d;
+            if ($n = request('nomenclatura'))  $this->state['nomenclatura'] = $n;
+            if ($b = request('barrio'))        $this->state['barrio'] = $b;
+
+            // abrir modal con selects listos
+            $this->dispatch('show-form',
+                rubroId: ($this->state['rubro_id'] ?? null),
+                anexos:  ($this->state['rubros_anexos'] ?? [])
+            );
+        }
     }
 
     public function updatingSearchTerm() { $this->resetPage(); }
@@ -561,6 +573,26 @@ class Ubicaciones extends AdminComponent
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
     }
 
+    #[On('prefill-nuevo')]
+    public function prefillNuevo(?string $direccion = null, ?string $barrio = null, ?string $nomen = null): void
+    {
+        // Prepara el form como si hubieras tocado "Nuevo"
+        $this->nuevoComercio();
+
+        // Precarga campos (si te pasan valores)
+        if ($direccion !== null) $this->state['domicilio_comercio'] = $direccion;
+        if ($barrio    !== null) $this->state['barrio']             = $barrio;
+        if ($nomen     !== null) $this->state['nomenclatura']       = $nomen;
+
+        // Abre el modal (usa el mismo evento que ya tenés en form.blade)
+        $this->dispatch(
+            'show-form',
+            rubroId: ($this->state['rubro_id'] ?? null),
+            anexos:  ($this->state['rubros_anexos'] ?? [])
+        );
+    }
+
+
     public function marcarTodosLosDocs(bool $valor = true): void
     {
         $docs = $this->state['documentos'] ?? [];
@@ -570,6 +602,8 @@ class Ubicaciones extends AdminComponent
         }
         $this->state['documentos'] = array_merge($this->docDefaults, $docs);
     }
+
+
 
     public function updatedStatePersonaTipo($tipo): void
     {

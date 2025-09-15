@@ -445,6 +445,34 @@ class ComercioData extends Component
         }
     }
 
+    #[On('open-create-from-map')]
+    public function openCreateFromMap(?string $direccion = null, ?string $barrio = null, ?string $nomen = null): void
+    {
+        // Reusamos tu lógica de "Nuevo" para preparar el state y options
+        $this->nuevoComercio();
+
+        // Prefill con los datos detectados en el mapa
+        $this->state['domicilio_comercio'] = $direccion ?: '';
+        $this->state['nomenclatura']       = $nomen ?: '';
+        // Si guardás barrio en BD, también:
+        $this->state['barrio']             = $barrio ?: '';
+
+        // Abrir el modal (tu form ya escucha este evento)
+        $this->dispatch('show-form',
+            rubroId: ($this->state['rubro_id'] ?? null),
+            anexos:  ($this->state['rubros_anexos'] ?? [])
+        );
+    }
+    
+    #[On('prefill-desde-mapa')]
+    public function prefillDesdeMapa($direccion = null, $barrio = null, $nomenclatura = null)
+    {
+        $this->nuevoComercio(); // deja el state en blanco con defaults
+        $this->state['domicilio_comercio'] = $direccion ?? '';
+        $this->state['barrio']             = $barrio ?? '';
+        $this->state['nomenclatura']       = $nomenclatura ?? '';
+        $this->dispatch('show-form', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
+    }
 
     public function render()
     {
