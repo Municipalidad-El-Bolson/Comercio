@@ -104,10 +104,7 @@ class ComercioData extends Component
     {
         $this->ubicacion = $ubicacion->load('rubro', 'rubros', 'documentos', 'movimientos', 'telefonos', 'disposiciones', 'habilitaciones');
 
-        // Opciones de rubros (solo subrubro + id)
-        $this->rubros = Rubro::select('id','subrubro')
-            ->orderBy('subrubro')
-            ->get();
+        $this->rubroOpts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
 
         // Estado inicial mínimo (para ver detalle antes de abrir modal)
         $this->state = [

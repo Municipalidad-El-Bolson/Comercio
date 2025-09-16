@@ -11,14 +11,13 @@
           {{-- Fila 1: RUBRO (TomSelect, igual que en el form) --}}
           <div class="form-row">
             <div class="form-group col-12" wire:ignore>
-              <label class="mb-1">Rubro (buscar y seleccionar)</label>
+              <label class="mb-1">Rubro</label>
               <select id="select-rubro-filtro" class="form-control form-control-sm">
                 <option value="">-- Todos --</option>
                 @foreach($rubroOpts as $op)
                   <option value="{{ $op['id'] }}">{{ $op['subrubro'] }}</option>
                 @endforeach
               </select>
-              <small class="text-muted">Escribí para filtrar; Enter confirma; Backspace borra.</small>
             </div>
           </div>
 
@@ -83,7 +82,7 @@
                       <tr>
                         <th>Nombre</th>
                         <th>Estado</th>
-                        <th>Rubro (principal)</th>
+                        <th>Rubro</th>
                         <th>Anexos</th>
                         <th>Vto</th>
                       </tr>
@@ -124,7 +123,7 @@
         <div class="col-lg-6">
           <div class="card border-secondary">
             <div class="card-header d-flex justify-content-between align-items-center">
-              <strong>Comercios por rubro (principal)</strong>
+              <strong>Comercios por rubro</strong>
               <button class="btn btn-sm btn-outline-secondary" type="button"
                       @click="open = (open === 'rubros' ? null : 'rubros')">
                 <span class="mr-1" x-text="open === 'rubros' ? 'ocultar' : 'ver'"></span>
@@ -205,7 +204,7 @@
                   <thead class="thead-light">
                     <tr>
                       <th>Nombre</th>
-                      <th>Rubro (principal)</th>
+                      <th>Rubro</th>
                       <th>Vencimiento</th>
                     </tr>
                   </thead>

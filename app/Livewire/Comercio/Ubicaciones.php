@@ -70,21 +70,21 @@ class Ubicaciones extends AdminComponent
     {
         $q = trim($q);
         $this->rubroOpts = Rubro::when($q !== '', fn($qq)=>$qq->where('subrubro','like',"%{$q}%"))
-            ->orderBy('subrubro')->limit(50)->get(['id','subrubro'])->toArray();
+            ->orderBy('subrubro')->get(['id','subrubro'])->toArray();
     }
 
     public function updatedAnexoQuery(string $q): void
     {
         $q = trim($q);
         $this->anexoOpts = Rubro::when($q !== '', fn($qq)=>$qq->where('subrubro','like',"%{$q}%"))
-            ->orderBy('subrubro')->limit(50)->get(['id','subrubro'])->toArray();
+            ->orderBy('subrubro')->get(['id','subrubro'])->toArray();
     }
 
     public function mount()
     {
         abort_unless(Gate::allows('manage-ubicaciones'), 403);
 
-        $this->rubroOpts = Rubro::orderBy('subrubro')->limit(50)->get(['id','subrubro'])->toArray();
+        $this->rubroOpts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
         $this->anexoOpts = $this->rubroOpts;
 
         $this->docDefaults = array_fill_keys(array_merge($this->docKeysGeneral, $this->docKeysJuridica), false);
@@ -155,7 +155,7 @@ class Ubicaciones extends AdminComponent
 
         $this->rubroQuery = '';
         $this->anexoQuery = '';
-        $opts = Rubro::orderBy('subrubro')->limit(50)->get(['id','subrubro'])->toArray();
+        $opts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
         $this->rubroOpts = $opts;
         $this->anexoOpts = $opts;
 
@@ -216,7 +216,7 @@ class Ubicaciones extends AdminComponent
         $idsPivot = $this->ubicacion->rubros->pluck('id')->filter()->unique()->values()->all();
         $this->state['rubros_anexos'] = array_values($principal ? array_diff($idsPivot, [$principal]) : $idsPivot);
 
-        if (empty($this->rubroOpts)) $this->rubroOpts = Rubro::orderBy('subrubro')->limit(50)->get(['id','subrubro'])->toArray();
+        if (empty($this->rubroOpts)) $this->rubroOpts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
         if (empty($this->anexoOpts)) $this->anexoOpts = $this->rubroOpts;
 
         $idsNecesarios = array_values(array_unique(array_filter(array_merge([$principal], $this->state['rubros_anexos']))));
