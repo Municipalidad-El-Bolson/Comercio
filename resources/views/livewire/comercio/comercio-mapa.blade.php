@@ -6,9 +6,9 @@
         <div class="row mb-2">
           <div class="col-sm-6"><h1 class="m-0">Mapa de comercios</h1></div>
           <div class="col-sm-6 text-right">
-            <button id="btnAddMode" type="button" class="btn btn-sm btn-primary">
+            {{--<button id="btnAddMode" type="button" class="btn btn-sm btn-primary">
               <i class="fas fa-map-pin mr-1"></i> Agregar comercio
-            </button>
+            </button>--}}
           </div>
         </div>
 
@@ -299,7 +299,10 @@
     return `
       <div class="popup-card">
         <div class="popup-title"><i class="fas fa-store"></i><span>${esc(p.nombre||'')}</span></div>
-        <div class="popup-row"><i class="fas fa-map-marker-alt"></i><div>${esc(p.direccion||'')}</div></div>
+        <div class="popup-row">${p.direccion
+              ? `<i class="fas fa-map-marker-alt"></i><div>${esc(p.direccion)}</div>`
+              : `<i class="fas fa-vector-square"></i><div><strong>Nomenclatura:</strong> ${esc(nomen || '(sin datos)')}</div>`}
+        </div>
         <div class="popup-row"><i class="fas fa-tags"></i><div>${esc(p.rubro||'-')}</div></div>
         <div class="popup-row"><i class="fas fa-city"></i><div>${esc(p.barrio||'-')}</div></div>
         <div class="popup-row"><i class="fas fa-clipboard-check"></i><div>${esc(p.estado||'-')}</div></div>
@@ -312,8 +315,19 @@
     map.addSource('comercios-src', { type:'geojson', data: toGeo(@json($ubicaciones)) });
     map.addLayer({ id:'comercios-points', type:'circle', source:'comercios-src',
       paint:{ 'circle-color':'#1e90ff','circle-radius':7,'circle-stroke-color':'#fff','circle-stroke-width':2 }});
-    map.on('click','comercios-points',(e)=>{ if(addMode) return; const f=e.features[0];
-      popup.setLngLat(f.geometry.coordinates).setHTML(popupHTML(f.properties)).addTo(map);
+    map.on('click','comercios-points',(e)=>{if(addMode) return;
+      const f = e.features[0];
+      const p = f.properties;
+
+      popup.setLngLat(f.geometry.coordinates).setHTML(popupHTML(p)).addTo(map);
+
+      // 👇 Si no hay dirección pero sí nomen, resaltar catastro
+      if (!p.direccion && p.nomen && GEO_CATASTRO && NOM_KEY){
+        const feats = (GEO_CATASTRO.features||[]).filter(ff => (ff.properties?.[NOM_KEY]??'') === p.nomen);
+        const hl = map.getSource('catastro-hl-src');
+        if (hl){ hl.setData({ type:'FeatureCollection', features: feats }); }
+        if (feats.length) fitToFeaturesBounds({ type:'FeatureCollection', features: feats });
+      }
     });
     map.on('mouseenter','comercios-points',()=>map.getCanvas().style.cursor='pointer');
     map.on('mouseleave','comercios-points',()=>map.getCanvas().style.cursor='');
@@ -400,7 +414,6 @@
           <div class="popup-row"><i class="fas fa-map-marker-alt"></i><div><strong>Dirección:</strong> ${direccion ? esc(direccion) : '(sin datos)'}</div></div>
           <div class="popup-row"><i class="fas fa-city"></i><div><strong>Barrio:</strong> ${esc(barrio || '(sin datos)')}</div></div>
           <div class="popup-row"><i class="fas fa-vector-square"></i><div><strong>Nomenclatura:</strong> ${esc(nomen || '(sin datos)')}</div></div>
-          <div class="p-2"> ${escapeHtml(nomen || '—')}</div>
         <button id="btnConfirmCreateHere" class="btn btn-sm btn-primary w-100">
           <i class="fas fa-plus mr-1"></i> Abrir formulario
         </button>

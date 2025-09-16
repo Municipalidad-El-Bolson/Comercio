@@ -108,7 +108,7 @@ class ComercioMapa extends AdminComponent
         $this->nomenOpts = $this->leerNomenclaturas();
 
         $this->emitUbicaciones();
-        $this->rubroOpts = Rubro::orderBy('subrubro')->limit(50)->get(['id','subrubro'])->toArray();
+        $this->rubroOpts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
         $this->anexoOpts = $this->rubroOpts;
 
         $this->docDefaults = array_fill_keys(
@@ -452,7 +452,7 @@ class ComercioMapa extends AdminComponent
         $this->state['nomenclatura']       = $nomen ?? '';
 
         // asegurá opciones del selector como en el form
-        $opts = \App\Models\Rubro::orderBy('subrubro')->limit(50)->get(['id','subrubro'])->toArray();
+        $opts = \App\Models\Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
         $this->rubroOpts = $opts;
         $this->anexoOpts = $opts;
 

@@ -113,7 +113,7 @@ class ComercioData extends Component
         ];
 
         $this->rubroOpts = Rubro::orderBy('subrubro')
-            ->limit(50)->get(['id','subrubro'])->toArray();
+            ->get(['id','subrubro'])->toArray();
         $this->anexoOpts = $this->rubroOpts;
 
         $this->formKey = (string) Str::uuid();
@@ -414,14 +414,14 @@ class ComercioData extends Component
     {
         $q = trim($q);
         $this->rubroOpts = Rubro::when($q !== '', fn($qq)=>$qq->where('subrubro','like',"%{$q}%"))
-            ->orderBy('subrubro')->limit(50)->get(['id','subrubro'])->toArray();
+            ->orderBy('subrubro')->get(['id','subrubro'])->toArray();
     }
 
     public function updatedAnexoQuery(string $q): void
     {
         $q = trim($q);
         $this->anexoOpts = Rubro::when($q !== '', fn($qq)=>$qq->where('subrubro','like',"%{$q}%"))
-            ->orderBy('subrubro')->limit(50)->get(['id','subrubro'])->toArray();
+            ->orderBy('subrubro')->get(['id','subrubro'])->toArray();
     }
 
     private function mergeOpts(array $opts, array $extra): array
