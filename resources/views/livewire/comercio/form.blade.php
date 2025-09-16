@@ -99,6 +99,42 @@
           </div>
         @endif
 
+        @php
+          // Usamos $rubros si viene desde ComercioData; si no, caemos a $rubroOpts/$anexoOpts
+          $opsRubro = $rubros ?? $rubroOpts ?? [];
+          $opsAnexo = $rubros ?? $anexoOpts ?? [];
+        @endphp
+        <div class="form-group col-md-12 mb-1" wire:ignore>
+          <label class="mb-1">Seleccioná el Rubro Principal</label>
+          <select id="select-rubro-principal"
+                  class="form-control form-control-sm @error('state.rubro_id') is-invalid @enderror">
+            <option value="">-- Seleccione Rubro --</option>
+            @foreach($opsRubro as $op)
+              @php
+                // Soporta colección Eloquent ($rubros) o array plano ($rubroOpts)
+                $id  = is_array($op) ? $op['id'] : $op->id;
+                $txt = is_array($op) ? $op['subrubro'] : $op->subrubro;
+              @endphp
+              <option value="{{ $id }}">{{ $txt }}</option>
+            @endforeach
+          </select>
+          @error('state.rubro_id') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+
+          <label class="mb-1">Seleccioná  Rubro Anexo</label>
+          <select multiple id="select-rubros-anexos"
+                  class="form-control form-control-sm @error('state.rubros_anexos') is-invalid @enderror" size="6">
+                  <option value="">-- Seleccione Anexo --</option>
+            @foreach($opsAnexo as $op)
+              @php
+                $id  = is_array($op) ? $op['id'] : $op->id;
+                $txt = is_array($op) ? $op['subrubro'] : $op->subrubro;
+              @endphp
+              <option value="{{ $id }}">{{ $txt }}</option>
+            @endforeach
+          </select>
+          @error('state.rubros_anexos') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+        </div>
+
         {{-- Domicilio / Correo / Teléfonos --}}
         <div class="form-row">
           <div class="form-group col-md-4 mb-2">
@@ -142,58 +178,6 @@
             @endforeach
           </div>
         </div>
-
-        @php
-          // Usamos $rubros si viene desde ComercioData; si no, caemos a $rubroOpts/$anexoOpts
-          $opsRubro = $rubros ?? $rubroOpts ?? [];
-          $opsAnexo = $rubros ?? $anexoOpts ?? [];
-        @endphp
-
-        <div class="col-12 px-0">
-          <label class="mb-1 d-flex align-items-center justify-content-between">
-            <span>Rubro principal</span>
-          </label>
-
-          <div class="form-row align-items-end mb-2 border rounded p-2">
-            <div class="form-group col-md-12 mb-1" wire:ignore>
-              <label class="mb-1">Seleccioná rubro</label>
-              <select id="select-rubro-principal"
-                      class="form-control form-control-sm @error('state.rubro_id') is-invalid @enderror">
-                <option value="">-- Seleccione Rubro --</option>
-                @foreach($opsRubro as $op)
-                  @php
-                    // Soporta colección Eloquent ($rubros) o array plano ($rubroOpts)
-                    $id  = is_array($op) ? $op['id'] : $op->id;
-                    $txt = is_array($op) ? $op['subrubro'] : $op->subrubro;
-                  @endphp
-                  <option value="{{ $id }}">{{ $txt }}</option>
-                @endforeach
-              </select>
-              @error('state.rubro_id') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
-            </div>
-          </div>
-
-          <label class="mb-1 d-flex align-items-center justify-content-between">
-            <span>Rubros anexos</span>
-          </label>
-          <div class="form-row align-items-end mb-2 border rounded p-2">
-            <div class="form-group col-md-12 mb-1" wire:ignore>
-              <label class="mb-1">Seleccioná uno o más</label>
-              <select multiple id="select-rubros-anexos"
-                      class="form-control form-control-sm @error('state.rubros_anexos') is-invalid @enderror" size="6">
-                @foreach($opsAnexo as $op)
-                  @php
-                    $id  = is_array($op) ? $op['id'] : $op->id;
-                    $txt = is_array($op) ? $op['subrubro'] : $op->subrubro;
-                  @endphp
-                  <option value="{{ $id }}">{{ $txt }}</option>
-                @endforeach
-              </select>
-              @error('state.rubros_anexos') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
-            </div>
-          </div>
-        </div>
-
 
         {{-- ÚNICOS: N° de disposición y N° de habilitación (sin fecha, sin múltiples) --}}
         <div class="form-row">
