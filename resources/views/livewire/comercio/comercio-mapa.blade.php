@@ -359,6 +359,27 @@
     applyToggles();
   });
 
+  function placeCadastreBehindPoints() {
+    const points = 'comercios-points';
+    const layers = [
+      'catastro-text',
+      'catastro-line',
+      'catastro-fill',
+      'catastro-hl-line',
+      'catastro-hl-fill',
+    ];
+    layers.forEach(id => {
+      if (map.getLayer(id) && map.getLayer(points)) {
+        // mueve 'id' justo antes de 'comercios-points' (queda por debajo)
+        try { map.moveLayer(id, points); } catch (_) {}
+      }
+    });
+  }
+
+  placeCadastreBehindPoints();
+
+  map.on('styledata', () => { placeCadastreBehindPoints(); });
+
   // Zoom al cambiar los resultados o una nomenclatura
   function fitToFeaturesBounds(fc){
     const feats = fc?.features || [];
