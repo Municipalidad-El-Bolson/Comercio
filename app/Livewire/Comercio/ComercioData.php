@@ -8,6 +8,8 @@ use Livewire\Attributes\Layout;
 use Illuminate\Support\Str;
 use App\Models\Rubro;
 use Livewire\Attributes\On;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class ComercioData extends Component
 {
@@ -97,6 +99,29 @@ class ComercioData extends Component
             }
             $this->state['documentos'][$k] = $valor;
         }
+    }
+
+    public function deleteComercio(): void
+    {
+        abort_unless(Gate::allows('manage-ubicaciones'), 403);
+
+        DB::transaction(function () {
+            $u = $this->ubicacion->loadMissing([
+                'rubros', 'telefonos', 'disposiciones', 'habilitaciones', 'documentos', 'movimientos'
+            ]);
+
+            $u->rubros()->detach();
+            $u->telefonos()->delete();
+            $u->disposiciones()->delete();
+            $u->habilitaciones()->delete();
+            if ($u->documentos) { $u->documentos()->delete(); }
+            $u->movimientos()->delete();
+
+            $u->delete();
+        });
+
+        // Volver a la página anterior (Livewire v3)
+        $this->redirect('/ubicaciones', navigate: true);
     }
 
     /** ====== Ciclo de vida ====== */
@@ -459,7 +484,7 @@ class ComercioData extends Component
             rubroId: ($this->state['rubro_id'] ?? null),
             anexos:  ($this->state['rubros_anexos'] ?? [])
         );
-        
+
         $this->dispatch('refresh-selects',
             rubroId: ($this->state['rubro_id'] ?? null),
             anexos:  ($this->state['rubros_anexos'] ?? [])

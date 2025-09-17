@@ -4,15 +4,25 @@
     <div class="container-fluid">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h1 class="m-0">Detalle del Comercio</h1>
-        <div class="btn-group">
+
+        <div class="btn-group" x-data>
           <a wire:navigate href="{{ url()->previous() }}" class="btn btn-secondary btn-sm">
             <i class="fas fa-arrow-left mr-1"></i> Volver
           </a>
+
           @isset($ubicacion->id)
             <a href="#" wire:click.prevent="editaComercio({{ $ubicacion->id }})" class="btn btn-primary btn-sm">
               <i class="fa fa-edit mr-1" title="Editar Registro"></i> Editar
             </a>
           @endisset
+
+          @can('manage-ubicaciones')
+            <button type="button"
+                    class="btn btn-danger btn-sm"
+                    x-on:click.prevent="if (confirm('¿Eliminar definitivamente este comercio? Esta acción no se puede deshacer.')) { $wire.deleteComercio() }">
+              <i class="fa fa-trash mr-1"></i> Eliminar
+            </button>
+          @endcan
         </div>
       </div>
     </div>
