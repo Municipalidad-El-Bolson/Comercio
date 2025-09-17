@@ -193,9 +193,10 @@ class ComercioMapa extends AdminComponent
                     'lng'              => $u->lng,
                     'barrio'           => $u->barrio,
                     'estado'           => $u->estado,
+                    'nomen'            => $u->nomen,   
                     'rubro'            => [
-                        'id' => $u->rubro?->id,
-                        'subrubro' => $u->rubro?->subrubro,
+                        'id'        => $u->rubro?->id,
+                        'subrubro'  => $u->rubro?->subrubro,
                     ],
                 ];
             })->values();

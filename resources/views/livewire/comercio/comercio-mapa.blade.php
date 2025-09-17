@@ -6,9 +6,9 @@
         <div class="row mb-2">
           <div class="col-sm-6"><h1 class="m-0">Mapa de comercios</h1></div>
           <div class="col-sm-6 text-right">
-            {{--<button id="btnAddMode" type="button" class="btn btn-sm btn-primary">
+            <button id="btnAddMode" type="button" class="btn btn-sm btn-primary">
               <i class="fas fa-map-pin mr-1"></i> Agregar comercio
-            </button>--}}
+            </button>
           </div>
         </div>
 
@@ -146,6 +146,7 @@
   const googleApiKey   = @json(config('services.google.maps_key'));
   if (!mapboxgl.accessToken) { console.error('Falta MAPBOX_TOKEN en .env / config.'); }
 
+  const normNom = (s)=> String(s||'').replace(/\s+/g,'').toUpperCase();
 
   const map = new mapboxgl.Map({
     container: 'map',
@@ -280,7 +281,7 @@
       let coords = null;
 
       if (r.nomen && GEO_CATASTRO && NOM_KEY) {
-        const feat = (GEO_CATASTRO.features||[]).find(f => (f.properties?.[NOM_KEY] ?? '') === r.nomen);
+        const feat = (GEO_CATASTRO.features||[]).find(f => normNom(f.properties?.[NOM_KEY]) === normNom(r.nomen));
         if (feat) {
           try {
             const cm = turf.centerOfMass(feat);
