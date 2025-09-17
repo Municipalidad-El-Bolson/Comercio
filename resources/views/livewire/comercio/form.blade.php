@@ -100,9 +100,8 @@
         @endif
 
         @php
-          // Usamos $rubros si viene desde ComercioData; si no, caemos a $rubroOpts/$anexoOpts
-          $opsRubro = $rubros ?? $rubroOpts ?? [];
-          $opsAnexo = $rubros ?? $anexoOpts ?? [];
+          $opsRubro = $rubroOpts ?? [];
+          $opsAnexo = $anexoOpts ?? [];
         @endphp
         <div class="form-group col-md-12 mb-1" wire:ignore>
           <label class="mb-1">Seleccioná el Rubro Principal</label>
@@ -470,6 +469,98 @@
         bindTomSelectChangeToLivewire();
         setTomSelectValues(payload);
       }, 50);
+    });
+
+    function initTomSelectsOnce() {
+      const rp = document.getElementById('select-rubro-principal');
+      if (rp && !rp.tomselect) {
+        new TomSelect(rp, {
+          allowEmptyOption: true,
+          maxOptions: 4000,
+          plugins: ['dropdown_input']
+        });
+      }
+      const ra = document.getElementById('select-rubros-anexos');
+      if (ra && !ra.tomselect) {
+        new TomSelect(ra, {
+          plugins: ['remove_button','checkbox_options','dropdown_input'],
+          maxOptions: 8000,
+          persist: false
+        });
+      }
+    }
+
+    function setTomSelectValues(payload = {}, attempt = 0) {
+      const { rubroId = null, anexos = [] } = payload;
+      const rp = document.getElementById('select-rubro-principal');
+      const ra = document.getElementById('select-rubros-anexos');
+
+      // Si todavía no están listos los TomSelect, reintentar un par de veces.
+      const notReady = (rp && !rp.tomselect) || (ra && !ra.tomselect);
+      if (notReady && attempt < 5) {
+        setTimeout(() => setTomSelectValues(payload, attempt + 1), 60);
+        return;
+      }
+
+      if (rp) {
+        const val = rubroId ? String(rubroId) : '';
+        rp.value = val;
+        if (rp.tomselect) rp.tomselect.setValue(val, false);
+      }
+
+      if (ra) {
+        const vals = (anexos || []).map(String);
+        Array.from(ra.options).forEach(o => { o.selected = vals.includes(o.value); });
+        if (ra.tomselect) {
+          ra.tomselect.clear();
+          if (vals.length) ra.tomselect.setValue(vals, false);
+        }
+      }
+    }
+
+    function bindTomSelectChangeToLivewire() {
+      const rp = document.getElementById('select-rubro-principal');
+      if (rp && !rp.dataset._bound) {
+        rp.addEventListener('change', e => {
+          const val = e.target.value || null;
+          @this.set('state.rubro_id', val ? parseInt(val) : null);
+        });
+        rp.dataset._bound = '1';
+      }
+
+      const ra = document.getElementById('select-rubros-anexos');
+      if (ra && !ra.dataset._bound) {
+        ra.addEventListener('change', e => {
+          const arr = Array.from(e.target.selectedOptions).map(o => parseInt(o.value));
+          @this.set('state.rubros_anexos', arr);
+        });
+        ra.dataset._bound = '1';
+      }
+    }
+
+    document.addEventListener('livewire:init', () => {
+      Livewire.hook('message.processed', () => {
+        initTomSelectsOnce();
+        bindTomSelectChangeToLivewire();
+      });
+
+      // Abrir modal y setear valores (create o edit)
+      Livewire.on('show-form', (payload = {}) => {
+        $('#form').modal('show');
+        setTimeout(() => {
+          initTomSelectsOnce();
+          bindTomSelectChangeToLivewire();
+          setTomSelectValues(payload);
+        }, 50);
+      });
+
+      // Cuando el lado PHP ya terminó de preparar el state en editar,
+      // reenviamos sólo el seteo (sin reabrir modal)
+      Livewire.on('refresh-selects', (payload = {}) => {
+        setTomSelectValues(payload);
+      });
+
+      Livewire.on('hide-form', () => $('#form').modal('hide'));
     });
 
     Livewire.on('hide-form', () => $('#form').modal('hide'));

@@ -139,6 +139,7 @@
 @push('scripts')
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <script>
   // === CONFIG / TOKENS ===
   mapboxgl.accessToken = @json(config('services.mapbox.token'));
@@ -276,16 +277,37 @@
   function toGeo(list){
     const feats = [];
     for (const r of (list||[])){
-      const lat = parseFloat(r.lat ?? r.latitud);
-      const lng = parseFloat(r.lng ?? r.longitud);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      let coords = null;
+
+      if (r.nomen && GEO_CATASTRO && NOM_KEY) {
+        const feat = (GEO_CATASTRO.features||[]).find(f => (f.properties?.[NOM_KEY] ?? '') === r.nomen);
+        if (feat) {
+          try {
+            const cm = turf.centerOfMass(feat);
+            coords = cm?.geometry?.coordinates || null;
+          } catch (_) {}
+        }
+      }
+
+      // Si no hay nomen, usar lat/lng
+      if (!coords){
+        const lat = parseFloat(r.lat ?? r.latitud);
+        const lng = parseFloat(r.lng ?? r.longitud);
+        if (Number.isFinite(lat) && Number.isFinite(lng)){
+          coords = [lng,lat];
+        }
+      }
+
+      if (!coords) continue; // si no hay nada, no agrego el punto
+
       feats.push({
         type:'Feature',
-        geometry:{ type:'Point', coordinates:[lng,lat] },
+        geometry:{ type:'Point', coordinates: coords },
         properties:{
           id: r.id,
           nombre: r.nombre_comercial ?? r.razon_social ?? '',
           direccion: r.domicilio_comercio ?? '',
+          nomen: r.nomen ?? '',
           barrio: r.barrio ?? '-',
           estado: r.estado ?? '-',
           rubro: r?.rubro?.subrubro ?? ''
@@ -295,13 +317,14 @@
     return { type:'FeatureCollection', features: feats };
   }
 
+
   function popupHTML(p){
     return `
       <div class="popup-card">
         <div class="popup-title"><i class="fas fa-store"></i><span>${esc(p.nombre||'')}</span></div>
         <div class="popup-row">${p.direccion
               ? `<i class="fas fa-map-marker-alt"></i><div>${esc(p.direccion)}</div>`
-              : `<i class="fas fa-vector-square"></i><div><strong>Nomenclatura:</strong> ${esc(nomen || '(sin datos)')}</div>`}
+              : `<i class="fas fa-vector-square"></i><div><strong>Nomenclatura:</strong> ${esc(p.nomen || '(sin datos)')}</div>`}
         </div>
         <div class="popup-row"><i class="fas fa-tags"></i><div>${esc(p.rubro||'-')}</div></div>
         <div class="popup-row"><i class="fas fa-city"></i><div>${esc(p.barrio||'-')}</div></div>
@@ -321,7 +344,7 @@
 
       popup.setLngLat(f.geometry.coordinates).setHTML(popupHTML(p)).addTo(map);
 
-      // 👇 Si no hay dirección pero sí nomen, resaltar catastro
+      // Si no hay dirección pero sí nomen, resaltar catastro
       if (!p.direccion && p.nomen && GEO_CATASTRO && NOM_KEY){
         const feats = (GEO_CATASTRO.features||[]).filter(ff => (ff.properties?.[NOM_KEY]??'') === p.nomen);
         const hl = map.getSource('catastro-hl-src');
@@ -392,7 +415,7 @@
 
     // NOM_KEY la definiste al cargar CATASTRO (detecta la clave de nomenclatura)
     const featCat = map.queryRenderedFeatures(e.point, { layers: ['catastro-hl-fill','catastro-fill','catastro-line'] })[0];
-    const nomen = featCat?.properties?.[window.NOM_KEY ?? 'RefName'] ?? '';
+    const nomen = featCat?.properties?.[NOM_KEY ?? 'RefName'] ?? '';
 
     // 2) (Opcional) Reverse geocode con tu Google API si la tenés
     let direccion = '';
@@ -425,7 +448,7 @@
       const b = document.getElementById('btnConfirmCreateHere');
       if (!b) return;
       b.onclick = () => {
-        @this.call('crearDesdeMapaConDatos', direccion, barrio, nomen);
+        @this.call('crearDesdeMapaConDatos', direccion, barrio, nomen, lat, lng);
       };
     }, 0);
   });
@@ -439,24 +462,5 @@
       .replaceAll("'", '&#39;');
   }
 
-  // Click sobre el mapa en modo "agregar"
-  map.on('click', async (e)=>{
-    if(!addMode) return;
-    const {lng,lat} = e.lngLat;
-
-    if(addMarker) addMarker.remove();
-    addMarker = new mapboxgl.Marker({ color:'#d81b60' }).setLngLat([lng,lat]).addTo(map);
-
-    // Derivar datos legibles
-    const direccion = await reverseGeocode(lng,lat);
-    const barrio    = pickBarrioAt(e.point);
-    const nomen     = pickNomenAt(e.point);
-
-    if(addPopup) addPopup.remove();
-    addPopup = new mapboxgl.Popup({ offset: 12 })
-      .setLngLat([lng,lat])
-      .setHTML(popupCreateHTML({direccion,barrio,nomen}))
-      .addTo(map);
-  });
 </script>
 @endpush

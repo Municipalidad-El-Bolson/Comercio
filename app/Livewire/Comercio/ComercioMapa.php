@@ -64,30 +64,32 @@ class ComercioMapa extends AdminComponent
     {
         // Estado base del form (copiado del "nuevo" de Ubicaciones)
         $this->state = [
-            'persona_tipo' => 'fisica',
-            'tipo_hab'     => 'prev',
-            'estado'       => null,
-            'fecha_alta'   => null,
-            'fecha_baja'   => null,
-            'fecha_vto'    => null,
-            'rubro_id'     => null,
-            'dni_cuit'     => '',
-            'apellido'     => '',
-            'nombres'      => '',
-            'razon_social' => '',
-            'nombre_comercial' => '',
+            'persona_tipo'      => 'fisica',
+            'tipo_hab'          => 'prev',
+            'estado'            => null,
+            'fecha_alta'        => null,
+            'fecha_baja'        => null,
+            'fecha_vto'         => null,
+            'rubro_id'          => null,
+            'dni_cuit'          => '',
+            'apellido'          => '',
+            'nombres'           => '',
+            'razon_social'      => '',
+            'nombre_comercial'  => '',
+            'lat'               => $payload['lat'] ?? null,
+            'lng'               => $payload['lng'] ?? null,
             'domicilio_comercio'=> $payload['direccion'] ?? '',
             'barrio'            => $payload['barrio'] ?? '',
             'nomenclatura'      => $payload['nomen'] ?? '',
-            'correo'       => '',
-            'telefono'     => '',
-            'monto_pagar'  => null,
-            'observaciones'=> '',
-            'telefonos'    => [''],
-            'rubros_anexos'=> [],
-            'disposiciones'=> [['numero'=>'','fecha'=>null]],
-            'habilitaciones'=>[['numero'=>'','fecha'=>null]],
-            'documentos'   => [], // o tus defaults
+            'correo'            => '',
+            'telefono'          => '',
+            'monto_pagar'       => null,
+            'observaciones'     => '',
+            'telefonos'         => [''],
+            'rubros_anexos'     => [],
+            'disposiciones'     => [['numero'=>'','fecha'=>null]],
+            'habilitaciones'    =>[['numero'=>'','fecha'=>null]],
+            'documentos'        => [],
         ];
 
         $this->formKey = (string) \Illuminate\Support\Str::uuid();
@@ -178,7 +180,8 @@ class ComercioMapa extends AdminComponent
             ->orderByRaw("COALESCE(NULLIF(nombre_comercial,''), razon_social) asc")
             ->get([
                 'id','razon_social','nombre_comercial','domicilio_comercio',
-                'lat','lng','rubro_id','barrio','estado'
+                'lat','lng','rubro_id','barrio','estado',
+                \DB::raw('nomenclatura as nomen'),
             ])
             ->map(function ($u) {
                 return [
@@ -264,6 +267,8 @@ class ComercioMapa extends AdminComponent
             'nombre_comercial'     => '',
             'domicilio_responsable'=> '',
             'domicilio_comercio'   => '',
+            'lat'                  => null,
+            'lng'                  => null,
             'correo'               => '',
             'telefono'             => '',
             'nomenclatura'         => '',
@@ -282,6 +287,11 @@ class ComercioMapa extends AdminComponent
             rubroId: ($this->state['rubro_id'] ?? null),
             anexos:  ($this->state['rubros_anexos'] ?? [])
         );
+
+        $this->dispatch('refresh-selects',
+            rubroId: ($this->state['rubro_id'] ?? null),
+            anexos:  ($this->state['rubros_anexos'] ?? [])
+        );
     }
 
     // ===================== abrir modal prellenado DESDE MAPA =====================
@@ -294,6 +304,11 @@ class ComercioMapa extends AdminComponent
 
         // re-disparar para asegurar que TomSelect tome valores
         $this->dispatch('show-form',
+            rubroId: ($this->state['rubro_id'] ?? null),
+            anexos:  ($this->state['rubros_anexos'] ?? [])
+        );
+
+        $this->dispatch('refresh-selects',
             rubroId: ($this->state['rubro_id'] ?? null),
             anexos:  ($this->state['rubros_anexos'] ?? [])
         );
@@ -376,6 +391,9 @@ class ComercioMapa extends AdminComponent
             'state.fecha_baja'   => ['nullable','date'],
             'state.fecha_vto'    => ['nullable','date'],
             'state.documentos'   => ['array'],
+            'state.lat'          => ['nullable','numeric','between:-90,90'],
+            'state.lng'          => ['nullable','numeric','between:-180,180'],
+
         ];
         foreach (array_keys($this->docDefaults) as $key) {
             $rules["state.documentos.$key"] = ['boolean'];
@@ -443,13 +461,17 @@ class ComercioMapa extends AdminComponent
         return $check === $digits[10];
     }
 
-    public function crearDesdeMapaConDatos(?string $direccion = null, ?string $barrio = null, ?string $nomen = null): void
+    public function crearDesdeMapaConDatos(?string $direccion = null, ?string $barrio = null, ?string $nomen = null, ?float $lat = null, ?float $lng = null): void
     {
+        $this->nuevoComercio();
+
         // inicializá estado mínimo si hace falta
         $this->state = $this->state ?? [];
         $this->state['domicilio_comercio'] = $direccion ?? '';
         $this->state['barrio']             = $barrio ?? '';
         $this->state['nomenclatura']       = $nomen ?? '';
+        $this->state['lat']                = $lat;
+        $this->state['lng']                = $lng;
 
         // asegurá opciones del selector como en el form
         $opts = \App\Models\Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
@@ -460,6 +482,7 @@ class ComercioMapa extends AdminComponent
 
         // abrí el modal (el JS del form ya escucha 'show-form')
         $this->dispatch('show-form', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
+        $this->dispatch('refresh-selects', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
     }
 
     // ===================== CREAR (idéntico contrato que en Ubicaciones) =====================
@@ -515,7 +538,7 @@ class ComercioMapa extends AdminComponent
         $data['dni_cuit'] = preg_replace('/\D/', '', $data['dni_cuit'] ?? '');
 
         // NO guardamos estos dos directamente (mantengo tu lógica)
-        unset($data['domicilio_responsable'], $data['nomenclatura']);
+        unset($data['domicilio_responsable']);
 
         // Enriquecer geodatos (incluye barrio + cpu por lat/lng/nomen)
         $enricher = app(\App\Services\UbicacionGeoEnricher::class);

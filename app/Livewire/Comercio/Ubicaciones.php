@@ -118,6 +118,11 @@ class Ubicaciones extends AdminComponent
                 rubroId: ($this->state['rubro_id'] ?? null),
                 anexos: ($this->state['rubros_anexos'] ?? [])
             );
+            
+            $this->dispatch('refresh-selects',
+                rubroId: ($this->state['rubro_id'] ?? null),
+                anexos:  ($this->state['rubros_anexos'] ?? [])
+            );
         }
         if (request()->boolean('nuevo')) {
             $this->nuevoComercio();
@@ -127,6 +132,11 @@ class Ubicaciones extends AdminComponent
 
             // abrir modal con selects listos
             $this->dispatch('show-form',
+                rubroId: ($this->state['rubro_id'] ?? null),
+                anexos:  ($this->state['rubros_anexos'] ?? [])
+            );
+
+            $this->dispatch('refresh-selects',
                 rubroId: ($this->state['rubro_id'] ?? null),
                 anexos:  ($this->state['rubros_anexos'] ?? [])
             );

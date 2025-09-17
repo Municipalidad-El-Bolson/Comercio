@@ -459,6 +459,11 @@ class ComercioData extends Component
             rubroId: ($this->state['rubro_id'] ?? null),
             anexos:  ($this->state['rubros_anexos'] ?? [])
         );
+        
+        $this->dispatch('refresh-selects',
+            rubroId: ($this->state['rubro_id'] ?? null),
+            anexos:  ($this->state['rubros_anexos'] ?? [])
+        );
     }
     
     #[On('prefill-desde-mapa')]
