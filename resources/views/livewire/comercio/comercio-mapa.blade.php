@@ -415,16 +415,24 @@
   });
 
   let addMode = false, addMarker = null;
-
   document.getElementById('btnAddMode')?.addEventListener('click', () => {
     addMode = !addMode;
     const btn = document.getElementById('btnAddMode');
     btn.classList.toggle('btn-success', addMode);
     btn.classList.toggle('btn-primary', !addMode);
-    btn.innerHTML = addMode
-      ? '<i class="fas fa-location-dot mr-1"></i> Click en el mapa para crear'
-      : '<i class="fas fa-map-pin mr-1"></i> Agregar comercio';
+
+    if (addMode) {
+      btn.innerHTML = '<i class="fas fa-location-dot mr-1"></i> Click en el mapa para crear';
+    } else {
+      btn.innerHTML = '<i class="fas fa-map-pin mr-1"></i> Agregar comercio';
+      // limpiar marker rojo si estaba
+      if (addMarker) {
+        addMarker.remove();
+        addMarker = null;
+      }
+    }
   });
+
 
   map.on('click', async (e) => {
     if (!addMode) return;
@@ -456,7 +464,6 @@
       const html = `
         <div class="popup-card" style="min-width:260px">
           <div class="popup-title"><i class="fas fa-location-dot"></i><span>Agregar comercio</span></div>
-          <div class="popup-row"><i class="fas fa-map-marker-alt"></i><div><strong>Dirección:</strong> ${direccion ? esc(direccion) : '(sin datos)'}</div></div>
           <div class="popup-row"><i class="fas fa-city"></i><div><strong>Barrio:</strong> ${esc(barrio || '(sin datos)')}</div></div>
           <div class="popup-row"><i class="fas fa-vector-square"></i><div><strong>Nomenclatura:</strong> ${esc(nomen || '(sin datos)')}</div></div>
         <button id="btnConfirmCreateHere" class="btn btn-sm btn-primary w-100">
