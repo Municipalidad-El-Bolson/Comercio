@@ -166,6 +166,18 @@ class Ubicaciones extends AdminComponent
         };
     }
 
+    /** ======== Labels para estados ======== */
+    public static function estadoLabels(): array
+    {
+        return [
+            'entramite' => '021',    // o "021 - En trámite"
+            'vigente'   => 'Alta',   // o "Alta"
+            'irregular' => '032',    // o "032 - Irregular"
+            'baja'      => 'Baja',   // o "032-Baja" si querés
+        ];
+    }
+
+
     private function normalizeDocsArray(array $docs): array
     {
         $textKeys = ['doc_uso_inmueble_tipo'];

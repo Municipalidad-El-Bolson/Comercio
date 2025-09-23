@@ -19,9 +19,9 @@
               <label>Estado</label>
               <select class="form-control" wire:model.live="estado">
                 <option value="">-- Todos --</option>
-                <option value="entramite">En trámite</option>
-                <option value="vigente">Vigente</option>
-                <option value="irregular">Clausurado</option>
+                <option value="entramite">021</option>
+                <option value="vigente">Alta</option>
+                <option value="irregular">032</option>
                 <option value="baja">Baja</option>
               </select>
             </div>

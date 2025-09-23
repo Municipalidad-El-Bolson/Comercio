@@ -208,9 +208,9 @@
             <select id="estado" wire:model.live="state.estado"
                     class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
               <option value="">-- Seleccioná estado --</option>
-              <option value="entramite">En trámite</option>
-              <option value="vigente">Vigente</option>
-              <option value="irregular">Irregular</option>
+              <option value="entramite">021</option>
+              <option value="vigente">Alta</option>
+              <option value="irregular">032</option>
               <option value="baja">Baja</option>
             </select>
             @error('state.estado') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -222,7 +222,7 @@
             <select id="tipo_hab" wire:model.live="state.tipo_hab"
                     class="form-control form-control-sm @error('state.tipo_hab') is-invalid @enderror">
               <option value="definitiva">Definitiva</option>
-              <option value="prev">Provisoria (6 meses)</option>
+              <option value="prev">Provisoria</option>
             </select>
             @error('state.tipo_hab') <div class="invalid-feedback">{{ $message }}</div> @enderror
           </div>
@@ -251,7 +251,7 @@
           {{-- Fecha de vencimiento --}}
           @if(in_array($estadoActual, ['vigente','irregular']))
             <div class="form-group col-md-4 mb-2" id="grp-fecha-vto">
-              <label class="mb-1" for="fecha_vto">Fecha de vencimiento (manual)</label>
+              <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
               <input type="date" id="fecha_vto"
                      wire:model.defer="state.fecha_vto"
                      class="form-control form-control-sm @error('state.fecha_vto') is-invalid @enderror">
@@ -299,7 +299,7 @@
 
           @if($estadoActual === 'vigente')
             <div class="alert alert-info py-2 mb-0">
-              Este comercio está <strong>Vigente/Alta</strong>: no se requiere documentación adicional.
+              Este comercio está dado de <strong>Alta</strong>: no se requiere documentación adicional.
             </div>
           @else
             <div class="row">

@@ -38,7 +38,7 @@
                   <label class="mb-1">Estado</label>
                   <select class="form-control form-control-sm" wire:model.live="selectedEstado">
                     <option value="">-- Todos --</option>
-                    @foreach($estados as $value => $label)
+                    @foreach(\App\Livewire\Comercio\Ubicaciones::estadoLabels() as $value => $label)
                       <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                   </select>
@@ -319,20 +319,45 @@
   }
 
 
-  function popupHTML(p){
+  // Mapeo de estados internos a etiquetas visibles
+  const estadoLabels = {
+    entramite: "021 - En trámite",
+    vigente:   "Alta",
+    irregular: "032 - Irregular",
+    baja:      "Baja"
+  };
+
+  function popupHTML(p) {
+    const estado = estadoLabels[p.estado] || p.estado || "-";
+
     return `
       <div class="popup-card">
-        <div class="popup-title"><i class="fas fa-store"></i><span>${esc(p.nombre||'')}</span></div>
-        <div class="popup-row">${p.direccion
-              ? `<i class="fas fa-map-marker-alt"></i><div>${esc(p.direccion)}</div>`
-              : `<i class="fas fa-vector-square"></i><div><strong>Nomenclatura:</strong> ${esc(p.nomen || '(sin datos)')}</div>`}
+        <div class="popup-title">
+          <i class="fas fa-store"></i><span>${esc(p.nombre || '')}</span>
         </div>
-        <div class="popup-row"><i class="fas fa-tags"></i><div>${esc(p.rubro||'-')}</div></div>
-        <div class="popup-row"><i class="fas fa-city"></i><div>${esc(p.barrio||'-')}</div></div>
-        <div class="popup-row"><i class="fas fa-clipboard-check"></i><div>${esc(p.estado||'-')}</div></div>
+
+        <div class="popup-row">
+          ${p.direccion
+            ? `<i class="fas fa-map-marker-alt"></i><div>${esc(p.direccion)}</div>`
+            : `<i class="fas fa-vector-square"></i><div><strong>Nomenclatura:</strong> ${esc(p.nomen || '(sin datos)')}</div>`
+          }
+        </div>
+
+        <div class="popup-row">
+          <i class="fas fa-tags"></i><div>${esc(p.rubro || '-')}</div>
+        </div>
+
+        <div class="popup-row">
+          <i class="fas fa-city"></i><div>${esc(p.barrio || '-')}</div>
+        </div>
+
+        <div class="popup-row">
+          <i class="fas fa-clipboard-check"></i><div>${estado}</div>
+        </div>
       </div>
     `;
   }
+
 
   let srcReady = false;
   map.on('load', () => {
