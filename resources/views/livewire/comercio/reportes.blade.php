@@ -31,6 +31,8 @@
                 <option value="vigente">Alta</option>
                 <option value="irregular">032</option>
                 <option value="baja">Baja</option>
+                <option value="baja_oficio">Baja de oficio</option>
+                <option value="sin_efecto">Expediente sin efecto</option>
               </select>
             </div>
 
@@ -173,21 +175,29 @@
             <div class="card-body">
               @php $e = $this->porEstado; @endphp
               <div class="row text-center">
-                <div class="col-6 col-md-3">
-                  <h4 class="mb-0">{{ $e['vigentes']['n'] }}</h4>
-                  <small>Vigentes ({{ $e['vigentes']['pct'] }}%)</small>
+                <div class="col-6 col-md-2">
+                  <h4 class="mb-0">{{ $e['entramite']['n'] ?? 0 }}</h4>
+                  <small>021 ({{ $e['entramite']['pct'] ?? 0 }}%)</small>
                 </div>
-                <div class="col-6 col-md-3">
-                  <h4 class="mb-0">{{ $e['vencidos']['n'] }}</h4>
-                  <small>Vencidos ({{ $e['vencidos']['pct'] }}%)</small>
+                <div class="col-6 col-md-2">
+                  <h4 class="mb-0">{{ $e['vigente']['n'] ?? 0 }}</h4>
+                  <small>Alta ({{ $e['vigente']['pct'] ?? 0 }}%)</small>
                 </div>
-                <div class="col-6 col-md-3 mt-3 mt-md-0">
-                  <h4 class="mb-0">{{ $e['tramite']['n'] }}</h4>
-                  <small>En trámite ({{ $e['tramite']['pct'] }}%)</small>
+                <div class="col-6 col-md-2 mt-3 mt-md-0">
+                  <h4 class="mb-0">{{ $e['irregular']['n'] ?? 0 }}</h4>
+                  <small>032 ({{ $e['irregular']['pct'] ?? 0 }}%)</small>
                 </div>
-                <div class="col-6 col-md-3 mt-3 mt-md-0">
-                  <h4 class="mb-0">{{ $e['claus']['n'] }}</h4>
-                  <small>Clausurados ({{ $e['claus']['pct'] }}%)</small>
+                <div class="col-6 col-md-2 mt-3 mt-md-0">
+                  <h4 class="mb-0">{{ $e['baja']['n'] ?? 0 }}</h4>
+                  <small>Baja({{ $e['baja']['pct'] ?? 0 }}%)</small>
+                </div>
+                <div class="col-6 col-md-2 mt-3 mt-md-0">
+                  <h4 class="mb-0">{{ $e['baja_oficio']['n'] ?? 0 }}</h4>
+                  <small>Baja de oficio ({{ $e['baja_oficio']['pct'] ?? 0 }}%)</small>
+                </div>
+                <div class="col-6 col-md-2 mt-3 mt-md-0">
+                  <h4 class="mb-0">{{ $e['sin_efecto']['n'] ?? 0 }}</h4>
+                  <small>Expediente sin efecto ({{ $e['sin_efecto']['pct'] ?? 0 }}%)</small>
                 </div>
               </div>
             </div>

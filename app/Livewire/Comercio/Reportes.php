@@ -159,25 +159,29 @@ class Reportes extends Component
 
     public function getPorEstadoProperty()
     {
-        $hoy = Carbon::today()->toDateString();
         $base = $this->base();
 
-        $vigentes = (clone $base)->where('estado','vigente')->whereDate('fecha_vto','>=',$hoy)->count();
-        $vencidos = (clone $base)->where('estado','vigente')->whereDate('fecha_vto','<',$hoy)->count();
-        $tramite  = (clone $base)->where('estado','entramite')->count();
-        $claus    = (clone $base)->where('estado','irregular')->count();
+        $entramite   = (clone $base)->where('estado', 'entramite')->count();
+        $vigente     = (clone $base)->where('estado', 'vigente')->count();
+        $irregular   = (clone $base)->where('estado', 'irregular')->count();
+        $baja        = (clone $base)->where('estado', 'baja')->count();
+        $bajaOficio  = (clone $base)->where('estado', 'baja_oficio')->count();
+        $sinEfecto   = (clone $base)->where('estado', 'sin_efecto')->count();
 
-        $total = $vigentes + $vencidos + $tramite + $claus;
-        $pct   = fn($n) => $total ? round(($n*100)/$total,2) : 0;
+        $total = $entramite + $vigente + $irregular + $baja + $bajaOficio + $sinEfecto;
+        $pct = fn (int $n) => $total ? round(($n * 100) / $total, 2) : 0;
 
         return [
-            'total'     => $total,
-            'vigentes'  => ['n'=>$vigentes, 'pct'=>$pct($vigentes)],
-            'vencidos'  => ['n'=>$vencidos, 'pct'=>$pct($vencidos)],
-            'tramite'   => ['n'=>$tramite,  'pct'=>$pct($tramite)],
-            'claus'     => ['n'=>$claus,    'pct'=>$pct($claus)],
+            'total'        => $total,
+            'entramite'    => ['n' => $entramite,  'pct' => $pct($entramite)],
+            'vigente'      => ['n' => $vigente,    'pct' => $pct($vigente)],
+            'irregular'    => ['n' => $irregular,  'pct' => $pct($irregular)],
+            'baja'         => ['n' => $baja,       'pct' => $pct($baja)],
+            'baja_oficio'  => ['n' => $bajaOficio, 'pct' => $pct($bajaOficio)],
+            'sin_efecto'   => ['n' => $sinEfecto,  'pct' => $pct($sinEfecto)],
         ];
     }
+
 
     public function getHabilitadosPorMesProperty()
     {

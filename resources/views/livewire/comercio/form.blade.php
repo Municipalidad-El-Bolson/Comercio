@@ -212,6 +212,8 @@
               <option value="vigente">Alta</option>
               <option value="irregular">032</option>
               <option value="baja">Baja</option>
+              <option value="baja_oficio">Baja de oficio</option>
+              <option value="sin_efecto">Expediente sin efecto</option>
             </select>
             @error('state.estado') <div class="invalid-feedback">{{ $message }}</div> @enderror
           </div>

@@ -205,6 +205,8 @@ class ComercioData extends Component
             'vigente' => 'vigente',
             'irregular' => 'irregular',
             'baja' => 'baja',
+            'baja de oficio','baja_oficio' => 'baja_oficio',
+            'expediente sin efecto','sin_efecto' => 'sin_efecto',
             default => 'entramite',
         };
     }

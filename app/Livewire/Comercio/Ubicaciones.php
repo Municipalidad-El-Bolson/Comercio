@@ -162,6 +162,8 @@ class Ubicaciones extends AdminComponent
             'vigente' => 'vigente',
             'irregular' => 'irregular',
             'baja' => 'baja',
+            'baja de oficio','baja_oficio' => 'baja_oficio',
+            'expediente sin efecto','sin_efecto' => 'sin_efecto',
             default => 'entramite',
         };
     }
@@ -170,10 +172,12 @@ class Ubicaciones extends AdminComponent
     public static function estadoLabels(): array
     {
         return [
-            'entramite' => '021',    // o "021 - En trámite"
-            'vigente'   => 'Alta',   // o "Alta"
-            'irregular' => '032',    // o "032 - Irregular"
-            'baja'      => 'Baja',   // o "032-Baja" si querés
+            'entramite' => '021',    
+            'vigente'   => 'Alta',   
+            'irregular' => '032',    
+            'baja'      => 'Baja',
+            'baja_oficio' => 'Baja de oficio',
+            'sin_efecto'  => 'Expediente sin efecto',
         ];
     }
 
