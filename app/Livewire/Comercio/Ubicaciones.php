@@ -5,81 +5,183 @@ namespace App\Livewire\Comercio;
 use App\Livewire\Admin\AdminComponent;
 use App\Models\Rubro;
 use App\Models\Ubicacion;
-use App\Models\UbicacionDocumento;
 use App\Models\ComercioEstado;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Livewire\WithPagination;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class Ubicaciones extends AdminComponent
 {
     use WithPagination;
 
     public $searchTerm = '';
-    public $state = [
-        'tipo_hab'   => 'prev',
-        'documentos' => [],
-    ];
-
-    public $ubicacion = null;
-    public $showEditModal = false;
+    public $state = ['tipo_hab' => 'prev', 'documentos' => []];
+    public ?Ubicacion $ubicacion = null;
+    public bool $showEditModal = false;
 
     public string $rubroQuery = '';
     public string $anexoQuery = '';
     public array $rubroOpts = [];
     public array $anexoOpts = [];
-
     public string $formKey = '';
 
-    protected array $docKeysGeneral = [
+    /** ======== Catálogo de documentos ======== */
+    // Grilla base
+    private array $docKeysGeneral = [
         'doc_libre_deuda_municipal','doc_planeamiento_urbano','doc_solicitud_habilitacion_pago',
         'doc_comprobante_uso_local','doc_afip_constancia','doc_recaudacion_rn','doc_fotocopia_dni',
         'doc_comprobante_uso_inmueble','doc_libre_deuda_tasas_inmueble','doc_aptitud_tecnica_local',
         'doc_cocap_rhi','doc_nota_carteleria_obras','doc_libro_actas_100',
     ];
-    protected array $docKeysJuridica = ['doc_acta_constitucion','doc_contrato_societario','doc_docs_representantes'];
+    private array $docKeysJuridica = ['doc_acta_constitucion','doc_contrato_societario','doc_docs_representantes'];
+
+    // Todos los labels (incluye Irregular/Baja/extra)
+    private array $docLabels = [
+        // General
+        'doc_libre_deuda_municipal' => 'Certificado de libre deuda municipal',
+        'doc_planeamiento_urbano'   => 'Dirección de Planeamiento Urbano',
+        'doc_solicitud_habilitacion_pago' => 'Solicitud de habilitación + pago',
+        'doc_comprobante_uso_local' => 'Comprobante de uso del local',
+        'doc_afip_constancia'       => 'Constancia de inscripción AFIP',
+        'doc_recaudacion_rn'        => 'Constancia de inscripción Recaudación RN',
+        'doc_fotocopia_dni'         => 'Fotocopia de DNI',
+        'doc_comprobante_uso_inmueble' => 'Comprobante de uso del inmueble',
+        'doc_libre_deuda_tasas_inmueble' => 'Libre deuda de tasas del inmueble',
+        'doc_aptitud_tecnica_local' => 'Certificado de aptitud técnica',
+        'doc_cocap_rhi'             => 'Certificado CO.CA.P.RHI',
+        'doc_nota_carteleria_obras' => 'Nota a Obras por cartelería',
+        'doc_libro_actas_100'       => 'Libro de actas (100 hojas)',
+        // Jurídica
+        'doc_acta_constitucion'     => 'Acta de constitución',
+        'doc_contrato_societario'   => 'Contrato societario',
+        'doc_docs_representantes'   => 'Documentación de representantes',
+        // En trámite extra
+        'doc_manipulacion_alimentos'=> 'Certificado de manipulación de alimentos',
+        // Baja
+        'doc_nota_baja'             => 'Nota de baja',
+        'doc_pago_baja'             => 'Pago de baja',
+        // Irregular
+        'doc_cert_electricidad'     => 'Certificado de electricidad',
+        'doc_cert_gasista'          => 'Certificado de gasista',
+        'doc_inf_seg_hig'           => 'Informe de seguridad e higiene',
+        'doc_protocolo_mput'        => 'Protocolo de puesta a tierra',
+        'doc_carga_fuego'           => 'Carga de fuego',
+        'doc_inf_ascensores'        => 'Informe de ascensores',
+        'doc_poliza_seguro'         => 'Póliza de seguro',
+        'doc_cert_cocapri'          => 'Certificado CO.CA.P.R.I',
+        'doc_inf_splif'             => 'Informe del SPLIF',
+        'doc_control_plagas'        => 'Control de plagas',
+        'doc_cert_caldera'          => 'Certificado de caldera',
+        'doc_cert_zavecom'          => 'Certificado ZAVECOM',
+        'doc_cert_salud_prov'       => 'Certificado de salud (Provincia)',
+        // Flags derivados del select
+        'doc_uso_boleto'            => 'Uso: Boleto de compra-venta',
+        'doc_uso_contrato'          => 'Uso: Contrato',
+        'doc_uso_comodato'          => 'Uso: Comodato',
+        'doc_uso_titulo'            => 'Uso: Título de propiedad',
+        'doc_uso_cert_ocupacion'    => 'Uso: Certificado de ocupación',
+    ];
+
+    // Defaults (solo booleanos)
     protected array $docDefaults = [];
 
-    public ?int $ubicacionIdParaMapa = null;
-
-    public function abrirMapa(int $id): void
+    /** ======== Helpers de schema ======== */
+    private function docKeysForEstado(string $estado, bool $esJuridica): array
     {
-        $u = Ubicacion::with('rubro:id,subrubro')->findOrFail($id);
+        $baseGeneral = $this->docKeysGeneral;
+        $juridica = $esJuridica ? $this->docKeysJuridica : [];
 
-        $payload = [
-            'id'        => $u->id,
-            'razon'     => $u->razon_social,
-            'dni_cuit'  => $u->dni_cuit,
-            'persona'   => ucfirst($u->persona_tipo),
-            'estado'    => ucfirst($u->estado),
-            'situacion' => ucfirst($u->situacion),
-            'domicilio' => $u->domicilio_comercio,
-            'subrubro'  => optional($u->rubro)->subrubro,
-            'lat'       => $u->lat,
-            'lng'       => $u->lng,
+        return match ($estado) {
+            // entrámite: base - (cartelería/planeamiento/uso del local) + manipulación + jur
+            'entramite' => array_values(array_unique(array_merge(
+                array_diff($baseGeneral, ['doc_nota_carteleria_obras','doc_planeamiento_urbano','doc_comprobante_uso_local']),
+                ['doc_manipulacion_alimentos'],
+                $juridica
+            ))),
+            // vigente: nada
+            'vigente'   => [],
+            // baja: set acotado
+            'baja'      => ['doc_nota_baja','doc_pago_baja','doc_libre_deuda_municipal'],
+            // irregular: lista específica + uso de inmueble
+            'irregular' => [
+                'doc_cert_electricidad','doc_cert_gasista','doc_inf_seg_hig','doc_protocolo_mput','doc_carga_fuego',
+                'doc_inf_ascensores','doc_poliza_seguro','doc_cert_cocapri','doc_inf_splif','doc_control_plagas',
+                'doc_cert_caldera','doc_cert_zavecom','doc_cert_salud_prov',
+                'doc_comprobante_uso_inmueble',
+            ],
+            default     => array_merge($baseGeneral, $juridica),
+        };
+    }
+
+    private function usoInmuebleOptions(): array
+    {
+        return [
+            'boleto'         => 'Boleto de compra-venta',
+            'contrato'       => 'Contrato',
+            'comodato'       => 'Comodato',
+            'titulo'         => 'Título de propiedad',
+            'cert_ocupacion' => 'Certificado de ocupación',
         ];
-
-        $this->dispatch('mostrar-modal-mapa', payload: $payload);
     }
 
-    public function updatedRubroQuery(string $q): void
+    public function getDocSchemaProperty(): array
     {
-        $q = trim($q);
-        $this->rubroOpts = Rubro::when($q !== '', fn($qq)=>$qq->where('subrubro','like',"%{$q}%"))
-            ->orderBy('subrubro')->get(['id','subrubro'])->toArray();
+        $estado = $this->normalizarEstado($this->state['estado'] ?? 'entramite');
+        $esJuridica = ($this->state['persona_tipo'] ?? 'fisica') === 'juridica';
+
+        $keys = $this->docKeysForEstado($estado, $esJuridica);
+
+        $items = [];
+        foreach ($keys as $k) {
+            $items[] = ['key' => $k, 'label' => $this->docLabels[$k] ?? $k, 'type' => 'checkbox'];
+        }
+
+        $showUsoInmueble = in_array('doc_comprobante_uso_inmueble', $keys, true) || $estado === 'entramite';
+        return [
+            'items' => $items,
+            'uso_inmueble' => [
+                'show'        => $showUsoInmueble,
+                'checkboxKey' => 'doc_comprobante_uso_inmueble',
+                'selectKey'   => 'doc_uso_inmueble_tipo',
+                'label'       => 'Uso de inmueble',
+                'options'     => $this->usoInmuebleOptions(),
+            ],
+        ];
     }
 
-    public function updatedAnexoQuery(string $q): void
+    /** ======== Normalizadores ======== */
+    private function normalizarEstado(?string $estado): string
     {
-        $q = trim($q);
-        $this->anexoOpts = Rubro::when($q !== '', fn($qq)=>$qq->where('subrubro','like',"%{$q}%"))
-            ->orderBy('subrubro')->get(['id','subrubro'])->toArray();
+        $e = trim(mb_strtolower($estado ?? ''));
+        return match ($e) {
+            'en tramite','en trámite','en_tramite','en-tramite' => 'entramite',
+            'vigente' => 'vigente',
+            'irregular' => 'irregular',
+            'baja' => 'baja',
+            default => 'entramite',
+        };
     }
 
+    private function normalizeDocsArray(array $docs): array
+    {
+        $textKeys = ['doc_uso_inmueble_tipo'];
+        $out = [];
+        foreach ($docs as $k => $v) {
+            if (in_array($k, $textKeys, true)) {
+                $vv = is_string($v) ? trim($v) : ($v === null ? null : (string)$v);
+                $out[$k] = ($vv === '') ? null : $vv;
+            } else {
+                $out[$k] = (bool)$v;
+            }
+        }
+        return $out;
+    }
+
+    /** ======== Ciclo de vida ======== */
     public function mount()
     {
         abort_unless(Gate::allows('manage-ubicaciones'), 403);
@@ -87,11 +189,18 @@ class Ubicaciones extends AdminComponent
         $this->rubroOpts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
         $this->anexoOpts = $this->rubroOpts;
 
-        $this->docDefaults = array_fill_keys(array_merge($this->docKeysGeneral, $this->docKeysJuridica), false);
-        $this->state['documentos'] = $this->state['documentos'] ?? [];
-        $this->formKey = (string) \Illuminate\Support\Str::uuid();
+        // defaults = todos los booleanos en false (NO incluye doc_uso_inmueble_tipo)
+        $boolKeys = array_keys(array_filter(
+            $this->docLabels,
+            fn($label, $key) => !str_starts_with($key, 'doc_uso_') || $key !== 'doc_uso_inmueble_tipo',
+            ARRAY_FILTER_USE_BOTH
+        ));
+        $this->docDefaults = array_fill_keys($boolKeys, false);
 
-        // Prefill desde mapa (lat/lng/nomen/barrio) y abrir formulario
+        $this->state['documentos'] = $this->state['documentos'] ?? [];
+        $this->formKey = (string) Str::uuid();
+
+        // Prefills opcionales desde query (igual que antes)
         $req = request();
         if ($req->boolean('from_map')) {
             $this->nuevoComercio();
@@ -99,47 +208,26 @@ class Ubicaciones extends AdminComponent
             if ($lng = $req->query('lng'))  $this->state['lng']  = (float)$lng;
             if ($nom = $req->query('nomen')) $this->state['nomenclatura'] = (string)$nom;
             if ($bar = $req->query('barrio')) $this->state['barrio'] = (string)$bar;
-            // Forzar reapertura del modal con los datos
             $this->dispatch('show-form', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
         }
-        // Prefill desde mapa: ?open=create&lat=...&lng=...&nomen=...
-        $open  = request('open');
-        $lat   = request('lat');
-        $lng   = request('lng');
-        $nomen = request('nomen');
 
-        if ($open === 'create') {
+        if (request('open') === 'create') {
             $this->nuevoComercio();
-            if ($nomen) $this->state['nomenclatura'] = (string)$nomen;
-            if (is_numeric($lat)) $this->state['lat'] = (float)$lat;
-            if (is_numeric($lng)) $this->state['lng'] = (float)$lng;
-
-            $this->dispatch('show-form',
-                rubroId: ($this->state['rubro_id'] ?? null),
-                anexos: ($this->state['rubros_anexos'] ?? [])
-            );
-            
-            $this->dispatch('refresh-selects',
-                rubroId: ($this->state['rubro_id'] ?? null),
-                anexos:  ($this->state['rubros_anexos'] ?? [])
-            );
+            if (is_numeric(request('lat'))) $this->state['lat'] = (float)request('lat');
+            if (is_numeric(request('lng'))) $this->state['lng'] = (float)request('lng');
+            if ($n = request('nomen')) $this->state['nomenclatura'] = (string)$n;
+            $this->dispatch('show-form', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
+            $this->dispatch('refresh-selects', rubroId: ($this->state['rubro_id'] ?? null), anexos:  ($this->state['rubros_anexos'] ?? []));
         }
+
         if (request()->boolean('nuevo')) {
             $this->nuevoComercio();
             if ($d = request('domicilio'))     $this->state['domicilio_comercio'] = $d;
             if ($n = request('nomenclatura'))  $this->state['nomenclatura'] = $n;
             if ($b = request('barrio'))        $this->state['barrio'] = $b;
 
-            // abrir modal con selects listos
-            $this->dispatch('show-form',
-                rubroId: ($this->state['rubro_id'] ?? null),
-                anexos:  ($this->state['rubros_anexos'] ?? [])
-            );
-
-            $this->dispatch('refresh-selects',
-                rubroId: ($this->state['rubro_id'] ?? null),
-                anexos:  ($this->state['rubros_anexos'] ?? [])
-            );
+            $this->dispatch('show-form', rubroId: ($this->state['rubro_id'] ?? null), anexos:  ($this->state['rubros_anexos'] ?? []));
+            $this->dispatch('refresh-selects', rubroId: ($this->state['rubro_id'] ?? null), anexos:  ($this->state['rubros_anexos'] ?? []));
         }
     }
 
@@ -159,12 +247,11 @@ class Ubicaciones extends AdminComponent
         ])->layout('admin.layouts.app');
     }
 
+    /** ======== Form actions ======== */
     public function nuevoComercio()
     {
         $this->reset('state', 'ubicacion');
 
-        $this->rubroQuery = '';
-        $this->anexoQuery = '';
         $opts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
         $this->rubroOpts = $opts;
         $this->anexoOpts = $opts;
@@ -198,7 +285,7 @@ class Ubicaciones extends AdminComponent
             'documentos'           => $this->docDefaults,
         ];
 
-        $this->formKey = (string) \Illuminate\Support\Str::uuid();
+        $this->formKey = (string) Str::uuid();
         $this->showEditModal = false;
         $this->dispatch('show-form', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
     }
@@ -249,13 +336,16 @@ class Ubicaciones extends AdminComponent
         ])->values()->all();
         if (empty($this->state['habilitaciones'])) $this->state['habilitaciones'] = [['numero'=>'','fecha'=>null]];
 
-        $docs = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
-        $this->state['documentos'] = array_merge($this->docDefaults, array_intersect_key($docs, $this->docDefaults));
+        // Documentos desde BD → normalizados → merge con defaults
+        $docsDb = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
+        $docsUi = $this->normalizeDocsArray($docsDb);
+        $this->state['documentos'] = array_merge($this->docDefaults, $docsUi);
 
-        $this->formKey = (string) \Illuminate\Support\Str::uuid();
+        $this->formKey = (string) Str::uuid();
         $this->dispatch('show-form', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
     }
 
+    /** ======== Utils ======== */
     private function mergeOpts(array $opts, array $extra): array
     {
         $byId = [];
@@ -264,19 +354,12 @@ class Ubicaciones extends AdminComponent
         return array_values($byId);
     }
 
+    /** ======== Reglas & mensajes (sin cambios de fondo) ======== */
     private function reglasComunes(bool $isUpdate = false): array
     {
         $rules = [
             'state.persona_tipo'          => ['required', Rule::in(['fisica','juridica'])],
-            'state.dni_cuit'              => [
-                'bail','required','string',
-                'regex:/^\d{7,8}$|^\d{2}-\d{7,8}-\d{1}$|^\d{11}$/',
-                function ($attr, $value, $fail) {
-                    if (strlen(preg_replace('/\D/','', $value)) === 11 && !$this->isValidCuit($value)) {
-                        $fail('El CUIT no es válido.');
-                    }
-                }
-            ],
+            'state.dni_cuit'              => ['bail','required','string'],
             'state.rubro_id'              => ['required','exists:rubros,id'],
             'state.apellido'              => ['nullable','string','min:2','max:60'],
             'state.nombres'               => ['nullable','string','min:2','max:80'],
@@ -316,21 +399,8 @@ class Ubicaciones extends AdminComponent
     private function mensajes(): array
     {
         return [
-            'state.apellido.min'         => 'El apellido debe tener al menos :min caracteres.',
-            'state.nombres.min'          => 'Los nombres deben tener al menos :min caracteres.',
-            'state.nombre_comercial.min' => 'El nombre comercial debe tener al menos :min caracteres.',
             'state.persona_tipo.required'=> 'Seleccioná el tipo de persona.',
-            'state.persona_tipo.in'      => 'El tipo debe ser física o jurídica.',
-            'state.dni_cuit.required'    => 'Ingresá DNI o CUIT.',
-            'state.dni_cuit.regex'       => 'Usá DNI (7–8 dígitos) o CUIT (11 dígitos).',
             'state.rubro_id.required'    => 'Seleccioná el subrubro.',
-            'state.rubro_id.exists'      => 'El subrubro seleccionado no es válido.',
-            'state.apellido.required'    => 'El apellido es obligatorio.',
-            'state.nombres.required'     => 'Los nombres son obligatorios.',
-            'state.razon_social.required'=> 'La razón social es obligatoria.',
-            'state.telefono.regex'       => 'Formato de teléfono inválido.',
-            'state.monto_pagar.numeric'  => 'El monto debe ser numérico.',
-            'state.monto_pagar.regex'    => 'Usá hasta 2 decimales (ej: 123.45).',
             'state.estado.required'      => 'Seleccioná el estado.',
         ];
     }
@@ -338,282 +408,29 @@ class Ubicaciones extends AdminComponent
     private function atributos(): array
     {
         return [
-            'state.persona_tipo'          => 'tipo de persona',
-            'state.dni_cuit'              => 'DNI/CUIT',
-            'state.apellido'              => 'apellido',
-            'state.nombres'               => 'nombres',
-            'state.razon_social'          => 'razón social',
-            'state.nombre_comercial'      => 'nombre comercial',
-            'state.domicilio_responsable' => 'domicilio del responsable',
-            'state.domicilio_comercio'    => 'domicilio del comercio',
-            'state.correo'                => 'correo electrónico',
-            'state.telefono'              => 'teléfono',
-            'state.nomenclatura'          => 'nomenclatura',
-            'state.monto_pagar'           => 'monto a pagar',
-            'state.estado'                => 'estado',
-            'state.fecha_alta'            => 'fecha de alta',
-            'state.fecha_baja'            => 'fecha de baja',
-            'state.fecha_vto'             => 'fecha de vencimiento',
+            'state.persona_tipo' => 'tipo de persona',
+            'state.dni_cuit'     => 'DNI/CUIT',
+            'state.estado'       => 'estado',
         ];
     }
 
-    public function addTelefono(): void
+    /** ======== Cambios dinámicos del form ======== */
+    public function updatedStateEstado($nuevo): void
     {
-        $tels = $this->state['telefonos'] ?? [];
-        if (!is_array($tels)) $tels = [];
-        $tels[] = '';
-        $this->state['telefonos'] = array_values($tels);
-    }
+        $estado = $this->normalizarEstado($nuevo);
+        $esJuridica = ($this->state['persona_tipo'] ?? 'fisica') === 'juridica';
+        $permitidos = $this->docKeysForEstado($estado, $esJuridica);
 
-    public function removeTelefono(int $index): void
-    {
-        $tels = $this->state['telefonos'] ?? [];
-        if (!is_array($tels) || count($tels) <= 1) return;
-        unset($tels[$index]);
-        $this->state['telefonos'] = array_values($tels);
-    }
-
-    public function createCliente()
-    {
-        $this->aplicarFlagsEstadoEnState();
-
-        $reglas = array_merge($this->reglasComunes(false), $this->reglasFechasPorEstado(true));
-
-        $rulesExtra = [
-            'state.telefonos'               => ['array','min:1'],
-            'state.telefonos.*'             => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
-            'state.rubro_id'                => ['required','exists:rubros,id'],
-            'state.rubros_anexos'           => ['array'],
-            'state.rubros_anexos.*'         => ['integer','exists:rubros,id','different:state.rubro_id','distinct'],
-            'state.disposiciones'           => ['array'],
-            'state.disposiciones.*.numero'  => ['nullable','string','max:60'],
-            'state.disposiciones.*.fecha'   => ['nullable','date'],
-            'state.habilitaciones'          => ['array'],
-            'state.habilitaciones.*.numero' => ['nullable','string','max:60'],
-            'state.habilitaciones.*.fecha'  => ['nullable','date'],
-        ];
-        $reglas = array_merge($reglas, $rulesExtra);
-
-        $validated = $this->validate($reglas, $this->mensajes(), $this->atributos());
-        $data = $validated['state'];
-
-        foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
-            if (!empty($data[$c])) $data[$c] = Str::title($data[$c]);
-        }
-
-        $esFisica = ($data['persona_tipo'] ?? 'fisica') === 'fisica';
-        if ($esFisica) {
-            $data['razon_social'] = $data['razon_social'] ?? null;
-        } else {
-            $data['apellido'] = $data['apellido'] ?? null;
-            $data['nombres']  = $data['nombres']  ?? null;
-        }
-
-        $documentos = $data['documentos'] ?? [];
-        unset($data['documentos']);
-        if (array_key_exists('doc_afip_constancia', $documentos)) {
-            if (($this->state['persona_tipo'] ?? 'fisica') === 'juridica') {
-                $documentos['doc_afip_constancia_juridica'] = (bool)$documentos['doc_afip_constancia'];
-            } else {
-                $documentos['doc_afip_constancia_fisica'] = (bool)$documentos['doc_afip_constancia'];
-            }
-            unset($documentos['doc_afip_constancia']);
-        }
-        if (array_key_exists('doc_recaudacion_rn', $documentos)) {
-            $documentos['doc_constancia_recaudacion'] = (bool)$documentos['doc_recaudacion_rn'];
-            unset($documentos['doc_recaudacion_rn']);
-        }
-
-        $data['dni_cuit'] = preg_replace('/\D/', '', $data['dni_cuit'] ?? '');
-
-        // NO eliminar nomenclatura (se guarda)
-        unset($data['domicilio_responsable']);
-
-        // Enriquecer geodatos (mantiene lat/lng si vienen, y completa barrio/nomenclatura)
-        $enricher = app(\App\Services\UbicacionGeoEnricher::class);
-        $data = $enricher->enrich($data);
-
-        $ubic = Ubicacion::create($data);
-
-        $permitidos = array_flip((new UbicacionDocumento)->getFillable());
-        $documentos = array_intersect_key($documentos, $permitidos);
-        foreach ($permitidos as $campo => $_) {
-            $documentos[$campo] = (bool)($documentos[$campo] ?? false);
-        }
-        $ubic->documentos()->updateOrCreate(
-            ['ubicacion_id' => $ubic->id],
-            array_merge($this->docDefaults, $documentos, ['ubicacion_id' => $ubic->id])
-        );
-
-        $principal = (int)($this->state['rubro_id'] ?? 0);
-        $anexos = collect($this->state['rubros_anexos'] ?? [])
-            ->map(fn($v)=>(int)$v)->filter()->reject(fn($id)=>$id === $principal)->unique()->values()->all();
-        $pivotIds = array_values(array_unique(array_merge([$principal], $anexos)));
-        $ubic->rubros()->sync($pivotIds);
-        $ubic->rubro_id = $principal ?: null;
-        $ubic->save();
-
-        $telSan = collect($this->state['telefonos'] ?? [])
-            ->map(fn($t)=>trim((string)$t))->filter(fn($t)=>$t !== '')->unique()->values();
-        foreach ($telSan as $t) $ubic->telefonos()->create(['telefono'=>$t]);
-
-        foreach (($this->state['disposiciones'] ?? []) as $d) {
-            $num = trim((string)($d['numero'] ?? '')); if ($num === '') continue;
-            $ubic->disposiciones()->create(['numero'=>$num, 'fecha'=>!empty($d['fecha']) ? $d['fecha'] : null]);
-        }
-
-        foreach (($this->state['habilitaciones'] ?? []) as $h) {
-            $num = trim((string)($h['numero'] ?? '')); if ($num === '') continue;
-            $ubic->habilitaciones()->create(['numero'=>$num, 'fecha'=>!empty($h['fecha']) ? $h['fecha'] : null]);
-        }
-
-        $this->resetPage();
-        $this->reset('state');
-        $this->dispatch('hide-form', ['message' => 'Comercio creado correctamente.']);
-    }
-
-    private function normalizarEstado(?string $estado): string
-    {
-        $e = trim(mb_strtolower($estado ?? ''));
-        return match ($e) {
-            'en tramite','en trámite','en_tramite','en-tramite' => 'entramite',
-            'vigente' => 'vigente',
-            'irregular' => 'irregular',
-            'baja' => 'baja',
-            default => 'entramite',
-        };
-    }
-
-    public function updateComercio()
-    {
-        $this->state['estado'] = $this->normalizarEstado($this->state['estado'] ?? null);
-        $this->aplicarFlagsEstadoEnState();
-        unset($this->state['situacion']);
-
-        $reglas = array_merge($this->reglasComunes(true), $this->reglasFechasPorEstado(false));
-        unset($reglas['state.situacion']);
-
-        $rulesExtra = [
-            'state.telefonos'               => ['array','min:1'],
-            'state.telefonos.*'             => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
-            'state.rubro_id'                => ['required','exists:rubros,id'],
-            'state.rubros_anexos'           => ['array'],
-            'state.rubros_anexos.*'         => ['integer','exists:rubros,id','different:state.rubro_id','distinct'],
-            'state.disposiciones'           => ['array'],
-            'state.disposiciones.*.numero'  => ['nullable','string','max:60'],
-            'state.disposiciones.*.fecha'   => ['nullable','date'],
-            'state.habilitaciones'          => ['array'],
-            'state.habilitaciones.*.numero' => ['nullable','string','max:60'],
-            'state.habilitaciones.*.fecha'  => ['nullable','date'],
-        ];
-        $reglas = array_merge($reglas, $rulesExtra);
-
-        $validated = $this->validate($reglas, $this->mensajes(), $this->atributos());
-        $data = $validated['state'];
-
-        foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
-            if (!empty($data[$c])) $data[$c] = Str::title($data[$c]);
-        }
-        $esFisica = ($data['persona_tipo'] ?? 'fisica') === 'fisica';
-        if ($esFisica) $data['razon_social'] = $data['razon_social'] ?? null;
-        else { $data['apellido'] = $data['apellido'] ?? null; $data['nombres'] = $data['nombres'] ?? null; }
-
-        $direccionVieja = trim((string)$this->ubicacion->getOriginal('domicilio_comercio'));
-        $direccionNueva = trim((string)($data['domicilio_comercio'] ?? ''));
-        if ($direccionNueva !== '' && $direccionNueva !== $direccionVieja) {
-            $enricher = app(\App\Services\UbicacionGeoEnricher::class);
-            $data = $enricher->enrich($data);
-        }
-
-        $data['dni_cuit'] = preg_replace('/\D/', '', $data['dni_cuit'] ?? '');
-        // NO eliminar nomenclatura
-        unset($data['domicilio_responsable']);
-
-        $documentos = $data['documentos'] ?? [];
-        unset($data['documentos']);
-        if (array_key_exists('doc_afip_constancia', $documentos)) {
-            if (($this->state['persona_tipo'] ?? 'fisica') === 'juridica')
-                $documentos['doc_afip_constancia_juridica'] = (bool)$documentos['doc_afip_constancia'];
-            else
-                $documentos['doc_afip_constancia_fisica'] = (bool)$documentos['doc_afip_constancia'];
-            unset($documentos['doc_afip_constancia']);
-        }
-        if (array_key_exists('doc_recaudacion_rn', $documentos)) {
-            $documentos['doc_constancia_recaudacion'] = (bool)$documentos['doc_recaudacion_rn'];
-            unset($documentos['doc_recaudacion_rn']);
-        }
-        $permitidos = array_flip((new \App\Models\UbicacionDocumento)->getFillable());
-        $documentos = array_intersect_key($documentos, $permitidos);
-
-        $this->ubicacion->update($data);
-
-        $this->ubicacion->documentos()->updateOrCreate(
-            ['ubicacion_id' => $this->ubicacion->id],
-            array_merge($this->docDefaults, $documentos, ['ubicacion_id' => $this->ubicacion->id])
-        );
-
-        $principal = (int)($this->state['rubro_id'] ?? 0);
-        $anexos = collect($this->state['rubros_anexos'] ?? [])
-            ->map(fn($v)=>(int)$v)->filter()->reject(fn($id)=>$id === $principal)->unique()->values()->all();
-        $pivotIds = array_values(array_unique(array_merge([$principal], $anexos)));
-
-        $this->ubicacion->rubros()->sync($pivotIds);
-        $this->ubicacion->rubro_id = $principal ?: null;
-        $this->ubicacion->save();
-
-        $this->ubicacion->telefonos()->delete();
-        $telSan = collect($this->state['telefonos'] ?? [])
-            ->map(fn($t)=>trim((string)$t))->filter(fn($t)=>$t !== '')->unique()->values();
-        foreach ($telSan as $t) $this->ubicacion->telefonos()->create(['telefono'=>$t]);
-
-        $this->ubicacion->disposiciones()->delete();
-        foreach (($this->state['disposiciones'] ?? []) as $d) {
-            $num = trim((string)($d['numero'] ?? '')); if ($num === '') continue;
-            $this->ubicacion->disposiciones()->create(['numero'=>$num,'fecha'=>!empty($d['fecha']) ? $d['fecha'] : null]);
-        }
-
-        $this->ubicacion->habilitaciones()->delete();
-        foreach (($this->state['habilitaciones'] ?? []) as $h) {
-            $num = trim((string)($h['numero'] ?? '')); if ($num === '') continue;
-            $this->ubicacion->habilitaciones()->create(['numero'=>$num,'fecha'=>!empty($h['fecha']) ? $h['fecha'] : null]);
-        }
-
-        $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
-        $this->resetPage();
-        $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
-    }
-
-    #[On('prefill-nuevo')]
-    public function prefillNuevo(?string $direccion = null, ?string $barrio = null, ?string $nomen = null): void
-    {
-        // Prepara el form como si hubieras tocado "Nuevo"
-        $this->nuevoComercio();
-
-        // Precarga campos (si te pasan valores)
-        if ($direccion !== null) $this->state['domicilio_comercio'] = $direccion;
-        if ($barrio    !== null) $this->state['barrio']             = $barrio;
-        if ($nomen     !== null) $this->state['nomenclatura']       = $nomen;
-
-        // Abre el modal (usa el mismo evento que ya tenés en form.blade)
-        $this->dispatch(
-            'show-form',
-            rubroId: ($this->state['rubro_id'] ?? null),
-            anexos:  ($this->state['rubros_anexos'] ?? [])
-        );
-    }
-
-
-    public function marcarTodosLosDocs(bool $valor = true): void
-    {
         $docs = $this->state['documentos'] ?? [];
-        foreach ($this->docKeysGeneral as $k) $docs[$k] = $valor;
-        if (($this->state['persona_tipo'] ?? 'fisica') === 'juridica') {
-            foreach ($this->docKeysJuridica as $k) $docs[$k] = $valor;
-        }
-        $this->state['documentos'] = array_merge($this->docDefaults, $docs);
+        // apago todo
+        foreach (array_keys($this->docLabels) as $k) $docs[$k] = false;
+        // preservo solo los del estado
+        foreach ($permitidos as $k) $docs[$k] = (bool)($docs[$k] ?? false);
+        // reset select
+        $docs['doc_uso_inmueble_tipo'] = null;
+
+        $this->state['documentos'] = $docs;
     }
-
-
 
     public function updatedStatePersonaTipo($tipo): void
     {
@@ -623,6 +440,167 @@ class Ubicaciones extends AdminComponent
         }
     }
 
+    public function marcarTodosLosDocs(bool $valor = true): void
+    {
+        $schema = $this->docSchema;
+        $docs = $this->state['documentos'] ?? [];
+        foreach ($schema['items'] as $it) {
+            if ($it['type'] === 'checkbox') $docs[$it['key']] = $valor;
+        }
+        if (($schema['uso_inmueble']['show'] ?? false) && isset($schema['uso_inmueble']['checkboxKey'])) {
+            $docs[$schema['uso_inmueble']['checkboxKey']] = $valor;
+        }
+        $this->state['documentos'] = $docs;
+    }
+
+    /** ======== Guardar ======== */
+    public function createCliente()
+    {
+        $validated = $this->validate([
+            'state.persona_tipo' => ['required', Rule::in(['fisica','juridica'])],
+            'state.dni_cuit'     => ['required','string'],
+            'state.rubro_id'     => ['required','exists:rubros,id'],
+            'state.estado'       => ['nullable', Rule::in(['entramite','vigente','irregular','baja'])],
+            'state.documentos'   => ['array'],
+        ]);
+
+        $data = $validated['state'];
+        foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
+            if (!empty($data[$c])) $data[$c] = Str::title($data[$c]);
+        }
+        $data['dni_cuit'] = preg_replace('/\D/','', $data['dni_cuit'] ?? '');
+        unset($data['domicilio_responsable']);
+
+        // Enriquecer geodatos si aplica
+        $enricher = app(\App\Services\UbicacionGeoEnricher::class);
+        $data = $enricher->enrich($data);
+
+        DB::transaction(function () use ($data) {
+            // 1) Ubicación
+            $ubic = Ubicacion::create($data);
+
+            // 2) Documentos
+            $docs = $this->normalizeDocsArray($this->state['documentos'] ?? []);
+            $tipo = $docs['doc_uso_inmueble_tipo'] ?? null;
+            foreach (['doc_uso_boleto','doc_uso_contrato','doc_uso_comodato','doc_uso_titulo','doc_uso_cert_ocupacion'] as $k) {
+                $docs[$k] = false;
+            }
+            $map = [
+                'boleto'=>'doc_uso_boleto','contrato'=>'doc_uso_contrato','comodato'=>'doc_uso_comodato',
+                'titulo'=>'doc_uso_titulo','cert_ocupacion'=>'doc_uso_cert_ocupacion',
+            ];
+            if ($tipo && isset($map[$tipo])) $docs[$map[$tipo]] = true;
+
+            $cols = Schema::getColumnListing('ubicacion_documentos');
+            $payload = array_intersect_key($docs, array_flip($cols));
+            $ubic->documentos()->updateOrCreate(
+                ['ubicacion_id' => $ubic->id],
+                $payload + ['ubicacion_id' => $ubic->id]
+            );
+
+            // 3) Rubros
+            $principal = (int)($this->state['rubro_id'] ?? 0);
+            $anexos = collect($this->state['rubros_anexos'] ?? [])
+                ->map(fn($v)=>(int)$v)->filter()->reject(fn($id)=>$id===$principal)->unique()->values()->all();
+            $ubic->rubros()->sync(array_values(array_unique(array_merge([$principal], $anexos))));
+            $ubic->rubro_id = $principal ?: null;
+            $ubic->save();
+
+            // 4) Teléfonos
+            $telSan = collect($this->state['telefonos'] ?? [])->map(fn($t)=>trim((string)$t))->filter()->unique()->values();
+            foreach ($telSan as $t) $ubic->telefonos()->create(['telefono'=>$t]);
+
+            // 5) Disposiciones / Habilitaciones
+            foreach (($this->state['disposiciones'] ?? []) as $d) {
+                $num = trim((string)($d['numero'] ?? '')); if ($num==='') continue;
+                $ubic->disposiciones()->create(['numero'=>$num,'fecha'=>!empty($d['fecha'])?$d['fecha']:null]);
+            }
+            foreach (($this->state['habilitaciones'] ?? []) as $h) {
+                $num = trim((string)($h['numero'] ?? '')); if ($num==='') continue;
+                $ubic->habilitaciones()->create(['numero'=>$num,'fecha'=>!empty($h['fecha'])?$h['fecha']:null]);
+            }
+        });
+
+        $this->resetPage();
+        $this->reset('state','ubicacion');
+        $this->dispatch('hide-form', ['message' => 'Comercio creado correctamente.']);
+    }
+
+    public function updateComercio()
+    {
+        $validated = $this->validate([
+            'state.persona_tipo' => ['required', Rule::in(['fisica','juridica'])],
+            'state.dni_cuit'     => ['required','string'],
+            'state.rubro_id'     => ['required','exists:rubros,id'],
+            'state.estado'       => ['required', Rule::in(['entramite','vigente','irregular','baja'])],
+            'state.documentos'   => ['array'],
+        ]);
+
+        $data = $validated['state'];
+        foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
+            if (!empty($data[$c])) $data[$c] = Str::title($data[$c]);
+        }
+        $data['dni_cuit'] = preg_replace('/\D/','', $data['dni_cuit'] ?? '');
+        unset($data['domicilio_responsable']);
+
+        DB::transaction(function () use ($data) {
+            // 1) Ubicación
+            $docsFromUI = $this->state['documentos'] ?? [];
+            unset($data['documentos']);
+            $this->ubicacion->update($data);
+
+            // 2) Documentos
+            $incoming = $this->normalizeDocsArray($docsFromUI);
+            $tipo = $incoming['doc_uso_inmueble_tipo'] ?? null;
+            foreach (['doc_uso_boleto','doc_uso_contrato','doc_uso_comodato','doc_uso_titulo','doc_uso_cert_ocupacion'] as $k) {
+                $incoming[$k] = false;
+            }
+            $map = [
+                'boleto'=>'doc_uso_boleto','contrato'=>'doc_uso_contrato','comodato'=>'doc_uso_comodato',
+                'titulo'=>'doc_uso_titulo','cert_ocupacion'=>'doc_uso_cert_ocupacion',
+            ];
+            if ($tipo && isset($map[$tipo])) $incoming[$map[$tipo]] = true;
+
+            $cols = Schema::getColumnListing('ubicacion_documentos');
+            $payload = array_intersect_key($incoming, array_flip($cols));
+            $this->ubicacion->documentos()->updateOrCreate(
+                ['ubicacion_id' => $this->ubicacion->id],
+                $payload + ['ubicacion_id' => $this->ubicacion->id]
+            );
+
+            // 3) Rubros
+            $principal = (int)($this->state['rubro_id'] ?? 0);
+            $anexos = collect($this->state['rubros_anexos'] ?? [])
+                ->map(fn($v)=>(int)$v)->filter()->reject(fn($id)=>$id===$principal)->unique()->values()->all();
+            $this->ubicacion->rubros()->sync(array_values(array_unique(array_merge([$principal], $anexos))));
+            $this->ubicacion->rubro_id = $principal ?: null;
+            $this->ubicacion->save();
+
+            // 4) Teléfonos
+            $this->ubicacion->telefonos()->delete();
+            $telSan = collect($this->state['telefonos'] ?? [])->map(fn($t)=>trim((string)$t))->filter()->unique()->values();
+            foreach ($telSan as $t) $this->ubicacion->telefonos()->create(['telefono'=>$t]);
+
+            // 5) Disposiciones / Habilitaciones
+            $this->ubicacion->disposiciones()->delete();
+            foreach (($this->state['disposiciones'] ?? []) as $d) {
+                $num = trim((string)($d['numero'] ?? '')); if ($num==='') continue;
+                $this->ubicacion->disposiciones()->create(['numero'=>$num,'fecha'=>!empty($d['fecha'])?$d['fecha']:null]);
+            }
+
+            $this->ubicacion->habilitaciones()->delete();
+            foreach (($this->state['habilitaciones'] ?? []) as $h) {
+                $num = trim((string)($h['numero'] ?? '')); if ($num==='') continue;
+                $this->ubicacion->habilitaciones()->create(['numero'=>$num,'fecha'=>!empty($h['fecha'])?$h['fecha']:null]);
+            }
+        });
+
+        $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
+        $this->resetPage();
+        $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
+    }
+
+    /** ======== Otros ======== */
     public function resetForm()
     {
         $this->state = [];
@@ -656,18 +634,8 @@ class Ubicaciones extends AdminComponent
         ];
 
         switch ($nuevo) {
-            case 'entramite':
-                break;
             case 'vigente':
                 if ($esCreate) $reglas['state.fecha_alta'] = 'required|date';
-                else {
-                    $prevNorm       = $this->normalizarEstado($this->ubicacion?->getOriginal('estado') ?? null);
-                    $yaTeniaAlta    = !empty($this->ubicacion?->fecha_alta);
-                    $vieneAltaAhora = !empty($this->state['fecha_alta']);
-                    if ($prevNorm === 'entramite' && !$yaTeniaAlta && !$vieneAltaAhora) {
-                        $reglas['state.fecha_alta'] = 'required|date';
-                    }
-                }
                 break;
             case 'irregular':
                 $reglas['state.fecha_alta'] = 'required|date';

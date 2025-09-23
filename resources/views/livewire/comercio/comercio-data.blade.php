@@ -305,8 +305,6 @@
           @endif
         </div>
       </div>
-
-      @include('livewire.comercio.form')
     </div>
 
     {{-- Documentación --}}
@@ -324,37 +322,73 @@
 
       <div x-show="open" x-collapse x-cloak>
         <div class="card-body">
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <h6 class="mb-2">Generales</h6>
-              @foreach($labelsGenerales as $key => $label)
-                @php $ok = !empty($docs[$key] ?? false); @endphp
-                <div class="mb-2 p-2 rounded border {{ $ok ? 'bg-success text-white border-success' : 'bg-light text-muted border-secondary' }}">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <span class="small">{{ $label }}</span>
-                    <span class="badge {{ $ok ? 'badge-light' : 'badge-secondary' }}">{{ $ok ? 'Sí' : 'No' }}</span>
+          {{-- Lista de items según estado --}}
+          @if(empty($schema['items']))
+            <div class="alert alert-info mb-3">
+              Para el estado <strong>{{ ucfirst($ubicacion->estado ?? '—') }}</strong> no se requiere documentación para verificar.
+            </div>
+          @else
+            <div class="row">
+              @foreach($schema['items'] as $i => $it)
+                @php $ok = !empty($docs[$it['key']] ?? false); @endphp
+                <div class="col-md-6 mb-2">
+                  <div class="p-2 rounded border {{ $ok ? 'bg-success text-white border-success' : 'bg-light text-muted border-secondary' }}">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span class="small">{{ $it['label'] }}</span>
+                      <span class="badge {{ $ok ? 'badge-light' : 'badge-secondary' }}">{{ $ok ? 'Sí' : 'No' }}</span>
+                    </div>
                   </div>
                 </div>
               @endforeach
             </div>
+          @endif
 
-            @if($esJuridica)
-              <div class="col-md-6 mb-3">
-                <h6 class="mb-2">Personas Jurídicas</h6>
-                @foreach($labelsJuridicas as $key => $label)
-                  @php $ok = !empty($docs[$key] ?? false); @endphp
-                  <div class="mb-2 p-2 rounded border {{ $ok ? 'bg-success text-white border-success' : 'bg-light text-muted border-secondary' }}">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <span class="small">{{ $label }}</span>
-                      <span class="badge {{ $ok ? 'badge-light' : 'badge-secondary' }}">{{ $ok ? 'Sí' : 'No' }}</span>
-                    </div>
+          {{-- Uso de inmueble: checkbox + selección elegida (si corresponde en este estado) --}}
+          @if(data_get($schema,'uso_inmueble.show'))
+            <hr>
+            @php
+              $usoPresenta = !empty($docs[data_get($schema,'uso_inmueble.checkboxKey')] ?? false);
+              $tipoSel = $docs['doc_uso_inmueble_tipo'] ?? null;
+              $opts = data_get($schema,'uso_inmueble.options',[]);
+              if (!$tipoSel) {
+                $mapBoolToKey = [
+                  'doc_uso_boleto'         => 'boleto',
+                  'doc_uso_contrato'       => 'contrato',
+                  'doc_uso_comodato'       => 'comodato',
+                  'doc_uso_titulo'         => 'titulo',
+                  'doc_uso_cert_ocupacion' => 'cert_ocupacion',
+                ];
+                foreach ($mapBoolToKey as $flag => $val) {
+                  if (!empty($docs[$flag])) { $tipoSel = $val; break; }
+                }
+              }
+            @endphp
+
+            <h6 class="mb-2">{{ data_get($schema,'uso_inmueble.label','Uso de inmueble') }}</h6>
+            <div class="row">
+              <div class="col-md-4 mb-2">
+                <div class="p-2 rounded border {{ $usoPresenta ? 'bg-success text-white border-success' : 'bg-light text-muted border-secondary' }}">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="small">Presenta comprobante</span>
+                    <span class="badge {{ $usoPresenta ? 'badge-light' : 'badge-secondary' }}">{{ $usoPresenta ? 'Sí' : 'No' }}</span>
                   </div>
-                @endforeach
+                </div>
               </div>
-            @endif
-          </div>
+              <div class="form-group col-md-8 mb-2">
+                <div class="p-2 rounded border bg-light">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="small">Tipo: </span>
+                    <strong class="font-weight-bold text-nowrap ml-2 -sm">
+                      {{ $tipoSel && isset($opts[$tipoSel]) ? $opts[$tipoSel] : '—' }}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          @endif
         </div>
       </div>
     </div>
   </div>
+  @include('livewire.comercio.form')
 </div>

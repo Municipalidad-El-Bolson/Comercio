@@ -279,92 +279,73 @@
           @error('state.observaciones') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
-        {{-- Documentación --}}
+        {{-- Documentación (dinámica por estado) --}}
+        @php
+          /** BLINDAJE docSchema (acepta inyección por include y evita tocar $this si no hace falta) */
+          $docSchema = isset($docSchema) && is_array($docSchema)
+            ? $docSchema
+            : (method_exists($this, 'getDocSchemaProperty') ? $this->docSchema : ['items' => [], 'uso_inmueble' => ['show' => false]]);
+
+        @endphp
+        @php $estadoActual = data_get($state,'estado'); @endphp
         <div class="border rounded p-2 mt-2">
           <div class="d-flex align-items-center justify-content-between mb-2">
             <h6 class="mb-0">Documentación</h6>
             <div class="btn-group btn-group-sm">
-              <button type="button" class="btn btn-success" wire:click="marcarTodosLosDocs(true)">Presentó toda la documentación</button>
+              <button type="button" class="btn btn-success" wire:click="marcarTodosLosDocs(true)" @disabled(empty($docSchema['items']) && empty($docSchema['uso_inmueble']['show']))>Presentó toda la documentación</button>
               <button type="button" class="btn btn-outline-secondary" wire:click="marcarTodosLosDocs(false)">Limpiar</button>
             </div>
           </div>
 
-          <div class="row">
-            <div class="col-md-6">
-              <strong class="d-block mb-1">General</strong>
-
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_libre_deuda_municipal">
-                <span class="form-check-label">Certificado de libre deuda municipal</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_planeamiento_urbano">
-                <span class="form-check-label">Dirección de Planeamiento Urbano</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_solicitud_habilitacion_pago">
-                <span class="form-check-label">Solicitud de habilitación + pago</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_comprobante_uso_local">
-                <span class="form-check-label">Comprobante de uso del local</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_afip_constancia">
-                <span class="form-check-label">Constancia de inscripción emitida por AFIP</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_recaudacion_rn">
-                <span class="form-check-label">Constancia de inscripción de Agencia de Recaudación Río Negro</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_fotocopia_dni">
-                <span class="form-check-label">Fotocopia del DNI</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_comprobante_uso_inmueble">
-                <span class="form-check-label">Comprobante de uso del inmueble</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_libre_deuda_tasas_inmueble">
-                <span class="form-check-label">Libre deuda de tasas municipales</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_aptitud_tecnica_local">
-                <span class="form-check-label">Certificado de aptitud técnica del local</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_cocap_rhi">
-                <span class="form-check-label">Certificado de CO.CA.P.R.HI</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_nota_carteleria_obras">
-                <span class="form-check-label">Nota a Obras Públicas declarando cartelería</span>
-              </label>
-              <label class="form-check mb-1">
-                <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_libro_actas_100">
-                <span class="form-check-label">Libro de actas de 100 hojas</span>
-              </label>
+          @if($estadoActual === 'vigente')
+            <div class="alert alert-info py-2 mb-0">
+              Este comercio está <strong>Vigente/Alta</strong>: no se requiere documentación adicional.
             </div>
+          @else
+            <div class="row">
+              <div class="col-md-12">
+                @if(empty($docSchema['items']) && empty($docSchema['uso_inmueble']['show']))
+                  <em>No hay documentos para este estado.</em>
+                @else
+                  <div class="row">
+                    @foreach($docSchema['items'] as $i => $it)
+                      <div class="col-md-6">
+                        <label class="form-check mb-1">
+                          <input class="form-check-input" type="checkbox" wire:model="state.documentos.{{ $it['key'] }}">
+                          <span class="form-check-label">{{ $it['label'] }}</span>
+                        </label>
+                      </div>
+                    @endforeach
+                  </div>
 
-            @if( data_get($state,'persona_tipo','fisica') === 'juridica' )
-              <div class="col-md-6">
-                <strong class="d-block mb-1">Personas Jurídicas</strong>
-                <label class="form-check mb-1">
-                  <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_acta_constitucion">
-                  <span class="form-check-label">Acta de constitución</span>
-                </label>
-                <label class="form-check mb-1">
-                  <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_contrato_societario">
-                  <span class="form-check-label">Contrato societario</span>
-                </label>
-                <label class="form-check mb-1">
-                  <input class="form-check-input" type="checkbox" wire:model="state.documentos.doc_docs_representantes">
-                  <span class="form-check-label">Documentación de representantes</span>
-                </label>
+                  {{-- Uso de inmueble: checkbox + select (reemplaza el de entrámite y vale para irregular) --}}
+                  @if(data_get($docSchema,'uso_inmueble.show'))
+                    <hr class="my-2">
+                    <div class="form-row align-items-end">
+                      <div class="form-group col-md-4 mb-2">
+                        <label class="mb-1 d-block">{{ data_get($docSchema,'uso_inmueble.label','Uso de inmueble') }}</label>
+                        <label class="form-check m-0">
+                          <input class="form-check-input" type="checkbox"
+                                wire:model="state.documentos.{{ $docSchema['uso_inmueble']['checkboxKey'] }}">
+                          <span class="form-check-label">Presenta comprobante</span>
+                        </label>
+                      </div>
+                      <div class="form-group col-md-8 mb-2">
+                        <label class="mb-1" for="uso_inmueble_tipo">Tipo</label>
+                        <select id="uso_inmueble_tipo" class="form-control form-control-sm"
+                                wire:model="state.documentos.{{ $docSchema['uso_inmueble']['selectKey'] }}">
+                          <option value="">-- Seleccione uno--</option>
+                          @foreach($docSchema['uso_inmueble']['options'] as $val => $txt)
+                            <option value="{{ $val }}">{{ $txt }}</option>
+                          @endforeach
+                        </select>
+                      </div>
+                    </div>
+                  @endif
+                @endif
               </div>
-            @endif
-          </div>
+            </div>
+          @endif
         </div>
       </div>
 
