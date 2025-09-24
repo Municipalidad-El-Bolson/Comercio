@@ -232,7 +232,7 @@
           {{-- Monto --}}
           <div class="form-group col-md-4 mb-2">
             <label class="mb-1" for="monto_pagar">Monto a pagar (opcional)</label>
-            <input type="number" step="0.01" id="monto_pagar" wire:model.defer="state.monto_pagar"
+            <input type="number" step="0.01" inputmode="decimal" id="monto_pagar" wire:model.defer="state.monto_pagar"
               class="form-control form-control-sm @error('state.monto_pagar') is-invalid @enderror" placeholder="0.00">
             @error('state.monto_pagar') <div class="invalid-feedback">{{ $message }}</div> @enderror
           </div>
@@ -271,6 +271,14 @@
               @error('state.fecha_baja') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
           @endif
+          {{-- Situacion --}}
+          <div class="form-group col-md-4 mb-2">
+            <label class="form-check mb-1">Situación:</label>
+            <select id="situacion" wire:model.live="state.situacion"
+                    class="form-control form-control-sm @error('state.situacion') is-invalid @enderror">
+              <option value="clausurado">Claururado</option>
+            </select>
+          </div>
         </div>
 
         <div class="form-group mb-2">

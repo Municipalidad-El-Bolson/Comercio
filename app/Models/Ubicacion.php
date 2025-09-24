@@ -20,6 +20,42 @@ class Ubicacion extends Model
 
     use HasFactory;
 
+    protected $fillable = [
+        'persona_tipo',
+        'apellido',
+        'nombres',
+        'razon_social',
+        'dni_cuit',
+        'rubro_id',
+        'domicilio_responsable',
+        'correo',
+        'telefono',
+        'nombre_comercial',
+        'domicilio_comercio',
+        'nomenclatura',
+        'lat','lng','barrio','cpu_cod','cpu_nombre',
+        'observaciones',
+        'estado',           // vigente | irregular | entramite
+        'situacion',
+        'tipo_hab',        // alta | baja
+        'fecha_alta',
+        'fecha_baja',
+        'fecha_vto',
+        'barrio',
+        'nomenclatura',
+        'monto_pagar',
+    ];
+
+    protected $casts = [
+        'fecha_alta' => 'date',
+        'fecha_baja' => 'date',
+        'fecha_vto'  => 'date',
+        'lat'        => 'float',
+        'lng'        => 'float',
+        'monto_pagar'=> 'decimal:2',
+    ];
+
+
     public function scopeVigentes($q) { return $q->where('estado','vigente')->whereDate('fecha_vto','>=',now()); }
     public function scopeVencidos($q) { return $q->where('estado','vigente')->whereDate('fecha_vto','<',now()); }
     public function scopeEnTramite($q){ return $q->where('estado','entramite'); }
@@ -80,9 +116,6 @@ class Ubicacion extends Model
 
                 if ($m->fecha_alta) {
                     $alta = $m->fecha_alta instanceof \Carbon\Carbon ? $m->fecha_alta->copy() : \Carbon\Carbon::parse($m->fecha_alta);
-                    $m->fecha_vto = $tipo === 'definitiva'
-                        ? $alta->addYearNoOverflow()
-                        : $alta->addMonthsNoOverflow(6);
                 } else {
                     $m->fecha_vto = null;
                 }
@@ -91,22 +124,11 @@ class Ubicacion extends Model
 
             if ($estado === 'baja') {
                 $m->situacion = 'baja';
-                // No tocamos alta/baja: vienen del form. VTO no aplica
                 $m->fecha_vto = null;
             }
         });
     }
 
-    private static function calcularVto(Carbon|string $fechaAlta, string $tipo): Carbon
-    {
-        $alta = $fechaAlta instanceof Carbon ? $fechaAlta->copy() : Carbon::parse($fechaAlta);
-        
-        return match ($tipo) {
-            'definitiva' => $alta->addYearNoOverflow(),
-            'prev'       => $alta->addMonthsNoOverflow(6),
-            default      => $alta->addMonthsNoOverflow(6),
-        };
-    }
 
     // Para la UI
     public function getHabilitaSeguimientoAttribute(): bool{ return (bool) optional($this->estadoModel)->habilita_seguimiento;}
@@ -120,73 +142,48 @@ class Ubicacion extends Model
         };
     }
 
-
+    public function setFechaVtoAttribute($value)
+    {
+        $this->attributes['fecha_vto'] = $value ? Carbon::parse($value) : null;
+    }
+    
     private static function normalizeDireccionComercio(?string $dir): ?string
-{
-    if ($dir === null) return null;
-    $dir = trim($dir);
-    if ($dir === '') return null;
+    {
+        if ($dir === null) return null;
+        $dir = trim($dir);
+        if ($dir === '') return null;
 
-    // Compactar espacios y trailing commas
-    $dir = preg_replace('/\s+/', ' ', $dir);
-    $dir = rtrim($dir, " \t\n\r\0\x0B,");
+        // Compactar espacios y trailing commas
+        $dir = preg_replace('/\s+/', ' ', $dir);
+        $dir = rtrim($dir, " \t\n\r\0\x0B,");
 
-    // Sufijo correcto y ÚNICO (con país)
-    $suffix = ', R8430 El Bolsón, Río Negro, Argentina';
+        // Sufijo correcto y ÚNICO (con país)
+        $suffix = ', R8430 El Bolsón, Río Negro, Argentina';
 
-    // Variantes a limpiar (con/sin acentos/país)
-    $lower = mb_strtolower($dir);
-    $variants = [
-        ', r8430 el bolsón, río negro, argentina',
-        ', r8430 el bolson, rio negro, argentina',
-        ', r8430 el bolsón, rio negro, argentina',
-        ', r8430 el bolson, río negro, argentina',
-        ', r8430 el bolsón, río negro',
-        ', r8430 el bolson, rio negro',
-        ', r8430 el bolsón, rio negro',
-        ', r8430 el bolson, río negro',
-    ];
+        // Variantes a limpiar (con/sin acentos/país)
+        $lower = mb_strtolower($dir);
+        $variants = [
+            ', r8430 el bolsón, río negro, argentina',
+            ', r8430 el bolson, rio negro, argentina',
+            ', r8430 el bolsón, rio negro, argentina',
+            ', r8430 el bolson, río negro, argentina',
+            ', r8430 el bolsón, río negro',
+            ', r8430 el bolson, rio negro',
+            ', r8430 el bolsón, rio negro',
+            ', r8430 el bolson, río negro',
+        ];
 
-    foreach ($variants as $v) {
-        if (Str::endsWith($lower, $v)) {
-            $dir = mb_substr($dir, 0, mb_strlen($dir) - mb_strlen($v));
-            $dir = rtrim($dir, " \t\n\r\0\x0B,");
-            break;
+        foreach ($variants as $v) {
+            if (Str::endsWith($lower, $v)) {
+                $dir = mb_substr($dir, 0, mb_strlen($dir) - mb_strlen($v));
+                $dir = rtrim($dir, " \t\n\r\0\x0B,");
+                break;
+            }
         }
+
+        return $dir . $suffix;
     }
 
-    return $dir . $suffix;
-}
-
-
-    protected $casts = [
-        'fecha_alta' => 'date',
-        'fecha_baja' => 'date',
-        'fecha_vto'  => 'date',
-    ];
-
-    protected $fillable = [
-        'persona_tipo',
-        'apellido',
-        'nombres',
-        'razon_social',
-        'dni_cuit',
-        'rubro_id',
-        'domicilio_responsable',
-        'correo',
-        'telefono',
-        'nombre_comercial',
-        'domicilio_comercio',
-        'nomenclatura',
-        'lat','lng','barrio','cpu_cod','cpu_nombre',
-        'observaciones',
-        'estado',           // vigente | irregular | entramite
-        'situacion',
-        'tipo_hab',        // alta | baja
-        'fecha_alta',
-        'fecha_baja',
-        'fecha_vto',
-    ];
 
     // Si deseas deshabilitar los timestamps en el modelo
     public $timestamps = false;
