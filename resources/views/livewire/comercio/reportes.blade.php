@@ -54,6 +54,12 @@
                 <option value="90">90</option>
               </select>
             </div>
+            <div class="form-group col-md-3 d-flex align-items-end">
+              <div class="form-check">
+                <input id="chk-claus" type="checkbox" class="form-check-input" wire:model.live="solo_clausurados">
+                <label for="chk-claus" class="form-check-label">Sólo clausurados</label>
+              </div>
+            </div>
           </div>
 
           <button class="btn btn-outline-danger btn-sm" wire:click="exportarPdf">

@@ -9,16 +9,14 @@ use App\Models\ComercioEstado;
 use Illuminate\Support\Str;
 use App\Traits\AuditsModelChanges;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;   // (si querés tipar rubro())
-use Illuminate\Database\Eloquent\Relations\HasMany; 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ubicacion extends Model
 {
     use AuditsModelChanges, HasFactory;
-    
-    protected $table = 'ubicaciones';
 
-    use HasFactory;
+    protected $table = 'ubicaciones';
 
     protected $fillable = [
         'persona_tipo',
@@ -35,34 +33,32 @@ class Ubicacion extends Model
         'nomenclatura',
         'lat','lng','barrio','cpu_cod','cpu_nombre',
         'observaciones',
-        'estado',           // vigente | irregular | entramite
-        'situacion',
-        'tipo_hab',        // alta | baja
+        'estado',        // entramite | vigente | irregular | baja | baja_oficio | sin_efecto
+        'situacion',     // null | alta | baja | clausurado
+        'tipo_hab',      // definitiva | prev
         'fecha_alta',
         'fecha_baja',
         'fecha_vto',
-        'barrio',
-        'nomenclatura',
         'monto_pagar',
     ];
 
     protected $casts = [
-        'fecha_alta' => 'date',
-        'fecha_baja' => 'date',
-        'fecha_vto'  => 'date',
-        'lat'        => 'float',
-        'lng'        => 'float',
-        'monto_pagar'=> 'decimal:2',
+        'fecha_alta'  => 'date',
+        'fecha_baja'  => 'date',
+        'fecha_vto'   => 'date',
+        'lat'         => 'float',
+        'lng'         => 'float',
+        'monto_pagar' => 'decimal:2',
     ];
 
+    // ─── Scopes ─────────────────────────────────────────────────────────────────
+    public function scopeVigentes($q)  { return $q->where('estado','vigente')->whereDate('fecha_vto','>=', now()); }
+    public function scopeVencidos($q)  { return $q->where('estado','vigente')->whereDate('fecha_vto','<',  now()); }
+    public function scopeEnTramite($q) { return $q->where('estado','entramite'); }
+    public function scopeClausurados($q){ return $q->where('situacion','clausurado'); } // ← corregido
 
-    public function scopeVigentes($q) { return $q->where('estado','vigente')->whereDate('fecha_vto','>=',now()); }
-    public function scopeVencidos($q) { return $q->where('estado','vigente')->whereDate('fecha_vto','<',now()); }
-    public function scopeEnTramite($q){ return $q->where('estado','entramite'); }
-    public function scopeClausurados($q){ return $q->where('estado','irregular'); }
-
-
-    public function rubro(){ return $this->belongsTo(Rubro::class, 'rubro_id'); }
+    // ─── Rels ───────────────────────────────────────────────────────────────────
+    public function rubro(): BelongsTo { return $this->belongsTo(Rubro::class, 'rubro_id'); }
 
     public function rubros(): BelongsToMany
     {
@@ -71,67 +67,66 @@ class Ubicacion extends Model
             ->withPivot('orden')
             ->orderBy('ubicacion_rubro.orden');
     }
-    
-    public function telefonos(): HasMany
-    {
-        return $this->hasMany(\App\Models\UbicacionTelefono::class);
-    }
 
-    public function disposiciones(): HasMany
-    {
-        return $this->hasMany(\App\Models\UbicacionDisposicion::class);
-    }
+    public function telefonos(): HasMany       { return $this->hasMany(UbicacionTelefono::class); }
+    public function disposiciones(): HasMany    { return $this->hasMany(UbicacionDisposicion::class); }
+    public function habilitaciones(): HasMany   { return $this->hasMany(UbicacionHabilitacion::class); }
+    public function documentos()                { return $this->hasOne(UbicacionDocumento::class); }
+    public function movimientos()               { return $this->hasMany(Movimiento::class); }
+    public function estadoModel()               { return $this->belongsTo(ComercioEstado::class, 'estado', 'codigo'); }
 
-    public function habilitaciones(): HasMany
-    {
-        return $this->hasMany(\App\Models\UbicacionHabilitacion::class);
-    }
-
-    public function documentos(){ return $this->hasOne(UbicacionDocumento::class);}
-
-    public function movimientos(){ return $this->hasMany(Movimiento::class);}
-
-    public function estadoModel(){ return $this->belongsTo(ComercioEstado::class, 'estado', 'codigo');}
-
+    // ─── Hooks de modelo ────────────────────────────────────────────────────────
     protected static function booted()
     {
         static::saving(function (Ubicacion $m) {
+            // Normalizar dirección (sin forzar ciudad/país duplicado)
             $m->domicilio_comercio = self::normalizeDireccionComercio($m->domicilio_comercio);
 
-            $estado  = $m->estado ?: 'entramite';
-            $tipo    = $m->tipo_hab ?: 'definitiva';
-            $alta    = $m->fecha_alta;
+            $estado = $m->estado ?: 'entramite';
 
-            if ($estado === 'entramite') {
-                $m->situacion  = null;
-                $m->fecha_alta = null;
-                $m->fecha_baja = null;
-                $m->fecha_vto  = null;
+            // Si ya está marcado como clausurado, respetar
+            if ($m->situacion === 'clausurado') {
+                // fechas no se tocan; el flag de clausura manda
                 return;
             }
 
-            if ($estado === 'vigente' || $estado === 'irregular') {
-                $m->situacion = 'alta';
-                $m->fecha_baja = null;
+            // Mapear situacion por estado (sin pisar clausurado)
+            $m->situacion = match ($estado) {
+                'vigente', 'irregular' => 'alta',
+                'baja', 'baja_oficio', 'sin_efecto' => 'baja',
+                default => null, // entramite u otros
+            };
 
-                if ($m->fecha_alta) {
-                    $alta = $m->fecha_alta instanceof \Carbon\Carbon ? $m->fecha_alta->copy() : \Carbon\Carbon::parse($m->fecha_alta);
-                } else {
+            // Fechas por estado:
+            switch ($estado) {
+                case 'entramite':
+                    // En trámite: normalmente sin fechas (dejar manual si ya venían? tu lógica actual las limpia)
+                    $m->fecha_alta = null;
+                    $m->fecha_baja = null;
+                    $m->fecha_vto  = null;
+                    break;
+
+                case 'vigente':
+                case 'irregular':
+                    // Alta: NO tocar fecha_vto (es manual). Solo asegurar baja = null.
+                    $m->fecha_baja = null;
+                    // fecha_alta la maneja el form/validador; no la forzamos.
+                    break;
+
+                case 'baja':
+                case 'baja_oficio':
+                case 'sin_efecto':
+                    // Estados de baja: no tiene sentido mantener vencimiento
                     $m->fecha_vto = null;
-                }
-                return;
-            }
-
-            if ($estado === 'baja') {
-                $m->situacion = 'baja';
-                $m->fecha_vto = null;
+                    // fecha_baja la controla el form (y validación); no la forzamos aquí
+                    break;
             }
         });
     }
 
-
-    // Para la UI
-    public function getHabilitaSeguimientoAttribute(): bool{ return (bool) optional($this->estadoModel)->habilita_seguimiento;}
+    // ─── Atributos auxiliares para la UI ───────────────────────────────────────
+    public function getHabilitaSeguimientoAttribute(): bool
+    { return (bool) optional($this->estadoModel)->habilita_seguimiento; }
 
     public function getTipoHabLabelAttribute(): string
     {
@@ -142,25 +137,33 @@ class Ubicacion extends Model
         };
     }
 
+    public function getEsClausuradoAttribute(): bool
+    { return $this->situacion === 'clausurado'; }
+
+    // ─── Mutators ──────────────────────────────────────────────────────────────
     public function setFechaVtoAttribute($value)
-    {
-        $this->attributes['fecha_vto'] = $value ? Carbon::parse($value) : null;
-    }
-    
+    { $this->attributes['fecha_vto'] = $value ? Carbon::parse($value) : null; }
+
+    public function setFechaAltaAttribute($value)
+    { $this->attributes['fecha_alta'] = $value ? Carbon::parse($value) : null; }
+
+    public function setFechaBajaAttribute($value)
+    { $this->attributes['fecha_baja'] = $value ? Carbon::parse($value) : null; }
+
+    // ─── Normalizador de dirección ────────────────────────────────────────────
     private static function normalizeDireccionComercio(?string $dir): ?string
     {
         if ($dir === null) return null;
         $dir = trim($dir);
         if ($dir === '') return null;
 
-        // Compactar espacios y trailing commas
         $dir = preg_replace('/\s+/', ' ', $dir);
         $dir = rtrim($dir, " \t\n\r\0\x0B,");
 
-        // Sufijo correcto y ÚNICO (con país)
+        // Sufijo único
         $suffix = ', R8430 El Bolsón, Río Negro, Argentina';
 
-        // Variantes a limpiar (con/sin acentos/país)
+        // Variantes a limpiar (con/sin acentos)
         $lower = mb_strtolower($dir);
         $variants = [
             ', r8430 el bolsón, río negro, argentina',
@@ -184,15 +187,12 @@ class Ubicacion extends Model
         return $dir . $suffix;
     }
 
-
-    // Si deseas deshabilitar los timestamps en el modelo
+    // Si tu tabla no tiene timestamps:
     public $timestamps = false;
 
-        public function auditMessage(string $action, array $meta = []): string
+    public function auditMessage(string $action, array $meta = []): string
     {
-        // ajustá el campo que tenga el “nombre” real de la ubicación:
         $nombre = $this->nombre_comercial;
-
         return match ($action) {
             'created' => "Se creó el comercio {$nombre}",
             'updated' => "Se modificó el comercio {$nombre}",

@@ -35,40 +35,58 @@
                                 <th class="text-sm">Rubro</th>
                                 <th class="text-sm">Domicilio Comercio</th>
                                 <th class="text-sm">Estado</th>
-                                <th class="text-sm">Situación</th>
                                 <th class="text-sm text-bold text-center">Subir Actas</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse ($ubicaciones as $ubicacion)
-                                <tr onclick="window.location='{{ route('comercio.data', $ubicacion) }}'"
-                                    style="cursor:pointer;">
-                                    <td class="text-sm font-weight-bold">
-                                        {{ $ubicacion->nombre_comercial ?: '—' }}
-                                    </td>
-                                    <td class="text-sm">{{ $ubicacion->dni_cuit }}</td>
-                                    <td class="text-sm">
-                                        {{ data_get($ubicacion, 'rubro.subrubro', '') }}
-                                    </td>
-
-                                    <td class="text-sm">{{ $ubicacion->domicilio_comercio }}</td>
-                                    <td class="text-sm text-center">
-                                        <span class="badge badge-{{ $ubicacion->estado === 'vigente' ? 'success' : ($ubicacion->estado === 'irregular' ? 'danger' : 'warning') }}">{{ ucfirst($ubicacion->estado) }}</span>
-                                    </td>
-                                    <td class="text-sm text-center">
-                                        {{ ucfirst($ubicacion->situacion) }}
-                                    </td>
-                                    <td class="small text-center">
-                                        <button type="button" class="btn btn-primary btn-sm" title="Ver Movimientos / Actas" onclick="event.stopPropagation();" wire:click="mostrarMovimientos({{ $ubicacion->id }})">Actas</button>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="11" class="text-center text-muted">No hay registros</td>
-                                </tr>
-                            @endforelse
+                        @forelse ($ubicaciones as $ubicacion)
+                            <tr onclick="window.location='{{ route('comercio.data', $ubicacion) }}'"
+                                style="cursor:pointer;"
+                                @if($ubicacion->situacion === 'clausurado')
+                                    class="table-secondary text-muted"
+                                @endif
+                            >
+                                <td>
+                                    <span class="font-weight-bold">
+                                        {{ $ubicacion->nombre_comercial  ?? '-' }}
+                                    </span>
+                                    @if($ubicacion->situacion === 'clausurado')
+                                        <span class="badge badge-danger ml-2">Clausurado</span>
+                                    @endif
+                                    <br>
+                                    <small class="text-muted">
+                                        {{-- Si tiene razón social la mostramos, si no Apellido + Nombre --}}
+                                        {{ $ubicacion->razon_social 
+                                            ?: trim(($ubicacion->apellido ?? '') . ' ' . ($ubicacion->nombres ?? '')) 
+                                            ?: '—' }}
+                                    </small>
+                                </td>
+                                <td class="text-sm">{{ $ubicacion->dni_cuit }}</td>
+                                <td class="text-sm">
+                                    {{ data_get($ubicacion, 'rubro.subrubro', '') }}
+                                </td>
+                                <td class="text-sm">{{ $ubicacion->domicilio_comercio }}</td>
+                                <td class="text-sm text-center">
+                                    <span class="badge badge-{{ $ubicacion->estado === 'vigente' ? 'success' : ($ubicacion->estado === 'irregular' ? 'danger' : 'warning') }}">
+                                        {{ ucfirst($ubicacion->estado) }}
+                                    </span>
+                                </td>
+                                <td class="small text-center">
+                                    <button type="button" class="btn btn-primary btn-sm" title="Ver Movimientos / Actas"
+                                            onclick="event.stopPropagation();" 
+                                            wire:click="mostrarMovimientos({{ $ubicacion->id }})">
+                                        Actas
+                                    </button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="11" class="text-center text-muted">No hay registros</td>
+                            </tr>
+                        @endforelse
                         </tbody>
                     </table>
+
                 </div>
                 <div class="d-flex justify-content-center mt-3">
                     {{ $ubicaciones->links() }}

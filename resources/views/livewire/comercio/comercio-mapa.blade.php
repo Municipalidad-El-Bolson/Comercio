@@ -69,7 +69,7 @@
               <div class="form-row">
                 <div class="form-group col-md-4 mb-2" wire:ignore>
                   <label class="mb-1">Rubro</label>
-                  <select id="select-map-rubro" class="form-control form-control-sm border rounded p-2">
+                  <select id="select-map-rubro" class="form-control form-control-sm">
                     <option value="">-- Todos --</option>
                     @foreach($rubroOpts as $op)
                       <option value="{{ $op['id'] }}">{{ $op['subrubro'] }}</option>
@@ -88,6 +88,14 @@
                       <option value="{{ $n }}"></option>
                     @endforeach
                   </datalist>
+                </div>
+
+                <div class="form-group col-md-3 mb-2">
+                  <label class="mb-1 d-block">Situación</label>
+                  <div class="form-check">
+                    <input id="chk-claus" type="checkbox" class="form-check-input" wire:model.live="solo_clausurados">
+                    <label for="chk-claus" class="form-check-label">Sólo clausurados</label>
+                  </div>
                 </div>
 
                 <div class="form-group col-md-4 mb-2">
