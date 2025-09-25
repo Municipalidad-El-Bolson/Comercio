@@ -14,6 +14,25 @@ class ReportesComercio extends Component
     public $desde;
     public $hasta;
     public $proximos_vtos = 30;
+    public bool $solo_clausurados = false;
+
+    private function base()
+    {
+        return Ubicacion::with(['rubro','rubros','estadoModel'])
+            ->when($this->rubro_id, fn($q)=>$q->where('rubro_id',$this->rubro_id))
+            ->when($this->estado,   fn($q)=>$q->where('estado',$this->estado))
+            ->when($this->desde,    fn($q)=>$q->whereDate('fecha_alta','>=',$this->desde))
+            ->when($this->hasta,    fn($q)=>$q->whereDate('fecha_alta','<=',$this->hasta))
+            ->when($this->solo_clausurados, fn($q)=>$q->clausurados());
+    }
+
+    public function getListadoGeneralProperty()
+    {
+        return $this->base()
+            ->orderBy('nombre_comercial')
+            ->paginate(15);
+    }
+
 
     public function mount()
     {

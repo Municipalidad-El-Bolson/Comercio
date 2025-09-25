@@ -26,7 +26,7 @@ class ComercioData extends Component
     public array $state = [];
     public string $formKey = '';
 
-    /** ====== Documentación ====== */
+    /** ====== Documentación (legacy para compat) ====== */
     public array $labelsGenerales = [
         'doc_libre_deuda_municipal'       => 'Certificado de libre deuda municipal',
         'doc_planeamiento_urbano'         => 'Dirección de Planeamiento Urbano',
@@ -79,8 +79,8 @@ class ComercioData extends Component
         'doc_afip_constancia'       => 'Constancia de inscripción emitida por AFIP',
         'doc_recaudacion_rn'        => 'Constancia de inscripción de Agencia de Recaudación Río Negro',
         'doc_fotocopia_dni'         => 'Fotocopia del DNI',
-        'doc_comprobante_uso_inmueble' => 'Comprobante de uso del inmueble',
-        'doc_libre_deuda_tasas_inmueble' => 'Libre deuda de tasas municipales',
+        'doc_comprobante_uso_inmueble'    => 'Comprobante de uso del inmueble',
+        'doc_libre_deuda_tasas_inmueble'  => 'Libre deuda de tasas municipales',
         'doc_aptitud_tecnica_local' => 'Certificado de aptitud técnica del local',
         'doc_cocap_rhi'             => 'Certificado de CO.CA.P.R.HI',
         'doc_nota_carteleria_obras' => 'Nota a Obras Públicas declarando cartelería',
@@ -150,6 +150,8 @@ class ComercioData extends Component
                 'doc_cert_caldera','doc_cert_zavecom','doc_cert_salud_prov',
                 'doc_comprobante_uso_inmueble',
             ],
+            // baja de oficio / sin efecto: por ahora sin lista especial
+            'baja_oficio','sin_efecto' => [],
             default     => $baseGeneral
         };
     }
@@ -201,9 +203,9 @@ class ComercioData extends Component
     {
         $e = trim(mb_strtolower($estado ?? ''));
         return match ($e) {
-            'en tramite','en trámite','en_tramite','en-tramite' => 'entramite',
-            'vigente' => 'vigente',
-            'irregular' => 'irregular',
+            'en tramite','en trámite','en_tramite','en-tramite','021' => 'entramite',
+            'vigente','alta' => 'vigente',
+            'irregular','032' => 'irregular',
             'baja' => 'baja',
             'baja de oficio','baja_oficio' => 'baja_oficio',
             'expediente sin efecto','sin_efecto' => 'sin_efecto',
@@ -211,12 +213,21 @@ class ComercioData extends Component
         };
     }
 
+    private function calcularSituacion(?string $estado, bool $esClausurado): ?string
+    {
+        if ($esClausurado) return 'clausurado';
+        $estado = $this->normalizarEstado($estado ?? '');
+        return match ($estado) {
+            'vigente'   => 'alta',
+            'baja'      => 'baja',
+            default     => null, // entramite / irregular / baja_oficio / sin_efecto
+        };
+    }
+
     private function normalizeDocsArray(array $docs): array
     {
-        // claves textuales que NO booleaneamos
         $textKeys = ['doc_uso_inmueble_tipo'];
         $out = [];
-
         foreach ($docs as $k => $v) {
             if (in_array($k, $textKeys, true)) {
                 $vv = is_string($v) ? trim($v) : ($v === null ? null : (string)$v);
@@ -226,11 +237,11 @@ class ComercioData extends Component
             }
         }
 
-        // ✅ NO pisa: toma lo que haya guardado + alternativos
+        // Unificación AFIP (legacy → actual)
         $out['doc_afip_constancia'] =
-            (bool)($out['doc_afip_constancia'] ?? false)               // ya unificado en BD
-        || (bool)($out['doc_afip_constancia_fisica'] ?? false)        // legacy física
-        || (bool)($out['doc_afip_constancia_juridica'] ?? false);     // legacy jurídica
+            (bool)($out['doc_afip_constancia'] ?? false)
+         || (bool)($out['doc_afip_constancia_fisica'] ?? false)
+         || (bool)($out['doc_afip_constancia_juridica'] ?? false);
 
         return $out;
     }
@@ -238,40 +249,16 @@ class ComercioData extends Component
     private function normalizeDecimal($v): ?string
     {
         if ($v === null || $v === '') return null;
-
-        $s = trim((string)$v);
-        $s = str_replace(' ', '', $s);
-
-        $hasDot   = str_contains($s, '.');
-        $hasComma = str_contains($s, ',');
-
+        $s = str_replace(' ', '', trim((string)$v));
+        $hasDot = str_contains($s,'.'); $hasComma = str_contains($s,',');
         if ($hasDot && $hasComma) {
-            // El separador decimal es el ÚLTIMO de los dos
-            $lastDot   = strrpos($s, '.');
-            $lastComma = strrpos($s, ',');
-            $decimalIsComma = $lastComma > $lastDot;
-
-            if ($decimalIsComma) {
-                // puntos = miles, coma = decimal
-                $s = str_replace('.', '', $s);
-                $s = str_replace(',', '.', $s);
-            } else {
-                // comas = miles, punto = decimal
-                $s = str_replace(',', '', $s);
-                // dejamos el punto como decimal
-            }
-        } elseif ($hasComma) {
-            // sólo coma -> es decimal
-            $s = str_replace(',', '.', $s);
-        } else {
-            // sólo punto o ninguno -> dejamos así
-        }
-
+            $lastDot = strrpos($s,'.'); $lastComma = strrpos($s,',');
+            if ($lastComma > $lastDot) { $s = str_replace('.','',$s); $s = str_replace(',', '.', $s); }
+            else { $s = str_replace(',', '', $s); }
+        } elseif ($hasComma) { $s = str_replace(',', '.', $s); }
         if (!is_numeric($s)) return null;
         return number_format((float)$s, 2, '.', '');
     }
-
-
 
     /** ========= EDITAR Y GUARDAR ========= */
     public function editaComercio(Ubicacion $ubicacion)
@@ -284,6 +271,7 @@ class ComercioData extends Component
 
         // base del state
         $this->state = $this->ubicacion->toArray();
+        $this->state['es_clausurado'] = ($this->ubicacion->situacion === 'clausurado');
 
         // fechas para inputs
         foreach (['fecha_alta','fecha_baja','fecha_vto'] as $f) {
@@ -324,195 +312,193 @@ class ComercioData extends Component
     }
 
     public function updateComercio()
-{
-    // No permitimos que venga 'situacion' desde el form (la calcula el modelo)
-    unset($this->state['situacion']);
+    {
+        // No dejamos que 'situacion' venga del formulario
+        unset($this->state['situacion']);
 
-    // ===== Normalizaciones de estado previas (para reglas condicionales)
-    $estadoNorm = $this->normalizarEstado($this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite');
-    $prevNorm   = $this->normalizarEstado($this->ubicacion->getOriginal('estado') ?? $this->ubicacion->estado ?? 'entramite');
+        $estadoNorm = $this->normalizarEstado($this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite');
 
-    $yaTeniaAlta    = !empty($this->ubicacion?->fecha_alta);
-    $vieneAltaAhora = !empty($this->state['fecha_alta']);
-
-    // ===== Reglas de validación
-    $rules = [
-        'persona_tipo'          => 'required|in:fisica,juridica',
-        'apellido'              => 'nullable|string|min:2|max:60',
-        'nombres'               => 'nullable|string|min:2|max:80',
-        'razon_social'          => 'nullable|string|min:2|max:120',
-        'dni_cuit'              => 'required|string',
-        'rubro_id'              => 'required|exists:rubros,id',
-        'rubros_anexos'         => 'array',
-        'rubros_anexos.*'       => 'integer|exists:rubros,id|different:rubro_id|distinct',
-        'domicilio_responsable' => 'nullable|string|min:3|max:160',
-        'correo'                => 'nullable|email:rfc,dns|max:120',
-        'nombre_comercial'      => 'nullable|string|min:2|max:120',
-        'domicilio_comercio'    => 'nullable|string|min:3|max:160',
-        'nomenclatura'          => 'nullable|string|max:80',
-        'observaciones'         => 'nullable|string|max:500',
-        'estado'                => 'required|in:entramite,vigente,irregular,baja,baja_de_oficio,expediente_sin_efecto',
-        'tipo_hab'              => 'required|in:definitiva,prev',
-        'fecha_alta'            => 'nullable|date',
-        'fecha_baja'            => 'nullable|date',
-        'fecha_vto'             => 'nullable|date',
-        'documentos'            => 'array',
-
-        // Repeaters
-        'telefonos'               => 'array|min:1',
-        'telefonos.*'             => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
-
-        'disposiciones'           => 'array',
-        'disposiciones.*.numero'  => 'nullable|string|max:60',
-        'disposiciones.*.fecha'   => 'nullable|date',
-
-        'habilitaciones'          => 'array',
-        'habilitaciones.*.numero' => 'nullable|string|max:60',
-        'habilitaciones.*.fecha'  => 'nullable|date',
-    ];
-
-    // Condicionales por persona
-    if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
-        $rules['apellido'] = 'required|string|min:2|max:60';
-        $rules['nombres']  = 'required|string|min:2|max:80';
-    } else {
-        $rules['razon_social'] = 'required|string|min:2|max:120';
-    }
-
-    // Reglas por estado
-    switch ($estadoNorm) {
-        case 'vigente':
-            if ($prevNorm === 'entramite' && !$yaTeniaAlta && !$vieneAltaAhora) {
-                $rules['fecha_alta'] = 'required|date';
-            }
-            break;
-        case 'irregular':
-            $rules['fecha_alta'] = 'required|date';
-            break;
-        case 'baja':
-        case 'baja_de_oficio':
-        case 'expediente_sin_efecto':
-            $tieneAltaAntes = $yaTeniaAlta || $vieneAltaAhora;
-            $rules['fecha_baja'] = 'required|date' . ($tieneAltaAntes ? '|after_or_equal:fecha_alta' : '') . '|before_or_equal:today';
-            if (!$tieneAltaAntes) {
-                $rules['fecha_alta'] = 'required|date|before_or_equal:today';
-            }
-            break;
-    }
-
-    // Validar
-    $validated = \Validator::make($this->state, $rules)->validate();
-
-    // ===== Normalizar datos "ubicacion"
-    foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
-        if (!empty($validated[$c] ?? null)) $validated[$c] = \Illuminate\Support\Str::title($validated[$c]);
-    }
-    $validated['dni_cuit'] = preg_replace('/\D/','', $validated['dni_cuit'] ?? '');
-
-    // Estos no se persisten en 'ubicaciones' directamente (o los maneja el modelo)
-    unset($validated['domicilio_responsable']); // nomenclatura sí puede quedar si existe la columna
-
-    // Re-geocodificar si cambió la dirección
-    $dirVieja = trim((string)$this->ubicacion->getOriginal('domicilio_comercio'));
-    $dirNueva = trim((string)($validated['domicilio_comercio'] ?? ''));
-    if ($dirNueva !== '' && $dirNueva !== $dirVieja) {
-        $enricher = app(\App\Services\UbicacionGeoEnricher::class);
-        $validated = $enricher->enrich($validated);
-    }
-
-    // Filtrar a columnas reales de 'ubicaciones' (evita errores por campos que no existen)
-    $colsUbic = \Illuminate\Support\Facades\Schema::getColumnListing('ubicaciones');
-    $dataUbic = array_intersect_key($validated, array_flip($colsUbic));
-
-    // Documentos provenientes del form
-    $docsFromUI = $this->state['documentos'] ?? [];
-
-    \DB::transaction(function () use ($dataUbic, $docsFromUI) {
-        // 1) Actualizar Ubicación
-        $this->ubicacion->update($dataUbic);
-
-        // 2) Documentos → normalizar + map select exclusivo de "uso de inmueble"
-        $incoming = $this->normalizeDocsArray($docsFromUI);
-
-        // Map de select → flags exclusivos
-        $tipo = $incoming['doc_uso_inmueble_tipo'] ?? null;
-        foreach (['doc_uso_boleto','doc_uso_contrato','doc_uso_comodato','doc_uso_titulo','doc_uso_cert_ocupacion'] as $k) {
-            $incoming[$k] = false;
-        }
-        $map = [
-            'boleto'         => 'doc_uso_boleto',
-            'contrato'       => 'doc_uso_contrato',
-            'comodato'       => 'doc_uso_comodato',
-            'titulo'         => 'doc_uso_titulo',
-            'cert_ocupacion' => 'doc_uso_cert_ocupacion',
+        // ===== Reglas de validación
+        $rules = [
+            'persona_tipo'          => 'required|in:fisica,juridica',
+            'apellido'              => 'nullable|string|min:2|max:60',
+            'nombres'               => 'nullable|string|min:2|max:80',
+            'razon_social'          => 'nullable|string|min:2|max:120',
+            'dni_cuit'              => 'required|string',
+            'rubro_id'              => 'required|exists:rubros,id',
+            'rubros_anexos'         => 'array',
+            'rubros_anexos.*'       => 'integer|exists:rubros,id|different:rubro_id|distinct',
+            'domicilio_responsable' => 'nullable|string|min:3|max:160',
+            'correo'                => 'nullable|email:rfc,dns|max:120',
+            'nombre_comercial'      => 'nullable|string|min:2|max:120',
+            'domicilio_comercio'    => 'nullable|string|min:3|max:160',
+            'nomenclatura'          => 'nullable|string|max:80',
+            'observaciones'         => 'nullable|string|max:500',
+            'estado'                => 'required|in:entramite,vigente,irregular,baja,baja_oficio,sin_efecto',
+            'tipo_hab'              => 'required|in:definitiva,prev',
+            'fecha_alta'            => 'nullable|date',
+            'fecha_baja'            => 'nullable|date',
+            'fecha_vto'             => 'nullable|date',
+            'documentos'            => 'array',
+            'es_clausurado'         => 'boolean',
+            // Repeaters
+            'telefonos'               => 'array|min:1',
+            'telefonos.*'             => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
+            'disposiciones'           => 'array',
+            'disposiciones.*.numero'  => 'nullable|string|max:60',
+            'disposiciones.*.fecha'   => 'nullable|date',
+            'habilitaciones'          => 'array',
+            'habilitaciones.*.numero' => 'nullable|string|max:60',
+            'habilitaciones.*.fecha'  => 'nullable|date',
         ];
-        if ($tipo && isset($map[$tipo])) $incoming[$map[$tipo]] = true;
 
-        // Filtrar a columnas reales de 'ubicacion_documentos' y limpiar claves peligrosas
-        $colsDocs = \Illuminate\Support\Facades\Schema::getColumnListing('ubicacion_documentos');
-        $nuevo    = array_intersect_key($incoming, array_flip($colsDocs));
-        unset($nuevo['id'], $nuevo['created_at'], $nuevo['updated_at'], $nuevo['ubicacion_id']);
-
-        // Merge con BD para NO perder tildes previas
-        $actualBD = $this->ubicacion->documentos?->toArray() ?? [];
-        $actual   = array_intersect_key($actualBD, array_flip($colsDocs));
-        $payload  = array_merge($actual, $nuevo);
-
-        // Guardar documentos (match por ubicacion_id; NO mandamos ubicacion_id en los datos)
-        $this->ubicacion->documentos()->updateOrCreate(
-            ['ubicacion_id' => $this->ubicacion->id],
-            $payload
-        );
-
-        // 3) Rubros (principal + anexos)
-        $principal = (int)($this->state['rubro_id'] ?? 0);
-        $anexos = collect($this->state['rubros_anexos'] ?? [])
-            ->map(fn($v)=>(int)$v)->filter()
-            ->reject(fn($id)=>$id===$principal)->unique()->values()->all();
-
-        $this->ubicacion->rubros()->sync(array_values(array_unique(array_merge([$principal], $anexos))));
-        $this->ubicacion->rubro_id = $principal ?: null; // compat
-        $this->ubicacion->save();
-
-        // 4) Teléfonos
-        $this->ubicacion->telefonos()->delete();
-        $telSan = collect($this->state['telefonos'] ?? [])
-            ->map(fn($t)=>trim((string)$t))->filter()->unique()->values();
-        foreach ($telSan as $t) {
-            $this->ubicacion->telefonos()->create(['telefono'=>$t]);
+        // Condicionales por persona
+        if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
+            $rules['apellido'] = 'required|string|min:2|max:60';
+            $rules['nombres']  = 'required|string|min:2|max:80';
+        } else {
+            $rules['razon_social'] = 'required|string|min:2|max:120';
         }
 
-        // 5) Disposiciones
-        $this->ubicacion->disposiciones()->delete();
-        foreach (($this->state['disposiciones'] ?? []) as $d) {
-            $num = trim((string)($d['numero'] ?? '')); if ($num === '') continue;
-            $this->ubicacion->disposiciones()->create([
-                'numero' => $num,
-                'fecha'  => !empty($d['fecha']) ? $d['fecha'] : null,
-            ]);
+        // Condicionales por estado
+        $prevNorm       = $this->normalizarEstado($this->ubicacion->getOriginal('estado') ?? $this->ubicacion->estado ?? 'entramite');
+        $yaTeniaAlta    = !empty($this->ubicacion?->fecha_alta);
+        $vieneAltaAhora = !empty($this->state['fecha_alta']);
+
+        switch ($estadoNorm) {
+            case 'vigente':
+                if ($prevNorm === 'entramite' && !$yaTeniaAlta && !$vieneAltaAhora) {
+                    $rules['fecha_alta'] = 'required|date';
+                }
+                break;
+            case 'irregular':
+                $rules['fecha_alta'] = 'required|date';
+                break;
+            case 'baja':
+            case 'baja_oficio':
+            case 'sin_efecto':
+                $tieneAltaAntes = $yaTeniaAlta || $vieneAltaAhora;
+                $rules['fecha_baja'] = 'required|date' . ($tieneAltaAntes ? '|after_or_equal:fecha_alta' : '') . '|before_or_equal:today';
+                if (!$tieneAltaAntes) {
+                    $rules['fecha_alta'] = 'required|date|before_or_equal:today';
+                }
+                break;
         }
 
-        // 6) Habilitaciones
-        $this->ubicacion->habilitaciones()->delete();
-        foreach (($this->state['habilitaciones'] ?? []) as $h) {
-            $num = trim((string)($h['numero'] ?? '')); if ($num === '') continue;
-            $this->ubicacion->habilitaciones()->create([
-                'numero' => $num,
-                'fecha'  => !empty($h['fecha']) ? $h['fecha'] : null,
-            ]);
+        // Validar
+        $validated = \Validator::make($this->state, $rules)->validate();
+
+        // ===== Normalizar datos
+        foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
+            if (!empty($validated[$c] ?? null)) $validated[$c] = Str::title($validated[$c]);
         }
-    });
+        $validated['dni_cuit'] = preg_replace('/\D/','', $validated['dni_cuit'] ?? '');
 
-    // Notificar UI y refrescar estado mínimo para que el schema se regenere
-    $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
+        // calcular situacion según estado y checkbox
+        if (in_array('situacion', Schema::getColumnListing('ubicaciones'), true)) {
+            $validated['situacion'] = $this->calcularSituacion($validated['estado'] ?? null, (bool)($validated['es_clausurado'] ?? false));
+        }
+        unset($validated['domicilio_responsable'], $validated['es_clausurado']); // no se persisten directo
 
-    $this->ubicacion->refresh()->load('documentos','rubros','telefonos','disposiciones','habilitaciones');
-    $this->state['persona_tipo'] = $this->ubicacion->persona_tipo ?? 'fisica';
-    $this->state['estado']       = $this->normalizarEstado($this->ubicacion->estado ?? 'entramite');
+        // Re-geocodificar si cambió la dirección
+        $dirVieja = trim((string)$this->ubicacion->getOriginal('domicilio_comercio'));
+        $dirNueva = trim((string)($validated['domicilio_comercio'] ?? ''));
+        if ($dirNueva !== '' && $dirNueva !== $dirVieja) {
+            $enricher = app(\App\Services\UbicacionGeoEnricher::class);
+            $validated = $enricher->enrich($validated);
+        }
 
-    $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
-}
+        // Filtrar a columnas reales
+        $colsUbic = Schema::getColumnListing('ubicaciones');
+        $dataUbic = array_intersect_key($validated, array_flip($colsUbic));
 
+        // Documentos provenientes del form
+        $docsFromUI = $this->state['documentos'] ?? [];
+
+        DB::transaction(function () use ($dataUbic, $docsFromUI) {
+            // 1) Actualizar Ubicación
+            $this->ubicacion->update($dataUbic);
+
+            // 2) Documentos → normalizar + map select exclusivo de "uso de inmueble"
+            $incoming = $this->normalizeDocsArray($docsFromUI);
+
+            $tipo = $incoming['doc_uso_inmueble_tipo'] ?? null;
+            foreach (['doc_uso_boleto','doc_uso_contrato','doc_uso_comodato','doc_uso_titulo','doc_uso_cert_ocupacion'] as $k) {
+                $incoming[$k] = false;
+            }
+            $map = [
+                'boleto'         => 'doc_uso_boleto',
+                'contrato'       => 'doc_uso_contrato',
+                'comodato'       => 'doc_uso_comodato',
+                'titulo'         => 'doc_uso_titulo',
+                'cert_ocupacion' => 'doc_uso_cert_ocupacion',
+            ];
+            if ($tipo && isset($map[$tipo])) $incoming[$map[$tipo]] = true;
+
+            // Filtrar columnas reales y limpiar claves peligrosas
+            $colsDocs = Schema::getColumnListing('ubicacion_documentos');
+            $nuevo    = array_intersect_key($incoming, array_flip($colsDocs));
+            unset($nuevo['id'], $nuevo['created_at'], $nuevo['updated_at'], $nuevo['ubicacion_id']);
+
+            // Merge con lo ya guardado para no perder tildes previas
+            $actualBD = $this->ubicacion->documentos?->toArray() ?? [];
+            $actual   = array_intersect_key($actualBD, array_flip($colsDocs));
+            $payload  = array_merge($actual, $nuevo);
+
+            // Guardar documentos (NO pasamos ubicacion_id en el payload)
+            $this->ubicacion->documentos()->updateOrCreate(
+                ['ubicacion_id' => $this->ubicacion->id],
+                $payload
+            );
+
+            // 3) Rubros (principal + anexos)
+            $principal = (int)($this->state['rubro_id'] ?? 0);
+            $anexos = collect($this->state['rubros_anexos'] ?? [])
+                ->map(fn($v)=>(int)$v)->filter()
+                ->reject(fn($id)=>$id===$principal)->unique()->values()->all();
+
+            $this->ubicacion->rubros()->sync(array_values(array_unique(array_merge([$principal], $anexos))));
+            $this->ubicacion->rubro_id = $principal ?: null;
+            $this->ubicacion->save();
+
+            // 4) Teléfonos
+            $this->ubicacion->telefonos()->delete();
+            $telSan = collect($this->state['telefonos'] ?? [])
+                ->map(fn($t)=>trim((string)$t))->filter()->unique()->values();
+            foreach ($telSan as $t) {
+                $this->ubicacion->telefonos()->create(['telefono'=>$t]);
+            }
+
+            // 5) Disposiciones
+            $this->ubicacion->disposiciones()->delete();
+            foreach (($this->state['disposiciones'] ?? []) as $d) {
+                $num = trim((string)($d['numero'] ?? '')); if ($num === '') continue;
+                $this->ubicacion->disposiciones()->create([
+                    'numero' => $num,
+                    'fecha'  => !empty($d['fecha']) ? $d['fecha'] : null,
+                ]);
+            }
+
+            // 6) Habilitaciones
+            $this->ubicacion->habilitaciones()->delete();
+            foreach (($this->state['habilitaciones'] ?? []) as $h) {
+                $num = trim((string)($h['numero'] ?? '')); if ($num === '') continue;
+                $this->ubicacion->habilitaciones()->create([
+                    'numero' => $num,
+                    'fecha'  => !empty($h['fecha']) ? $h['fecha'] : null,
+                ]);
+            }
+        });
+
+        // Notificar UI y refrescar datos mínimos
+        $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
+
+        $this->ubicacion->refresh()->load('documentos','rubros','telefonos','disposiciones','habilitaciones');
+        $this->state['persona_tipo'] = $this->ubicacion->persona_tipo ?? 'fisica';
+        $this->state['estado']       = $this->normalizarEstado($this->ubicacion->estado ?? 'entramite');
+
+        $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
+    }
 
     /** ====== Repeater Teléfonos ====== */
     public function addTelefono(): void
@@ -537,9 +523,7 @@ class ComercioData extends Component
         $docs = $this->state['documentos'] ?? [];
 
         foreach ($schema['items'] as $it) {
-            if ($it['type'] === 'checkbox') {
-                $docs[$it['key']] = $valor;
-            }
+            if ($it['type'] === 'checkbox') $docs[$it['key']] = $valor;
         }
         if (($schema['uso_inmueble']['show'] ?? false) && isset($schema['uso_inmueble']['checkboxKey'])) {
             $docs[$schema['uso_inmueble']['checkboxKey']] = $valor;
@@ -555,7 +539,7 @@ class ComercioData extends Component
 
         $docs = $this->state['documentos'] ?? [];
         foreach (array_keys($this->docLabels) as $k) $docs[$k] = false; // apago todo
-        foreach ($permitidos as $k) $docs[$k] = (bool)($docs[$k] ?? false); // preservo los del estado
+        foreach ($permitidos as $k) $docs[$k] = (bool)($docs[$k] ?? false); // preservo del estado
         $docs['doc_uso_inmueble_tipo'] = null; // reset select
         $this->state['documentos'] = $docs;
     }
@@ -588,6 +572,7 @@ class ComercioData extends Component
         $this->ubicacion = $ubicacion->load('rubro', 'rubros', 'documentos', 'movimientos', 'telefonos', 'disposiciones', 'habilitaciones');
 
         $this->rubroOpts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
+        $this->anexoOpts = $this->rubroOpts;
 
         // Estado inicial mínimo
         $this->state = [
@@ -597,7 +582,6 @@ class ComercioData extends Component
             'rubros_anexos' => [],
         ];
 
-        $this->anexoOpts = $this->rubroOpts;
         $this->formKey = (string) Str::uuid();
     }
 
@@ -646,7 +630,7 @@ class ComercioData extends Component
         }
     }
 
-    /** ====== Nuevos desde mapa (opcional) ====== */
+    /** ====== Prefill desde mapa (opcionales) ====== */
     #[On('open-create-from-map')]
     public function openCreateFromMap(?string $direccion = null, ?string $barrio = null, ?string $nomen = null): void
     {

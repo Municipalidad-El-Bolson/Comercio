@@ -15,7 +15,7 @@ class Reportes extends Component
 {
     use WithPagination;
 
-    // Filtros
+    public bool $solo_clausurados = false;
     public ?int $rubro_id = null;        // Subrubro (id)
     public ?string $estado = null;
     public ?string $desde = null;
@@ -41,8 +41,9 @@ class Reportes extends Component
     private function base()
     {
         return Ubicacion::query()
-            ->when($this->rubro_id, fn($q) => $q->where('rubro_id', $this->rubro_id))
-            ->when($this->estado,   fn($q) => $q->where('estado', $this->estado));
+        ->when($this->rubro_id, fn($q) => $q->where('rubro_id', $this->rubro_id))
+        ->when($this->estado,   fn($q) => $q->where('estado', $this->estado))
+        ->when($this->solo_clausurados, fn($q) => $q->where('situacion', 'clausurado'));
     }
 
     // ---------- EXPORTAR PDF ----------
@@ -58,6 +59,7 @@ class Reportes extends Component
             'Desde'                  => $this->desde ?: '—',
             'Hasta'                  => $this->hasta ?: '—',
             'Próx. a vencer (días)'  => (string)($this->proximos_vtos ?? 30),
+            'Sólo clausurados' => $this->solo_clausurados ? 'Sí' : 'No',
         ];
 
         $items = $this->base()
@@ -168,6 +170,8 @@ class Reportes extends Component
         $bajaOficio  = (clone $base)->where('estado', 'baja_oficio')->count();
         $sinEfecto   = (clone $base)->where('estado', 'sin_efecto')->count();
 
+        $clausurados = (clone $base)->where('situacion','clausurado')->count();
+
         $total = $entramite + $vigente + $irregular + $baja + $bajaOficio + $sinEfecto;
         $pct = fn (int $n) => $total ? round(($n * 100) / $total, 2) : 0;
 
@@ -179,7 +183,14 @@ class Reportes extends Component
             'baja'         => ['n' => $baja,       'pct' => $pct($baja)],
             'baja_oficio'  => ['n' => $bajaOficio, 'pct' => $pct($bajaOficio)],
             'sin_efecto'   => ['n' => $sinEfecto,  'pct' => $pct($sinEfecto)],
+            'clausurados'  => ['n' => $clausurados,'pct' => $pct($clausurados)],
         ];
+    }
+
+
+    public function scopeClausurados($q)
+    {
+        return $q->where('situacion', 'clausurado');
     }
 
 
