@@ -16,7 +16,12 @@ use Illuminate\Support\Str;
 class ComercioMapa extends AdminComponent
 {
     public array $barrios = [];
-    public array $estados = ['entramite' => 'En trámite', 'vigente' => 'Vigente', 'irregular' => 'Irregular', 'baja' => 'Baja'];
+    public array $estados = [
+        'entramite' => 'En trámite',
+        'vigente'   => 'Vigente',
+        'irregular' => 'Irregular',
+        'baja'      => 'Baja',
+    ];
 
     public string $fantasiaQuery = '';
     public array $fantasiaSuggestions = [];
@@ -30,6 +35,9 @@ class ComercioMapa extends AdminComponent
     public string $selectedBarrio = '';
     public string $selectedEstado = '';
 
+    // ✅ nuevo: flag para filtrar clausurados
+    public bool $solo_clausurados = false;
+
     public array $ubicaciones = [];
     public $state = ['tipo_hab' => 'prev', 'documentos' => []];
     public $showEditModal = false;
@@ -38,31 +46,17 @@ class ComercioMapa extends AdminComponent
     public array $anexoOpts = [];
 
     protected array $docKeysGeneral = [
-        'doc_libre_deuda_municipal',
-        'doc_planeamiento_urbano',
-        'doc_solicitud_habilitacion_pago',
-        'doc_comprobante_uso_local',
-        'doc_afip_constancia',
-        'doc_recaudacion_rn',
-        'doc_fotocopia_dni',
-        'doc_comprobante_uso_inmueble',
-        'doc_libre_deuda_tasas_inmueble',
-        'doc_aptitud_tecnica_local',
-        'doc_cocap_rhi',
-        'doc_nota_carteleria_obras',
-        'doc_libro_actas_100',
+        'doc_libre_deuda_municipal','doc_planeamiento_urbano','doc_solicitud_habilitacion_pago',
+        'doc_comprobante_uso_local','doc_afip_constancia','doc_recaudacion_rn','doc_fotocopia_dni',
+        'doc_comprobante_uso_inmueble','doc_libre_deuda_tasas_inmueble','doc_aptitud_tecnica_local',
+        'doc_cocap_rhi','doc_nota_carteleria_obras','doc_libro_actas_100',
     ];
-    protected array $docKeysJuridica = [
-        'doc_acta_constitucion',
-        'doc_contrato_societario',
-        'doc_docs_representantes',
-    ];
+    protected array $docKeysJuridica = ['doc_acta_constitucion','doc_contrato_societario','doc_docs_representantes'];
     protected array $docDefaults = [];
 
     #[On('open-create-from-map')]
     public function openCreateFromMap($payload): void
     {
-        // Estado base del form (copiado del "nuevo" de Ubicaciones)
         $this->state = [
             'persona_tipo'      => 'fisica',
             'tipo_hab'          => 'prev',
@@ -88,14 +82,12 @@ class ComercioMapa extends AdminComponent
             'telefonos'         => [''],
             'rubros_anexos'     => [],
             'disposiciones'     => [['numero'=>'','fecha'=>null]],
-            'habilitaciones'    =>[['numero'=>'','fecha'=>null]],
+            'habilitaciones'    => [['numero'=>'','fecha'=>null]],
             'documentos'        => [],
         ];
 
         $this->formKey = (string) \Illuminate\Support\Str::uuid();
         $this->showEditModal = false;
-
-        // Mostramos el modal (el JS del form escucha 'show-form')
         $this->dispatch('show-form', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
     }
 
@@ -103,20 +95,14 @@ class ComercioMapa extends AdminComponent
     {
         abort_unless(Gate::allows('view-maps'), 403);
 
-        $this->barrios = $geo->barriosList();
-
+        $this->barrios   = $geo->barriosList();
         $this->rubroOpts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
-
         $this->nomenOpts = $this->leerNomenclaturas();
 
         $this->emitUbicaciones();
-        $this->rubroOpts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
-        $this->anexoOpts = $this->rubroOpts;
 
-        $this->docDefaults = array_fill_keys(
-            array_merge($this->docKeysGeneral, $this->docKeysJuridica),
-            false
-        );
+        $this->anexoOpts = $this->rubroOpts;
+        $this->docDefaults = array_fill_keys(array_merge($this->docKeysGeneral, $this->docKeysJuridica), false);
         $this->state['documentos'] = $this->state['documentos'] ?? [];
         $this->formKey = (string) \Illuminate\Support\Str::uuid();
     }
@@ -158,11 +144,12 @@ class ComercioMapa extends AdminComponent
         $this->emitUbicaciones();
     }
 
-    // ===== rubro / barrio / estado / nomen
+    // ===== rubro / barrio / estado / nomen / claus
     public function updatedSelectedRubroId() { $this->emitUbicaciones(); }
     public function updatedSelectedBarrio()  { $this->emitUbicaciones(); }
     public function updatedSelectedEstado()  { $this->emitUbicaciones(); }
-    public function updatedSelectedNomen()   { $this->emitUbicaciones(); } // para resaltar + zoom
+    public function updatedSelectedNomen()   { $this->emitUbicaciones(); }
+    public function updatedSoloClausurados() { $this->emitUbicaciones(); } // ✅
 
     private function queryUbicaciones()
     {
@@ -170,9 +157,10 @@ class ComercioMapa extends AdminComponent
         $fantasia = trim($this->fantasiaQuery ?? '');
 
         return Ubicacion::with('rubro:id,mega_rubro,rubro_madre,subrubro')
-            ->when($subId, fn($q)=>$q->where('rubro_id',$subId))
-            ->when($this->selectedBarrio !== '', fn($q)=> $q->where('barrio',$this->selectedBarrio))
-            ->when($this->selectedEstado !== '', fn($q)=> $q->where('estado',$this->selectedEstado))
+            ->when($subId, fn($q)=> $q->where('rubro_id', $subId))
+            ->when($this->selectedBarrio !== '', fn($q)=> $q->where('barrio', $this->selectedBarrio))
+            ->when($this->selectedEstado !== '', fn($q)=> $q->where('estado', $this->selectedEstado))
+            ->when($this->solo_clausurados, fn($q)=> $q->where('situacion', 'clausurado')) // ✅ filtro clausurados
             ->when($fantasia !== '', function($q) use ($fantasia) {
                 $t = '%'.$fantasia.'%';
                 $q->where('nombre_comercial','like',$t);
@@ -180,23 +168,24 @@ class ComercioMapa extends AdminComponent
             ->orderByRaw("COALESCE(NULLIF(nombre_comercial,''), razon_social) asc")
             ->get([
                 'id','razon_social','nombre_comercial','domicilio_comercio',
-                'lat','lng','rubro_id','barrio','estado',
+                'lat','lng','rubro_id','barrio','estado','situacion', // ✅ incluir situacion
                 \DB::raw('nomenclatura as nomen'),
             ])
             ->map(function ($u) {
                 return [
-                    'id'               => $u->id,
-                    'razon_social'     => $u->razon_social,
-                    'nombre_comercial' => $u->nombre_comercial,
+                    'id'                => $u->id,
+                    'razon_social'      => $u->razon_social,
+                    'nombre_comercial'  => $u->nombre_comercial,
                     'domicilio_comercio'=> $u->domicilio_comercio,
-                    'lat'              => $u->lat,
-                    'lng'              => $u->lng,
-                    'barrio'           => $u->barrio,
-                    'estado'           => $u->estado,
-                    'nomen'            => $u->nomen,   
-                    'rubro'            => [
-                        'id'        => $u->rubro?->id,
-                        'subrubro'  => $u->rubro?->subrubro,
+                    'lat'               => $u->lat,
+                    'lng'               => $u->lng,
+                    'barrio'            => $u->barrio,
+                    'estado'            => $u->estado,
+                    'situacion'         => $u->situacion, // ✅ para badge en popup
+                    'nomen'             => $u->nomen,
+                    'rubro'             => [
+                        'id'       => $u->rubro?->id,
+                        'subrubro' => $u->rubro?->subrubro,
                     ],
                 ];
             })->values();
@@ -249,7 +238,7 @@ class ComercioMapa extends AdminComponent
         }
     }
 
-    // ===================== abrir modal de NUEVO (vacío) =====================
+    // ===================== abrir modal NUEVO =====================
     public function nuevoComercio()
     {
         $this->reset('state');
@@ -295,15 +284,13 @@ class ComercioMapa extends AdminComponent
         );
     }
 
-    // ===================== abrir modal prellenado DESDE MAPA =====================
+    // ===================== abrir modal desde mapa =====================
     public function prefillAndOpenForm(?string $direccion = null, ?string $barrio = null, ?string $nomen = null): void
     {
         $this->nuevoComercio();
         if ($direccion) $this->state['domicilio_comercio'] = $direccion;
         if ($nomen)     $this->state['nomenclatura']      = $nomen;
-        // (opcional) si querés mostrar barrio en el form: $this->state['barrio'] = $barrio;
 
-        // re-disparar para asegurar que TomSelect tome valores
         $this->dispatch('show-form',
             rubroId: ($this->state['rubro_id'] ?? null),
             anexos:  ($this->state['rubros_anexos'] ?? [])
@@ -320,13 +307,14 @@ class ComercioMapa extends AdminComponent
     {
         $e = trim(mb_strtolower($estado ?? ''));
         return match ($e) {
-            'en tramite', 'en trámite', 'en_tramite', 'en-tramite' => 'entramite',
+            'en tramite','en trámite','en_tramite','en-tramite' => 'entramite',
             'vigente' => 'vigente',
             'irregular' => 'irregular',
             'baja' => 'baja',
             default => 'entramite',
         };
     }
+
     private function aplicarFlagsEstadoEnState(): void
     {
         $codigo = $this->state['estado'] ?? 'entramite';
@@ -335,6 +323,7 @@ class ComercioMapa extends AdminComponent
         if (!$estado->aplica_fecha_alta) $this->state['fecha_alta'] = null;
         if (!$estado->aplica_fecha_baja) $this->state['fecha_baja'] = null;
     }
+
     private function reglasFechasPorEstado(bool $esCreate): array
     {
         $nuevo = $this->normalizarEstado($this->state['estado'] ?? null);
@@ -344,12 +333,8 @@ class ComercioMapa extends AdminComponent
             'state.fecha_vto'  => 'nullable|date',
         ];
         switch ($nuevo) {
-            case 'entramite':
-                break;
             case 'vigente':
-                if ($esCreate) {
-                    $reglas['state.fecha_alta'] = 'required|date';
-                }
+                if ($esCreate) $reglas['state.fecha_alta'] = 'required|date';
                 break;
             case 'irregular':
                 $reglas['state.fecha_alta'] = 'required|date';
@@ -367,6 +352,7 @@ class ComercioMapa extends AdminComponent
         }
         return $reglas;
     }
+
     private function reglasComunes(bool $isUpdate = false): array
     {
         $rules = [
@@ -378,7 +364,7 @@ class ComercioMapa extends AdminComponent
             'state.apellido'     => ['nullable','string','min:2','max:60'],
             'state.nombres'      => ['nullable','string','min:2','max:80'],
             'state.razon_social' => ['nullable','string','min:2','max:120'],
-            'state.nombre_comercial' => ['nullable','string','min:2','max:120'],
+            'state.nombre_comercial'      => ['nullable','string','min:2','max:120'],
             'state.domicilio_responsable' => ['nullable','string','min:3','max:160'],
             'state.domicilio_comercio'    => ['nullable','string','min:3','max:160'],
             'state.correo'       => ['nullable','email:rfc,dns','max:120'],
@@ -394,62 +380,42 @@ class ComercioMapa extends AdminComponent
             'state.documentos'   => ['array'],
             'state.lat'          => ['nullable','numeric','between:-90,90'],
             'state.lng'          => ['nullable','numeric','between:-180,180'],
-
         ];
+
         foreach (array_keys($this->docDefaults) as $key) {
             $rules["state.documentos.$key"] = ['boolean'];
         }
+
         if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
             $rules['state.apellido'] = ['required','string','min:2','max:60'];
             $rules['state.nombres']  = ['required','string','min:2','max:80'];
         } else {
             $rules['state.razon_social'] = ['required','string','min:2','max:120'];
         }
+
         return $rules;
     }
+
     private function mensajes(): array
     {
         return [
-            'state.apellido.min'           => 'El apellido debe tener al menos :min caracteres.',
-            'state.nombres.min'            => 'Los nombres deben tener al menos :min caracteres.',
-            'state.nombre_comercial.min'   => 'El nombre comercial debe tener al menos :min caracteres.',
             'state.persona_tipo.required'  => 'Seleccioná el tipo de persona.',
-            'state.persona_tipo.in'        => 'El tipo debe ser física o jurídica.',
             'state.dni_cuit.required'      => 'Ingresá DNI o CUIT.',
-            'state.dni_cuit.regex'         => 'Usá DNI (7–8 dígitos) o CUIT (11 dígitos).',
             'state.rubro_id.required'      => 'Seleccioná el subrubro.',
-            'state.rubro_id.exists'        => 'El subrubro seleccionado no es válido.',
-            'state.apellido.required'      => 'El apellido es obligatorio.',
-            'state.nombres.required'       => 'Los nombres son obligatorios.',
-            'state.razon_social.required'  => 'La razón social es obligatoria.',
-            'state.correo.email'           => 'Ingresá un correo válido.',
-            'state.telefono.regex'         => 'Formato de teléfono inválido.',
-            'state.monto_pagar.numeric'    => 'El monto debe ser numérico.',
-            'state.monto_pagar.regex'      => 'Usá hasta 2 decimales (ej: 123.45).',
             'state.estado.required'        => 'Seleccioná el estado.',
+            'state.monto_pagar.regex'      => 'Usá hasta 2 decimales (ej: 123.45).',
         ];
     }
+
     private function atributos(): array
     {
         return [
-            'state.persona_tipo'          => 'tipo de persona',
-            'state.dni_cuit'              => 'DNI/CUIT',
-            'state.apellido'              => 'apellido',
-            'state.nombres'               => 'nombres',
-            'state.razon_social'          => 'razón social',
-            'state.nombre_comercial'      => 'nombre comercial',
-            'state.domicilio_responsable' => 'domicilio del responsable',
-            'state.domicilio_comercio'    => 'domicilio del comercio',
-            'state.correo'                => 'correo electrónico',
-            'state.telefono'              => 'teléfono',
-            'state.nomenclatura'          => 'nomenclatura',
-            'state.monto_pagar'           => 'monto a pagar',
-            'state.estado'                => 'estado',
-            'state.fecha_alta'            => 'fecha de alta',
-            'state.fecha_baja'            => 'fecha de baja',
-            'state.fecha_vto'             => 'fecha de vencimiento',
+            'state.persona_tipo' => 'tipo de persona',
+            'state.dni_cuit'     => 'DNI/CUIT',
+            'state.estado'       => 'estado',
         ];
     }
+
     private function isValidCuit(string $cuit): bool
     {
         $cuit = preg_replace('/\D/','', $cuit);
@@ -462,40 +428,14 @@ class ComercioMapa extends AdminComponent
         return $check === $digits[10];
     }
 
-    public function crearDesdeMapaConDatos(?string $direccion = null, ?string $barrio = null, ?string $nomen = null, ?float $lat = null, ?float $lng = null): void
-    {
-        $this->nuevoComercio();
-
-        // inicializá estado mínimo si hace falta
-        $this->state = $this->state ?? [];
-        $this->state['domicilio_comercio'] = $direccion ?? '';
-        $this->state['barrio']             = $barrio ?? '';
-        $this->state['nomenclatura']       = $nomen ?? '';
-        $this->state['lat']                = $lat;
-        $this->state['lng']                = $lng;
-
-        // asegurá opciones del selector como en el form
-        $opts = \App\Models\Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
-        $this->rubroOpts = $opts;
-        $this->anexoOpts = $opts;
-
-        $this->formKey = (string) \Illuminate\Support\Str::uuid();
-
-        // abrí el modal (el JS del form ya escucha 'show-form')
-        $this->dispatch('show-form', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
-        $this->dispatch('refresh-selects', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
-    }
-
-    // ===================== CREAR (idéntico contrato que en Ubicaciones) =====================
+    // ===================== CREAR =====================
     public function createCliente()
     {
         $this->aplicarFlagsEstadoEnState();
 
-        $reglas = array_merge($this->reglasComunes(false), $this->reglasFechasPorEstado(true));
-        $rulesExtra = [
+        $reglas = array_merge($this->reglasComunes(false), $this->reglasFechasPorEstado(true), [
             'state.telefonos'               => ['array','min:1'],
             'state.telefonos.*'             => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
-            'state.rubro_id'                => ['required','exists:rubros,id'],
             'state.rubros_anexos'           => ['array'],
             'state.rubros_anexos.*'         => ['integer','exists:rubros,id','different:state.rubro_id','distinct'],
             'state.disposiciones'           => ['array'],
@@ -504,8 +444,7 @@ class ComercioMapa extends AdminComponent
             'state.habilitaciones'          => ['array'],
             'state.habilitaciones.*.numero' => ['nullable','string','max:60'],
             'state.habilitaciones.*.fecha'  => ['nullable','date'],
-        ];
-        $reglas = array_merge($reglas, $rulesExtra);
+        ]);
 
         $validated = $this->validate($reglas, $this->mensajes(), $this->atributos());
         $data = $validated['state'];
@@ -523,6 +462,7 @@ class ComercioMapa extends AdminComponent
 
         $documentos = $data['documentos'] ?? [];
         unset($data['documentos']);
+
         if (array_key_exists('doc_afip_constancia', $documentos)) {
             if (($this->state['persona_tipo'] ?? 'fisica') === 'juridica') {
                 $documentos['doc_afip_constancia_juridica'] = (bool)$documentos['doc_afip_constancia'];
@@ -537,18 +477,13 @@ class ComercioMapa extends AdminComponent
         }
 
         $data['dni_cuit'] = preg_replace('/\D/', '', $data['dni_cuit'] ?? '');
-
-        // NO guardamos estos dos directamente (mantengo tu lógica)
         unset($data['domicilio_responsable']);
 
-        // Enriquecer geodatos (incluye barrio + cpu por lat/lng/nomen)
         $enricher = app(\App\Services\UbicacionGeoEnricher::class);
         $data = $enricher->enrich($data);
 
-        // Crear
         $ubic = Ubicacion::create($data);
 
-        // Checklist (hasOne)
         $permitidos = array_flip((new UbicacionDocumento)->getFillable());
         $documentos = array_intersect_key($documentos, $permitidos);
         foreach ($permitidos as $campo => $_) {
@@ -559,7 +494,6 @@ class ComercioMapa extends AdminComponent
             array_merge($this->docDefaults, $documentos, ['ubicacion_id' => $ubic->id])
         );
 
-        // Rubro principal + anexos
         $principal = (int)($this->state['rubro_id'] ?? 0);
         $anexos = collect($this->state['rubros_anexos'] ?? [])
             ->map(fn($v)=>(int)$v)->filter()->reject(fn($id)=>$id === $principal)->unique()->values()->all();
@@ -568,37 +502,24 @@ class ComercioMapa extends AdminComponent
         $ubic->rubro_id = $principal ?: null;
         $ubic->save();
 
-        // Teléfonos
         $telSan = collect($this->state['telefonos'] ?? [])
             ->map(fn($t)=>trim((string)$t))->filter(fn($t)=>$t !== '')->unique()->values();
         foreach ($telSan as $t) { $ubic->telefonos()->create(['telefono'=>$t]); }
 
-        // Disposiciones
         foreach (($this->state['disposiciones'] ?? []) as $d) {
             $num = trim((string)($d['numero'] ?? '')); if ($num === '') continue;
-            $ubic->disposiciones()->create([
-                'numero' => $num,
-                'fecha'  => !empty($d['fecha']) ? $d['fecha'] : null,
-            ]);
+            $ubic->disposiciones()->create(['numero'=>$num,'fecha'=>!empty($d['fecha'])?$d['fecha']:null]);
         }
 
-        // Habilitaciones
         foreach (($this->state['habilitaciones'] ?? []) as $h) {
             $num = trim((string)($h['numero'] ?? '')); if ($num === '') continue;
-            $ubic->habilitaciones()->create([
-                'numero' => $num,
-                'fecha'  => !empty($h['fecha']) ? $h['fecha'] : null,
-            ]);
+            $ubic->habilitaciones()->create(['numero'=>$num,'fecha'=>!empty($h['fecha'])?$h['fecha']:null]);
         }
 
-        // avisar al mapa/lista
         $this->dispatch('ubicacion-actualizada', id: $ubic->id);
-
-        // limpiar UI
         $this->reset('state');
         $this->dispatch('hide-form', ['message' => 'Comercio creado correctamente.']);
     }
-
 
     public function render()
     {
