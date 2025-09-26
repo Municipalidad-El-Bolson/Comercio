@@ -121,7 +121,9 @@
                 </div>
               </div>
               <div class="card-footer">
-                {{ $this->listadoGeneral->links() }}
+                 <nav class="d-flex justify-content-center overflow-auto">
+                    {{ $this->listadoGeneral->onEachSide(1)->links('pagination::bootstrap-4') }}
+                  </nav>
               </div>
             </div>
           </div>
@@ -279,4 +281,10 @@
     initRubroFiltroOnce();
   });
 </script>
+@endpush
+@push('styles')
+<style>
+  .card-footer nav { overflow-x: auto; }
+  .card-footer .pagination { flex-wrap: nowrap; gap: .25rem; }
+</style>
 @endpush
