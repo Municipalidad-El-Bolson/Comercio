@@ -326,6 +326,9 @@
     return { type:'FeatureCollection', features: feats };
   }
 
+  const SHOW_URL_BASE = @json(route('comercio.data', ['ubicacion' => '__ID__']));
+  const showUrl = (id) => SHOW_URL_BASE.replace('__ID__', String(id));
+
 
   // Mapeo de estados internos a etiquetas visibles
   const estadoLabels = {
@@ -339,31 +342,34 @@
     const estado = estadoLabels[p.estado] || p.estado || "-";
 
     return `
-      <div class="popup-card">
-        <div class="popup-title">
-          <i class="fas fa-store"></i><span>${esc(p.nombre || '')}</span>
-        </div>
+        <div class="popup-card">
+          <div class="popup-title">
+            <i class="fas fa-store"></i>
+            <a href="${showUrl(p.id)}" class="text-white" style="text-decoration:none;">
+              <span>${esc(p.nombre || '')}</span>
+            </a>
+          </div>
 
-        <div class="popup-row">
-          ${p.direccion
-            ? `<i class="fas fa-map-marker-alt"></i><div>${esc(p.direccion)}</div>`
-            : `<i class="fas fa-vector-square"></i><div><strong>Nomenclatura:</strong> ${esc(p.nomen || '(sin datos)')}</div>`
-          }
-        </div>
+          <div class="popup-row">
+            ${p.direccion
+              ? `<i class="fas fa-map-marker-alt"></i><div>${esc(p.direccion)}</div>`
+              : `<i class="fas fa-vector-square"></i><div><strong>Nomenclatura:</strong> ${esc(p.nomen || '(sin datos)')}</div>`
+            }
+          </div>
 
-        <div class="popup-row">
-          <i class="fas fa-tags"></i><div>${esc(p.rubro || '-')}</div>
-        </div>
+          <div class="popup-row">
+            <i class="fas fa-tags"></i><div>${esc(p.rubro || '-')}</div>
+          </div>
 
-        <div class="popup-row">
-          <i class="fas fa-city"></i><div>${esc(p.barrio || '-')}</div>
-        </div>
+          <div class="popup-row">
+            <i class="fas fa-city"></i><div>${esc(p.barrio || '-')}</div>
+          </div>
 
-        <div class="popup-row">
-          <i class="fas fa-clipboard-check"></i><div>${estado}</div>
+          <div class="popup-row">
+            <i class="fas fa-clipboard-check"></i><div>${estado}</div>
+          </div>
         </div>
-      </div>
-    `;
+      `;
   }
 
 
