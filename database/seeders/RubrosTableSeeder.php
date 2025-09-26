@@ -161,8 +161,7 @@ class RubrosTableSeeder extends Seeder
 
         // Si querés, podés sumar aquí una lista manual extra:
         $manual = [
-            // Ejemplos por si no hubiese CSV ni datos previos:
-            'KIOSCOS', 'TEJAS', 'FRAMBUESAS', 'VENTA DE HELADOS', 'ELABORACION DE PANIFICADOS',
+                'MERCERIA', 'TIENDA', 'MASAJE', 'SALA DE ELABORACION','KIOSCOS', 'TEJAS', 'FRAMBUESAS', 'VENTA DE HELADOS', 'ELABORACION DE PANIFICADOS',
         ];
 
         // ===================== normalizar + deduplicar =====================
