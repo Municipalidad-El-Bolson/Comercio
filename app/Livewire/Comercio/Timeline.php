@@ -8,6 +8,8 @@ use App\Models\Ubicacion;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+
 
 class Timeline extends Component
 {
