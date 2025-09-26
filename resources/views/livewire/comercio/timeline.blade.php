@@ -22,9 +22,16 @@
                         @endforeach
                     </select>
 
+                     <input type="date"
+                            class="form-control form-control-sm mr-2"
+                            style="max-width:220px"
+                            wire:model.defer="fechaManual" />
 
-                    <input type="text" class="form-control form-control-sm mr-2" style="max-width:360px"
-                           placeholder="Observación (opcional)" wire:model.defer="obs">
+                    <input type="text"
+                            class="form-control form-control-sm mr-2"
+                            style="max-width:360px"
+                            placeholder="Observación (opcional)"
+                            wire:model.defer="obs" />
 
                     <button class="btn btn-success btn-sm" wire:click="guardarEtapa">
                         Guardar

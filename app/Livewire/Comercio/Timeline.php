@@ -29,7 +29,7 @@ class Timeline extends Component
         'habilitacion_vigente' => ['title' => 'Habilitación vigente',    'desc' => 'Comercio queda en estado activo.'],
     ];
 
-
+    public ?string $fechaManual = null;
     public ?string $etapaActual = null;
     public ?string $obs = null;
     public bool $colapsado = false;
@@ -67,30 +67,36 @@ class Timeline extends Component
 
     public function guardarEtapa()
     {
-        $this->validate();
+        // Validación básica (incluye fecha opcional)
+        $allowed = array_keys($this->etapas);
+        $this->validate([
+            'etapaActual' => ['required', Rule::in($allowed)],
+            'fechaManual' => ['nullable','date'],
+            'obs'         => ['nullable','string','max:500'],
+        ]);
 
-        $hoy = Carbon::now('America/Argentina/Salta')->toDateString();
+        // Fecha a usar: manual si viene; si no, hoy (zona horaria AR)
+        $tz    = 'America/Argentina/Salta';
+        $fecha = $this->fechaManual
+            ? Carbon::parse(str_replace('T',' ', $this->fechaManual), $tz)->toDateString()
+            : Carbon::now($tz)->toDateString();
 
-        if (!array_key_exists($this->etapaActual, $this->etapas)) {
-            $this->addError('etapaActual', 'Etapa inválida.');
-            return;
-        }
-
+        // Persistencia (mantengo tu tipo=timeline)
         Movimiento::updateOrCreate(
-            ['ubicacion_id' => $this->ubicacionId,
-             'etapa'        => $this->etapaActual, 
-             'tipo'         => 'timeline',
+            [
+                'ubicacion_id' => $this->ubicacionId,
+                'etapa'        => $this->etapaActual,
+                'tipo'         => 'timeline',
             ],
             [
-                'titulo'      => $this->etapas[$this->etapaActual]['title'],
-                'observacion' => $this->obs,
-                'fecha'       => $hoy,
+                'titulo'       => $this->etapas[$this->etapaActual]['title'] ?? $this->etapaActual,
+                'observacion'  => (string)($this->obs ?? ''),
+                'fecha'        => $fecha,     // usa la fecha elegida
                 'tipo_acta'    => null,
             ]
         );
 
-
-        // Mover selector a la siguiente no completada
+        // Mover selector a la siguiente etapa NO completada
         $keys = array_keys($this->etapas);
         $completadas = Movimiento::where('ubicacion_id', $this->ubicacionId)
             ->where('tipo', 'timeline')
@@ -100,6 +106,9 @@ class Timeline extends Component
 
         $siguiente = collect($keys)->first(fn($k) => !$completadas->has($k));
         $this->etapaActual = $siguiente ?? array_key_last($this->etapas);
+
+        // Limpio el campo de fecha manual para el próximo uso
+        $this->reset('fechaManual', 'obs');
 
         $this->dispatch('toast', type: 'success', message: 'Etapa guardada');
     }
