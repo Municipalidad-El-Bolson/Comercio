@@ -264,7 +264,18 @@ class Ubicaciones extends AdminComponent
     {
         $t = '%'.$this->searchTerm.'%';
 
-        $ubicaciones = Ubicacion::with(['rubro','estadoModel'])
+        $ubicaciones = Ubicacion::query()
+            ->with([
+                'rubro:id,subrubro',
+                'estadoModel:codigo,nombre',
+                // Traemos sólo la última disposición (por fecha y luego id)
+                'disposiciones' => function ($q) {
+                    $q->select('id','ubicacion_id','numero','fecha')
+                    ->orderByDesc('fecha')
+                    ->orderByDesc('id')
+                    ->limit(1);
+                },
+            ])
             ->where('nombre_comercial','like',$t)
             ->orderBy('nombre_comercial')
             ->paginate(10);
@@ -273,6 +284,7 @@ class Ubicaciones extends AdminComponent
             'ubicaciones' => $ubicaciones,
         ])->layout('admin.layouts.app');
     }
+
 
     /** ======== Form actions ======== */
     public function nuevoComercio()
