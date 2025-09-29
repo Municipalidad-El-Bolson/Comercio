@@ -81,8 +81,10 @@
               </table>
             </div>
 
-            <div class="mt-3">
-              {{ $users->onEachSide(1)->links() }}
+            <div class="card-footer">
+              <nav class="d-flex justify-content-center overflow-auto">
+                {{ $users->onEachSide(1)->links('pagination::bootstrap-4') }}
+              </nav>
             </div>
           </div>
         </div>
