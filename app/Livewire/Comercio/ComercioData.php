@@ -670,24 +670,118 @@ class ComercioData extends Component
         }
     }
 
-    /** ====== Prefill desde mapa (opcionales) ====== */
     #[On('open-create-from-map')]
-    public function openCreateFromMap(?string $direccion = null, ?string $barrio = null, ?string $nomen = null): void
+    public function openCreateFromMap($payload = null): void
     {
-        $this->state['domicilio_comercio'] = $direccion ?: '';
-        $this->state['nomenclatura']       = $nomen ?: '';
-        $this->state['barrio']             = $barrio ?: '';
+        // --- helpers heurísticos ---
+        $isCoord = fn($v) => is_string($v) && preg_match('/^\s*-?\d+(\.\d+)?\s*$/', $v);
+        $looksLikeAddress = function($s) {
+            if (!is_string($s)) return false;
+            $s = mb_strtolower(trim($s));
+            // Tiene espacios y al menos un dígito -> suele ser "Calle 123"
+            if (preg_match('/\d/', $s) && str_contains($s, ' ')) return true;
+            // Palabras típicas de calles
+            foreach (['calle','av','avenida','ruta','pasaje','barrio'] as $w) {
+                if (str_contains($s, $w)) return true;
+            }
+            return false;
+        };
+        $looksLikeNomen = function($s) {
+            if (!is_string($s)) return false;
+            $s = trim($s);
+            // Ejemplos: "J749 052F000", "J749-052F000", "052F000", etc. (letras+números, pocos símbolos)
+            return (bool) preg_match('/^[A-Za-z0-9\-\/\s]{4,}$/', $s) && !$isCoord($s);
+        };
+
+        // --- normalizar entrada: por claves o posicional ---
+        $lat = $lng = null;
+        $direccion = $barrio = $nomen = null;
+
+        if (is_array($payload)) {
+            $lat       = $payload['lat']       ?? null;
+            $lng       = $payload['lng']       ?? null;
+            $direccion = $payload['direccion'] ?? null;
+            $barrio    = $payload['barrio']    ?? null;
+            $nomen     = $payload['nomen']     ?? ($payload['nomenclatura'] ?? null);
+        } else {
+            $args = func_get_args();
+            // forma A: (lat,lng,direccion,barrio,nomen)
+            if (count($args) >= 5 && is_numeric($args[0]) && is_numeric($args[1])) {
+                [$lat,$lng,$direccion,$barrio,$nomen] = [$args[0],$args[1],$args[2],$args[3],$args[4]];
+            }
+            // forma B: (direccion,barrio,nomen)  o  (nomen,barrio,direccion)  ← aquí nos podemos confundir
+            elseif (count($args) >= 3) {
+                [$a,$b,$c] = [$args[0],$args[1],$args[2]];
+                // Si el tercero parece dirección y el primero parece nomenclatura, los swapeamos
+                if ($looksLikeAddress($c) && $looksLikeNomen($a)) {
+                    $direccion = (string)$c;
+                    $barrio    = (string)$b;
+                    $nomen     = (string)$a;
+                } else {
+                    $direccion = (string)$a;
+                    $barrio    = (string)$b;
+                    $nomen     = (string)$c;
+                }
+            }
+        }
+
+        // --- saneos finales ---
+        $lat = isset($lat) && $lat !== '' ? (float)$lat : null;
+        $lng = isset($lng) && $lng !== '' ? (float)$lng : null;
+
+        $direccion = is_string($direccion) ? trim($direccion) : '';
+        $barrio    = is_string($barrio)    ? trim($barrio)    : '';
+        $nomen     = is_string($nomen)     ? trim($nomen)     : null;
+
+        // Evitar que vuele una coordenada a nomenclatura
+        if ($nomen !== null && $isCoord($nomen)) {
+            $nomen = null;
+        }
+
+        // --- state inicial del form ---
+        $this->state = [
+            'persona_tipo'       => 'fisica',
+            'tipo_hab'           => 'prev',
+            'estado'             => null,
+            'fecha_alta'         => null,
+            'fecha_baja'         => null,
+            'fecha_vto'          => null,
+            'rubro_id'           => null,
+            'dni_cuit'           => '',
+            'apellido'           => '',
+            'nombres'            => '',
+            'razon_social'       => '',
+            'nombre_comercial'   => '',
+            'lat'                => $lat,
+            'lng'                => $lng,
+            'domicilio_comercio' => $direccion,      // <- sólo dirección
+            'barrio'             => $barrio,
+            'nomenclatura'       => $nomen ?? '',    // <- nomen saneada
+            'correo'             => '',
+            'telefono'           => '',
+            'monto_pagar'        => null,
+            'observaciones'      => '',
+            'telefonos'          => [''],
+            'rubros_anexos'      => [],
+            'disposiciones'      => [['numero'=>'','fecha'=>null]],
+            'habilitaciones'     => [['numero'=>'','fecha'=>null]],
+            'documentos'         => $this->docDefaults ?? [],
+        ];
+
+        $this->formKey = (string) \Illuminate\Support\Str::uuid();
+        $this->showEditModal = false;
 
         $this->dispatch('show-form',
             rubroId: ($this->state['rubro_id'] ?? null),
             anexos:  ($this->state['rubros_anexos'] ?? [])
         );
-
         $this->dispatch('refresh-selects',
             rubroId: ($this->state['rubro_id'] ?? null),
             anexos:  ($this->state['rubros_anexos'] ?? [])
         );
     }
+
+
 
     #[On('prefill-desde-mapa')]
     public function prefillDesdeMapa($direccion = null, $barrio = null, $nomenclatura = null)

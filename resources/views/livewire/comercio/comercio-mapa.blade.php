@@ -521,6 +521,15 @@
     }, 0);
   });
 
+  Livewire.emit('open-create-from-map', {
+    lat: markerLat,
+    lng: markerLng,
+    direccion: direccionElegida,
+    barrio: barrioElegido,
+    nomen: nomenElegida
+  });
+
+
   function escapeHtml(s) {
     return String(s)
       .replaceAll('&', '&amp;')
