@@ -319,8 +319,8 @@ class Ubicaciones extends AdminComponent
             'observaciones'        => '',
             'telefonos'            => [''],
             'rubros_anexos'        => [],
-            'disposiciones'        => [['numero'=>'', 'fecha'=>null]],
-            'habilitaciones'       => [['numero'=>'', 'fecha'=>null]],
+            'numero_disposicion'   => '',
+            'numero_habilitacion'  => '',
             'documentos'           => $this->docDefaults,
             'es_clausurado'        => false,
         ];
@@ -381,10 +381,31 @@ class Ubicaciones extends AdminComponent
         $docsDb = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
         $docsUi = $this->normalizeDocsArray($docsDb);
         $this->state['documentos'] = array_merge($this->docDefaults, $docsUi);
+        $this->state['numero_disposicion']  = (string) data_get($this->state, 'disposiciones.0.numero', '');
+        $this->state['numero_habilitacion'] = (string) data_get($this->state, 'habilitaciones.0.numero', '');
 
         $this->formKey = (string) Str::uuid();
         $this->dispatch('show-form', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
     }
+
+    public function updatedStateNumeroDisposicion($val): void
+    {
+        $val = (string)($val ?? '');
+        $disp = $this->state['disposiciones'] ?? [];
+        if (!is_array($disp) || empty($disp)) $disp = [['numero'=>'','fecha'=>null]];
+        $disp[0]['numero'] = $val;
+        $this->state['disposiciones'] = array_values($disp);
+    }
+
+    public function updatedStateNumeroHabilitacion($val): void
+    {
+        $val = (string)($val ?? '');
+        $hab = $this->state['habilitaciones'] ?? [];
+        if (!is_array($hab) || empty($hab)) $hab = [['numero'=>'','fecha'=>null]];
+        $hab[0]['numero'] = $val;
+        $this->state['habilitaciones'] = array_values($hab);
+    }
+
 
     /** ======== Utils ======== */
     private function mergeOpts(array $opts, array $extra): array
@@ -499,6 +520,8 @@ class Ubicaciones extends AdminComponent
         $rules = $this->reglasComunes(false);
         $validated = $this->validate($rules);
         $data = $validated['state'];
+        $nd = trim((string)($this->state['numero_disposicion'] ?? ''));
+        $nh = trim((string)($this->state['numero_habilitacion'] ?? ''));
 
         // normalizaciones
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
@@ -510,6 +533,21 @@ class Ubicaciones extends AdminComponent
         }
         if (($data['persona_tipo'] ?? 'fisica') === 'juridica') {
             $data['apellido'] = null; $data['nombres'] = null;
+        }
+        if (!empty($nd)) {
+            if (empty($this->state['disposiciones']) || !is_array($this->state['disposiciones'])) {
+                $this->state['disposiciones'] = [['numero'=>$nd, 'fecha'=>null]];
+            } else {
+                $this->state['disposiciones'][0]['numero'] = $nd;
+            }
+        }
+
+        if (!empty($nh)) {
+            if (empty($this->state['habilitaciones']) || !is_array($this->state['habilitaciones'])) {
+                $this->state['habilitaciones'] = [['numero'=>$nh, 'fecha'=>null]];
+            } else {
+                $this->state['habilitaciones'][0]['numero'] = $nh;
+            }
         }
 
         // situacion según estado + checkbox
@@ -649,6 +687,26 @@ class Ubicaciones extends AdminComponent
             $this->ubicacion->telefonos()->delete();
             $telSan = collect($this->state['telefonos'] ?? [])->map(fn($t)=>trim((string)$t))->filter(fn($t)=>$t!=='')->unique()->values();
             foreach ($telSan as $t) $this->ubicacion->telefonos()->create(['telefono'=>$t]);
+
+            $nd = trim((string)($this->state['numero_disposicion'] ?? ''));
+            $nh = trim((string)($this->state['numero_habilitacion'] ?? ''));
+
+            if (!empty($nd)) {
+                if (empty($this->state['disposiciones']) || !is_array($this->state['disposiciones'])) {
+                    $this->state['disposiciones'] = [['numero'=>$nd, 'fecha'=>null]];
+                } else {
+                    $this->state['disposiciones'][0]['numero'] = $nd;
+                }
+            }
+
+            if (!empty($nh)) {
+                if (empty($this->state['habilitaciones']) || !is_array($this->state['habilitaciones'])) {
+                    $this->state['habilitaciones'] = [['numero'=>$nh, 'fecha'=>null]];
+                } else {
+                    $this->state['habilitaciones'][0]['numero'] = $nh;
+                }
+            }
+
 
             // 5) Disposiciones
             $this->ubicacion->disposiciones()->delete();

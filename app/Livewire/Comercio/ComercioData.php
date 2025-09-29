@@ -292,16 +292,18 @@ class ComercioData extends Component
         $tels = $this->ubicacion->telefonos->pluck('telefono')->filter()->values()->all();
         $this->state['telefonos'] = !empty($tels) ? $tels : [''];
 
-        // repetidores
         $this->state['disposiciones'] = $this->ubicacion->disposiciones->map(fn($d)=>[
-            'numero'=>(string)$d->numero,
-            'fecha' =>$d->fecha?->format('Y-m-d'),
-        ])->values()->all() ?: [['numero'=>'','fecha'=>null]];
+            'numero'=>(string)$d->numero,'fecha'=>$d->fecha ? $d->fecha->format('Y-m-d') : null,
+        ])->values()->all();
+        if (empty($this->state['disposiciones'])) $this->state['disposiciones'] = [['numero'=>'','fecha'=>null]];
 
         $this->state['habilitaciones'] = $this->ubicacion->habilitaciones->map(fn($h)=>[
-            'numero'=>(string)$h->numero,
-            'fecha' =>$h->fecha?->format('Y-m-d'),
-        ])->values()->all() ?: [['numero'=>'','fecha'=>null]];
+            'numero'=>(string)$h->numero,'fecha'=>$h->fecha ? $h->fecha->format('Y-m-d') : null,
+        ])->values()->all();
+        if (empty($this->state['habilitaciones'])) $this->state['habilitaciones'] = [['numero'=>'','fecha'=>null]];
+
+        $this->state['numero_disposicion']  = (string) data_get($this->state, 'disposiciones.0.numero', '');
+        $this->state['numero_habilitacion'] = (string) data_get($this->state, 'habilitaciones.0.numero', '');
 
         // documentos desde BD → state
         $docsRaw = $this->ubicacion->documentos?->toArray() ?? [];
@@ -309,6 +311,24 @@ class ComercioData extends Component
 
         $this->formKey = (string) Str::uuid();
         $this->dispatch('show-form', rubroId: $this->state['rubro_id'] ?? null, anexos: $this->state['rubros_anexos'] ?? []);
+    }
+
+    public function updatedStateNumeroDisposicion($val): void
+    {
+        $val = (string)($val ?? '');
+        $disp = $this->state['disposiciones'] ?? [];
+        if (!is_array($disp) || empty($disp)) $disp = [['numero'=>'','fecha'=>null]];
+        $disp[0]['numero'] = $val;
+        $this->state['disposiciones'] = array_values($disp);
+    }
+
+    public function updatedStateNumeroHabilitacion($val): void
+    {
+        $val = (string)($val ?? '');
+        $hab = $this->state['habilitaciones'] ?? [];
+        if (!is_array($hab) || empty($hab)) $hab = [['numero'=>'','fecha'=>null]];
+        $hab[0]['numero'] = $val;
+        $this->state['habilitaciones'] = array_values($hab);
     }
 
     public function updateComercio()
@@ -468,6 +488,26 @@ class ComercioData extends Component
             foreach ($telSan as $t) {
                 $this->ubicacion->telefonos()->create(['telefono'=>$t]);
             }
+
+            $nd = trim((string)($this->state['numero_disposicion'] ?? ''));
+            $nh = trim((string)($this->state['numero_habilitacion'] ?? ''));
+
+            if (!empty($nd)) {
+                if (empty($this->state['disposiciones']) || !is_array($this->state['disposiciones'])) {
+                    $this->state['disposiciones'] = [['numero'=>$nd, 'fecha'=>null]];
+                } else {
+                    $this->state['disposiciones'][0]['numero'] = $nd;
+                }
+            }
+
+            if (!empty($nh)) {
+                if (empty($this->state['habilitaciones']) || !is_array($this->state['habilitaciones'])) {
+                    $this->state['habilitaciones'] = [['numero'=>$nh, 'fecha'=>null]];
+                } else {
+                    $this->state['habilitaciones'][0]['numero'] = $nh;
+                }
+            }
+
 
             // 5) Disposiciones
             $this->ubicacion->disposiciones()->delete();

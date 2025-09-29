@@ -5,6 +5,15 @@
     $titular      = $ubicacion->razon_social ?: trim(($ubicacion->apellido ?? '').' '.($ubicacion->nombres ?? ''));
     $titular      = $titular !== '' ? $titular : '—';
     $estado       = strtolower($ubicacion->estado ?? '');
+    $disp = optional($ubicacion->disposiciones
+              ->sortByDesc(fn($d) => $d->fecha ?? $d->created_at)
+              ->first());
+    $hab  = optional($ubicacion->habilitaciones
+              ->sortByDesc(fn($h) => $h->fecha ?? $h->created_at)
+              ->first());
+
+    $nroDisp = trim((string)($disp->numero ?? ''));
+    $nroHab  = trim((string)($hab->numero  ?? ''));
     $estadoChip   = [
       'entramite' => ['label' => '021',   'class' => 'badge-secondary'],
       'vigente'   => ['label' => 'Alta',  'class' => 'badge-success'],
@@ -207,14 +216,6 @@
                 <div class="text-muted small">Nomenclatura</div>
                 <div class="font-weight-bold">{{ $ubicacion->nomenclatura ?: '—' }}</div>
               </div>
-              <div class="col-sm-4 mb-2">
-                <div class="text-muted small">Lat</div>
-                <div class="font-weight-bold">{{ $ubicacion->lat ?? '—' }}</div>
-              </div>
-              <div class="col-sm-4 mb-2">
-                <div class="text-muted small">Lng</div>
-                <div class="font-weight-bold">{{ $ubicacion->lng ?? '—' }}</div>
-              </div>
             </div>
           </div>
         </div>
@@ -223,16 +224,25 @@
       {{-- Económicos / Observaciones --}}
       <div class="col-lg-6">
         <div class="card mb-3 border-secondary">
-          <div class="card-header bg-light"><strong><i class="fas fa-file-invoice-dollar mr-1"></i>Información adicional</strong></div>
+          <div class="card-header bg-light">
+            <strong><i class="fas fa-file-invoice mr-1"></i>Disposición / Habilitación</strong>
+          </div>
           <div class="card-body">
             <div class="row">
-              <div class="col-sm-4 mb-2">
-                <div class="text-muted small">Monto a pagar</div>
-                <div class="font-weight-bold">
-                  {{ $ubicacion->monto_pagar !== null ? ('$ '.number_format((float)$ubicacion->monto_pagar, 2, ',', '.')) : '—' }}
-                </div>
+              <div class="col-sm-6 mb-2">
+                <div class="text-muted small">N° de disposición</div>
+                <div class="font-weight-bold">{{ $nroDisp !== '' ? $nroDisp : '—' }}</div>
               </div>
-              <div class="col-sm-8 mb-2">
+              <div class="col-sm-6 mb-2">
+                <div class="text-muted small">N° de habilitación comercial</div>
+                <div class="font-weight-bold">{{ $nroHab !== '' ? $nroHab : '—' }}</div>
+              </div>
+            </div>
+
+            {{-- Si querés conservar Observaciones abajo, lo podés dejar --}}
+            <hr class="my-2">
+            <div class="row">
+              <div class="col-sm-12 mb-2">
                 <div class="text-muted small">Observaciones</div>
                 <div class="font-weight-bold">{{ $ubicacion->observaciones ?: '—' }}</div>
               </div>
@@ -240,7 +250,6 @@
           </div>
         </div>
       </div>
-
     </div> {{-- row --}}
 
     {{-- ACTAS --}}
