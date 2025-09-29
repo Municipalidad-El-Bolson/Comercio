@@ -11,6 +11,8 @@ use App\Traits\AuditsModelChanges;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
 
 class Ubicacion extends Model
 {
@@ -74,6 +76,13 @@ class Ubicacion extends Model
     public function documentos()                { return $this->hasOne(UbicacionDocumento::class); }
     public function movimientos()               { return $this->hasMany(Movimiento::class); }
     public function estadoModel()               { return $this->belongsTo(ComercioEstado::class, 'estado', 'codigo'); }
+
+    public function habilitacionActual(): HasOne
+    {
+        return $this->hasOne(\App\Models\UbicacionHabilitacion::class)
+            ->orderByDesc('fecha')
+            ->orderByDesc('id'); // fallback si fecha es nula o igual
+    }
 
     // ─── Hooks de modelo ────────────────────────────────────────────────────────
     protected static function booted()

@@ -31,7 +31,7 @@
                         <thead class="thead-light">
                         <tr class="text-center">
                             <th class="text-sm" style="min-width:240px">Comercio</th>
-                            <th class="text-sm" style="width:120px">Nº Disp.</th>
+                            <th class="text-sm" style="width:120px">Nº Hab.</th>
                             <th class="text-sm" style="width:140px">DNI / CUIT</th>
                             <th class="text-sm" style="min-width:160px">Rubro</th>
                             <th class="text-sm" style="min-width:220px">Domicilio</th>
@@ -43,9 +43,9 @@
                         <tbody>
                         @forelse ($ubicaciones as $ubicacion)
                             @php
-                            // Última disposición (viene eager-loaded con limit(1))
-                            $disp = $ubicacion->relationLoaded('disposiciones')
-                                        ? optional($ubicacion->disposiciones->first())->numero
+                            // Última habilitacion (viene eager-loaded con limit(1))
+                            $hab = $ubicacion->relationLoaded('habilitaciones')
+                                        ? optional($ubicacion->habilitaciones->first())->numero
                                         : null;
 
                             // Subtítulo: razón social o Apellido + Nombres
@@ -81,15 +81,16 @@
                                 </div>
                             </td>
 
-                            {{-- Nº Disposición --}}
+                            {{-- Nº Hab. --}}
                             <td class="text-sm text-center">
-                                @if($disp)
-                                <span class="badge badge-light border" title="Última disposición">
-                                    <i class="fas fa-file-signature mr-1"></i>{{ $disp }}
+                            @php $hab = data_get($ubicacion, 'habilitacionActual.numero'); @endphp
+                            @if($hab)
+                                <span class="badge badge-light border" title="Última habilitación">
+                                <i class="fas fa-file-signature mr-1"></i>{{ $hab }}
                                 </span>
-                                @else
+                            @else
                                 —
-                                @endif
+                            @endif
                             </td>
 
                             {{-- DNI/CUIT --}}

@@ -264,21 +264,10 @@ class Ubicaciones extends AdminComponent
     {
         $t = '%'.$this->searchTerm.'%';
 
-        $ubicaciones = Ubicacion::query()
-            ->with([
-                'rubro:id,subrubro',
-                'estadoModel:codigo,nombre',
-                // Traemos sólo la última disposición (por fecha y luego id)
-                'disposiciones' => function ($q) {
-                    $q->select('id','ubicacion_id','numero','fecha')
-                    ->orderByDesc('fecha')
-                    ->orderByDesc('id')
-                    ->limit(1);
-                },
-            ])
-            ->where('nombre_comercial','like',$t)
-            ->orderBy('nombre_comercial')
-            ->paginate(10);
+       $ubicaciones = Ubicacion::with(['rubro','estadoModel','habilitacionActual']) // <— AÑADIDO
+        ->where('nombre_comercial','like',$t)
+        ->orderBy('nombre_comercial')
+        ->paginate(10);
 
         return view('livewire.comercio.ubicaciones', [
             'ubicaciones' => $ubicaciones,
@@ -740,6 +729,8 @@ class Ubicaciones extends AdminComponent
     {
         $this->dispatch('abrirModalMovimientos', $id);
     }
+
+
 
     private function aplicarFlagsEstadoEnState(): void
     {
