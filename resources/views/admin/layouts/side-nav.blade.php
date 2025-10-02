@@ -10,7 +10,25 @@
         <nav class="mt-2 flex-grow-1">
             {{-- Hacemos el UL flex para poder empujar el logout al fondo con mt-auto --}}
             <ul class="nav nav-pills nav-sidebar flex-column d-flex flex-column h-100" data-widget="treeview" role="menu" data-accordion="false">
-                
+                {{--<li class="nav-item">
+                    <a href="{{ route('/') }}" class="nav-link">
+                        <i class="nav-icon fas fa-map-marked-alt"></i>
+                        <p>Mesa de entrada</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('/') }}" class="nav-link">
+                        <i class="nav-icon fas fa-map-marked-alt"></i>
+                        <p>Vencimientos</p>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="{{ route('/') }}" class="nav-link">
+                        <i class="nav-icon fas fa-map-marked-alt"></i>
+                        <p>Proximos a vencer</p>
+                    </a>
+                </li> --}}
                 <li class="nav-item">
                     <a href="{{ route('mapas') }}" class="nav-link">
                         <i class="nav-icon fas fa-map-marked-alt"></i>

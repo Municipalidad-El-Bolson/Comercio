@@ -2,34 +2,68 @@
   {{-- HEADER / HERO --}}
   @php
     $esJuridica   = ($ubicacion->persona_tipo ?? 'fisica') === 'juridica';
-    $titular      = $ubicacion->razon_social ?: trim(($ubicacion->apellido ?? '').' '.($ubicacion->nombres ?? ''));
-    $titular      = $titular !== '' ? $titular : '—';
-    $estado       = strtolower($ubicacion->estado ?? '');
-    $disp = optional($ubicacion->disposiciones
-              ->sortByDesc(fn($d) => $d->fecha ?? $d->created_at)
-              ->first());
-    $hab  = optional($ubicacion->habilitaciones
-              ->sortByDesc(fn($h) => $h->fecha ?? $h->created_at)
-              ->first());
+    $titularBase  = trim(($ubicacion->apellido ?? '').' '.($ubicacion->nombres ?? ''));
+    $titular      = $ubicacion->razon_social ?: ($titularBase !== '' ? $titularBase : '—');
 
+    // === Estado / Cambio (usa estado_base + estado_label) ===
+    $estadoBase  = $ubicacion->estado_base ?: null;               // '021','032','baja','baja_oficio','sin_efecto'...
+    $estadoLabel = trim((string)($ubicacion->estado_label ?? '')); // ej: "021- Cambio de domicilio"
+
+    // Fallbacks si no hay migrado aún
+    if (!$estadoBase) {
+      $raw = strtolower((string)($ubicacion->estado ?? ''));
+      $estadoBase = match ($raw) {
+        'entramite','en trámite','021' => '021',
+        'irregular','032'              => '032',
+        'baja'                         => 'baja',
+        'baja_oficio','baja de oficio' => 'baja_oficio',
+        'sin_efecto','expediente sin efecto' => 'sin_efecto',
+        default                        => '021',
+      };
+    }
+    if ($estadoLabel === '') {
+      $estadoLabel = match ($estadoBase) {
+        '021' => '021',
+        '032' => '032',
+        'baja' => 'Baja',
+        'baja_oficio' => 'Baja de Oficio',
+        'sin_efecto' => 'Expediente sin Efecto',
+        default => strtoupper($estadoBase),
+      };
+    }
+
+    // Parseo "BASE - Cambio"
+    $cambioTxt = 'Ninguno';
+    if (preg_match('/^\s*(021|032)\s*-\s*(.+)$/ui', $estadoLabel, $m)) {
+      $estadoLabel = trim($m[1]);    // 021 ó 032
+      $cambioTxt   = trim($m[2]);    // texto del cambio
+    }
+
+    // Clases de badges
+    $estadoClass = match ($estadoBase) {
+      '021' => 'badge-primary',
+      '032' => 'badge-warning',
+      'baja','baja_oficio' => 'badge-danger',
+      'sin_efecto' => 'badge-dark',
+      default => 'badge-secondary',
+    };
+    $cambioClass = ($cambioTxt !== 'Ninguno') ? 'badge-info' : 'badge-light';
+
+    // Disp/Hab
+    $disp = optional($ubicacion->disposiciones->sortByDesc(fn($d) => $d->fecha ?? $d->created_at)->first());
+    $hab  = optional($ubicacion->habilitaciones->sortByDesc(fn($h) => $h->fecha ?? $h->created_at)->first());
     $nroDisp = trim((string)($disp->numero ?? ''));
     $nroHab  = trim((string)($hab->numero  ?? ''));
-    $estadoChip   = [
-      'entramite' => ['label' => '021',   'class' => 'badge-secondary'],
-      'vigente'   => ['label' => 'Alta',  'class' => 'badge-success'],
-      'irregular' => ['label' => '032',   'class' => 'badge-danger'],
-      'baja'      => ['label' => 'Baja',  'class' => 'badge-warning'],
-      'baja_oficio' => ['label' => 'Baja de oficio', 'class'=>'badge-dark'],
-      'sin_efecto'  => ['label' => 'Expediente sin efecto', 'class'=>'badge-info'],
-    ][$estado] ?? ['label' => strtoupper($estado ?: '—'), 'class' => 'badge-light'];
 
-    $tels         = $ubicacion->telefonos->pluck('telefono')->filter()->implode(' / ');
-    $anexos       = $ubicacion->rubros
-                      ->when($ubicacion->rubro_id, fn($c) => $c->where('id', '!=', $ubicacion->rubro_id))
-                      ->pluck('subrubro')->filter()->values()->all();
+    // Teléfonos / anexos
+    $tels   = $ubicacion->telefonos->pluck('telefono')->filter()->implode(' / ');
+    $anexos = $ubicacion->rubros
+                ->when($ubicacion->rubro_id, fn($c) => $c->where('id', '!=', $ubicacion->rubro_id))
+                ->pluck('subrubro')->filter()->values()->all();
 
-    $vto          = $ubicacion->fecha_vto ? \Illuminate\Support\Carbon::parse($ubicacion->fecha_vto) : null;
-    $vtoBadge     = $vto ? ($vto->isPast() ? 'danger' : ($vto->diffInDays(now()) <= 30 ? 'warning' : 'success')) : null;
+    // Vencimiento
+    $vto      = $ubicacion->fecha_vto ? \Illuminate\Support\Carbon::parse($ubicacion->fecha_vto) : null;
+    $vtoBadge = $vto ? ($vto->isPast() ? 'danger' : ($vto->diffInDays(now()) <= 30 ? 'warning' : 'success')) : null;
   @endphp
 
   <div class="content-header pt-3 pb-0">
@@ -42,20 +76,32 @@
               <span class="badge badge-danger align-middle ml-2">Clausurado</span>
             @endif
           </h1>
+
           <div class="text-muted">
             <i class="far fa-id-card mr-1"></i>{{ $titular }}
             <span class="mx-2">·</span>
             <i class="fas fa-user-tag mr-1"></i>{{ ucfirst($ubicacion->persona_tipo ?? '—') }}
           </div>
+
           <div class="mt-2">
-            <span class="badge {{ $estadoChip['class'] }} mr-1">
-              <i class="fas fa-clipboard-check mr-1"></i>{{ $estadoChip['label'] }}
+            {{-- Estado --}}
+            <span class="badge {{ $estadoClass }} mr-1">
+              <i class="fas fa-clipboard-check mr-1"></i>{{ $estadoLabel }}
             </span>
+
+            {{-- Cambio --}}
+            <span class="badge {{ $cambioClass }} mr-1">
+              <i class="fas fa-exchange-alt mr-1"></i>{{ $cambioTxt }}
+            </span>
+
+            {{-- Vencimiento (si aplica) --}}
             @if($vto)
               <span class="badge badge-{{ $vtoBadge }} mr-1">
                 <i class="far fa-clock mr-1"></i>Vto: {{ $vto->format('d/m/Y') }}
               </span>
             @endif
+
+            {{-- Tipo de hab --}}
             @if(!empty($ubicacion->tipo_hab))
               <span class="badge badge-light">
                 <i class="fas fa-certificate mr-1"></i>{{ $ubicacion->tipo_hab === 'definitiva' ? 'Definitiva' : 'Provisoria' }}
@@ -63,7 +109,6 @@
             @endif
           </div>
         </div>
-
         <div class="btn-group">
           <a wire:navigate href="{{ url()->previous() }}" class="btn btn-secondary btn-sm">
             <i class="fas fa-arrow-left mr-1"></i> Volver
@@ -165,16 +210,20 @@
                 <span class="badge {{ $estadoChip['class'] }}">{{ $estadoChip['label'] }}</span>
               </div>
               <div class="col-md-4 mb-2">
-                <div class="text-muted small">Situación</div>
-                <div class="font-weight-bold">{{ $ubicacion->situacion ? ucfirst($ubicacion->situacion) : '—' }}</div>
+                <div class="text-muted small">Cambio</div>
+                <span class="badge {{ $cambioChip['class'] }}">{{ $cambioChip['label'] }}</span>
               </div>
               <div class="col-md-4 mb-2">
-                <div class="text-muted small">Tipo de habilitación</div>
-                <div class="font-weight-bold">{{ $ubicacion->tipo_hab === 'definitiva' ? 'Definitiva' : 'Provisoria' }}</div>
+                <div class="text-muted small">Situación</div>
+                <div class="font-weight-bold">{{ $ubicacion->situacion ? ucfirst($ubicacion->situacion) : '—' }}</div>
               </div>
             </div>
 
             <div class="row">
+              <div class="col-md-4 mb-2">
+                <div class="text-muted small">Tipo de habilitación</div>
+                <div class="font-weight-bold">{{ $ubicacion->tipo_hab === 'definitiva' ? 'Definitiva' : 'Provisoria' }}</div>
+              </div>
               @if($ubicacion->fecha_alta)
                 <div class="col-md-4 mb-2">
                   <div class="text-muted small">Fecha de alta</div>
@@ -251,6 +300,49 @@
         </div>
       </div>
     </div> {{-- row --}}
+
+    <div class="card mb-4 border-secondary" x-data="{open:false}">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <strong class="mr-3"><i class="far fa-folder-open mr-1"></i>Histirial de estado</strong>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" type="button" @click="open=!open">
+          <span class="mr-1" x-text="open ? 'ocultar' : 'ver'"></span>
+          <i :class="open ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+        </button>
+      </div>
+
+      <div x-show="open" x-collapse x-cloak>
+        <div class="card-body">
+          <table class="table table-sm table-striped">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Alta</th>
+                <th>Baja</th>
+                <th>Vto</th>
+                <th>Usuario</th>
+              </tr>
+            </thead>
+            <tbody>
+              @forelse($ubicacion->estadosHistorial as $h)
+                <tr>
+                  <td>{{ $h->created_at?->format('d/m/Y H:i') }}</td>
+                  <td>{{ $h->estado_label }}</td>
+                  <td>{{ $h->fecha_alta ? \Carbon\Carbon::parse($h->fecha_alta)->format('d/m/Y') : '' }}</td>
+                  <td>{{ $h->fecha_baja ? \Carbon\Carbon::parse($h->fecha_baja)->format('d/m/Y') : '' }}</td>
+                  <td>{{ $h->fecha_vto  ? \Carbon\Carbon::parse($h->fecha_vto )->format('d/m/Y') : '' }}</td>
+                  <td>{{ optional(\App\Models\User::find($h->user_id))->name }}</td>
+                </tr>
+              @empty
+                <tr><td colspan="6" class="text-muted">Sin movimientos.</td></tr>
+              @endforelse
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
     {{-- ACTAS --}}
     @php
@@ -330,10 +422,6 @@
     </div>
 
     {{-- DOCUMENTACIÓN --}}
-    @php
-      // Estos vienen desde el componente padre:
-      // $schema (items y uso_inmueble), $docs (normalizados), $docsOK, $docsTotal
-    @endphp
     <div class="card mb-4 border-secondary" x-data="{open:false}">
       <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">

@@ -53,8 +53,31 @@
                                 ?: trim(($ubicacion->apellido ?? '') . ' ' . ($ubicacion->nombres ?? ''));
                             $subtitulo = $subtitulo !== '' ? $subtitulo : '—';
 
-                            $estado = strtolower($ubicacion->estado ?? '');
-                            $badgeEstado = $estado === 'vigente' ? 'success' : ($estado === 'irregular' ? 'danger' : 'warning');
+                            $labelRaw  = trim((string)($ubicacion->estado_label ?? $ubicacion->estado ?? ''));
+                            $estadoRaw = strtolower(trim((string)($ubicacion->estado ?? '')));
+
+                            $estadoBase = match ($estadoRaw) {
+                                'entramite','en trámite','en_tramite','en-tramite','021' => '021',
+                                'irregular','032'                                        => '032',
+                                'baja'                                                   => 'Baja',
+                                'baja_oficio','baja de oficio'                           => 'Baja de Oficio',
+                                'sin_efecto','expediente sin efecto','exp_sin_efecto'    => 'Expediente sin Efecto',
+                                default                                                  => '021', // fallback
+                            };
+
+                            $cambio = null;
+                            if (preg_match('/^\s*(021|032)\s*-\s*(.+)$/u', $labelRaw, $m)) {
+                                $cambio = trim($m[2]);
+                            }
+
+                            $badgeEstado = match ($estadoBase) {
+                                '021'                    => 'success',   // verde
+                                '032'                    => 'warning',   // amarillo
+                                'Baja'                   => 'danger',    // rojo
+                                'Baja de Oficio',
+                                'Expediente sin Efecto'  => 'secondary', // gris
+                                default                  => 'light',
+                            };
                             @endphp
 
                             <tr onclick="window.location='{{ route('comercio.data', $ubicacion) }}'"
@@ -112,8 +135,11 @@
                             {{-- Estado --}}
                             <td class="text-sm text-center">
                                 <span class="badge badge-{{ $badgeEstado }}">
-                                {{ ucfirst($ubicacion->estado ?? '—') }}
+                                    {{ $estadoBase }}
                                 </span>
+                                @if($cambio)
+                                    <div><small class="text-muted">{{ $cambio }}</small></div>
+                                @endif
                             </td>
 
                             {{-- Acciones --}}

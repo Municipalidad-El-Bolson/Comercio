@@ -8,9 +8,10 @@
       {{-- Filtros --}}
       <div class="card card-outline card-secondary mb-3">
         <div class="card-body">
-          {{-- Fila 1: RUBRO (TomSelect, igual que en el form) --}}
+
+          {{-- Fila 1: Rubro / Estado / Cambio --}}
           <div class="form-row">
-            <div class="form-group col-12" wire:ignore>
+            <div class="form-group col-md-4" wire:ignore>
               <label class="mb-1">Rubro</label>
               <select id="select-rubro-filtro" class="form-control form-control-sm">
                 <option value="">-- Todos --</option>
@@ -19,23 +20,35 @@
                 @endforeach
               </select>
             </div>
-          </div>
 
-          {{-- Fila 2: Estado / Desde / Hasta / Próx a vencer --}}
-          <div class="form-row">
-            <div class="form-group col-md-3">
+            <div class="form-group col-md-4">
               <label class="mb-1">Estado</label>
               <select class="form-control form-control-sm" wire:model.live="estado">
                 <option value="">-- Todos --</option>
-                <option value="entramite">021</option>
-                <option value="vigente">Alta</option>
-                <option value="irregular">032</option>
+                <option value="entramite">021/90</option>
+                <option value="irregular">032/01</option>
                 <option value="baja">Baja</option>
                 <option value="baja_oficio">Baja de oficio</option>
                 <option value="sin_efecto">Expediente sin efecto</option>
               </select>
             </div>
 
+            <div class="form-group col-md-4">
+              <label class="mb-1">Cambio</label>
+              <select class="form-control form-control-sm" wire:model.live="cambio">
+                <option value="">-- Todos --</option>
+                <option value="cambio_domicilio">Cambio de Domicilio</option>
+                <option value="adicion_anexo">Adición de Rubro Anexo</option>
+                <option value="cambio_razon">Cambio de Razón Social</option>
+                <option value="cambio_rubro">Cambio de Rubro</option>
+                <option value="cambio_fantasia">Cambio de Nombre de Fantasía</option>
+                <option value="baja_alojamiento">Baja de Unidad de Alojamiento</option>
+              </select>
+            </div>
+          </div>
+
+          {{-- Fila 2: Desde / Hasta / Próx. a vencer / Clausurados --}}
+          <div class="form-row">
             <div class="form-group col-md-3">
               <label class="mb-1">Desde</label>
               <input type="date" class="form-control form-control-sm" wire:model.live="desde">
@@ -49,11 +62,13 @@
             <div class="form-group col-md-3">
               <label class="mb-1">Próx. a vencer (días)</label>
               <select class="form-control form-control-sm" wire:model.live="proximos_vtos">
+                <option value="">-- Todos --</option>
                 <option value="30">30</option>
                 <option value="60">60</option>
                 <option value="90">90</option>
               </select>
             </div>
+
             <div class="form-group col-md-3 d-flex align-items-end">
               <div class="form-check">
                 <input id="chk-claus" type="checkbox" class="form-check-input" wire:model.live="solo_clausurados">
@@ -67,6 +82,7 @@
           </button>
         </div>
       </div>
+
 
       {{-- FILA: dos tarjetas minimizadas por defecto (comparten estado) --}}
       <div class="row" x-data="{ open: null }">
@@ -185,15 +201,11 @@
               <div class="row text-center">
                 <div class="col-6 col-md-2">
                   <h4 class="mb-0">{{ $e['entramite']['n'] ?? 0 }}</h4>
-                  <small>021 ({{ $e['entramite']['pct'] ?? 0 }}%)</small>
-                </div>
-                <div class="col-6 col-md-2">
-                  <h4 class="mb-0">{{ $e['vigente']['n'] ?? 0 }}</h4>
-                  <small>Alta ({{ $e['vigente']['pct'] ?? 0 }}%)</small>
+                  <small>021/90 ({{ $e['entramite']['pct'] ?? 0 }}%)</small>
                 </div>
                 <div class="col-6 col-md-2 mt-3 mt-md-0">
                   <h4 class="mb-0">{{ $e['irregular']['n'] ?? 0 }}</h4>
-                  <small>032 ({{ $e['irregular']['pct'] ?? 0 }}%)</small>
+                  <small>032/01 ({{ $e['irregular']['pct'] ?? 0 }}%)</small>
                 </div>
                 <div class="col-6 col-md-2 mt-3 mt-md-0">
                   <h4 class="mb-0">{{ $e['baja']['n'] ?? 0 }}</h4>

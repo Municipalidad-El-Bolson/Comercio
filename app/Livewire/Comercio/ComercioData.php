@@ -9,19 +9,23 @@ use App\Models\Rubro;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use App\Support\HandlesEstados;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Schema;
+use App\Models\UbicacionEstadoHist;
+use Illuminate\Support\Facades\Log;
+
 
 class ComercioData extends Component
 {
+    use HandlesEstados;
+
     public Ubicacion $ubicacion;
-
     public bool $showEditModal = false;
-
     public string $rubroQuery = '';
     public string $anexoQuery = '';
     public array $rubroOpts = [];
     public array $anexoOpts = [];
-
     public $rubros = [];
     public array $state = [];
     public string $formKey = '';
@@ -213,6 +217,119 @@ class ComercioData extends Component
         };
     }
 
+    private function chipsFor(\App\Models\Ubicacion $u): array
+    {
+        // Tomo estado_base y estado_label, con fallback a estado
+        $base  = $u->estado_base ?: $this->estadoBaseNormalize($u->estado_label ?? $u->estado);
+        $label = trim((string)($u->estado_label ?? ''));
+
+        // Si no hay label compuesto, uso base como label
+        if ($label === '') {
+            $label = match ($base) {
+                '021'         => '021',
+                '032'         => '032',
+                'baja'        => 'Baja',
+                'baja_oficio' => 'Baja de Oficio',
+                'exp_sin_efecto','sin_efecto' => 'Expediente sin Efecto',
+                default       => strtoupper((string)$base),
+            };
+        }
+
+        // Parseo "BASE - Cambio ..."  →  $cambio
+        $cambio = null;
+        if (preg_match('/^\s*(021|032)\s*-\s*(.+)$/ui', $label, $m)) {
+            $base   = $m[1] === '021' ? '021' : '032';
+            $cambio = trim($m[2]);
+        }
+
+        // Clase para el chip de estado
+        $estadoClass = match ($base) {
+            '021' => 'badge-primary',
+            '032' => 'badge-warning',
+            'baja','baja_oficio' => 'badge-danger',
+            'exp_sin_efecto','sin_efecto' => 'badge-dark',
+            default => 'badge-secondary',
+        };
+
+        // Label “lindo” del estado (sin el cambio)
+        $estadoLabel = match ($base) {
+            '021' => '021',
+            '032' => '032',
+            'baja' => 'Baja',
+            'baja_oficio' => 'Baja de Oficio',
+            'exp_sin_efecto','sin_efecto' => 'Expediente sin Efecto',
+            default => strtoupper((string)$base),
+        };
+
+        // Chip de cambio
+        $cambioLabel = $cambio ?: 'Ninguno';
+        $cambioClass = $cambio ? 'badge-info' : 'badge-light';
+
+        return [
+            'estadoChip' => ['label' => $estadoLabel, 'class' => $estadoClass],
+            'cambioChip' => ['label' => $cambioLabel, 'class' => $cambioClass],
+        ];
+    }
+
+
+    // Devuelve base 021 / 032 / baja_oficio / exp_sin_efecto / baja a partir del estado crudo
+    private function estadoBaseNormalizeFromRaw(?string $raw): string
+    {
+        $s = trim(mb_strtolower((string)$raw));
+        if ($s === '') return '021'; // default
+
+        // Si viene compuesto tipo "021- Cambio de Domicilio"
+        if (str_starts_with($s, '021')) return '021';
+        if (str_starts_with($s, '032')) return '032';
+
+        return match ($s) {
+            'baja' => 'baja',
+            'baja de oficio','baja_oficio','baja-oficio' => 'baja_oficio',
+            'expediente sin efecto','sin_efecto','exp_sin_efecto' => 'exp_sin_efecto',
+            default => '021',
+        };
+    }
+
+    // Opciones válidas por base (misma clave/label que usás en Ubicaciones)
+    private function cambiosOptionsByBase(string $estadoBase): array
+    {
+        return match ($estadoBase) {
+            '021' => [
+                '' => 'Ninguno',
+                'cambio_domicilio' => 'Cambio de Domicilio',
+                'adicion_anexo'    => 'Adición de Rubro Anexo',
+                'cambio_razon'     => 'Cambio de Razón Social',
+            ],
+            '032' => [
+                '' => 'Ninguno',
+                'cambio_rubro'     => 'Cambio de Rubro',
+                'adicion_anexo'    => 'Adecion de Rubro Anexo',
+                'cambio_fantasia'  => 'Cambio de Nombre de Fantasia',
+                'baja_alojamiento' => 'Baja de Unidad de Alojamiento',
+                'cambio_razon'     => 'Cambio de Razon Social',
+            ],
+            default => [],
+        };
+    }
+
+    // Intenta inferir la key del cambio a partir del estado compuesto guardado
+    private function inferCambioKeyFromEstado(string $estadoRaw, string $base): ?string
+    {
+        // si no hay guión, no hay cambio
+        if (!str_contains($estadoRaw, '-')) return '';
+        [$codigo, $label] = array_map('trim', explode('-', $estadoRaw, 2));
+        if ($label === '') return '';
+
+        $opts = $this->cambiosOptionsByBase($base);
+        // Buscamos por label -> key (case-insensitive y tolerante a tildes mínimamente)
+        foreach ($opts as $key => $lbl) {
+            if (mb_strtolower($lbl) === mb_strtolower($label)) {
+                return $key;
+            }
+        }
+        return ''; // si no matchea, dejar “Ninguno”
+    }
+
     private function calcularSituacion(?string $estado, bool $esClausurado): ?string
     {
         if ($esClausurado) return 'clausurado';
@@ -273,13 +390,19 @@ class ComercioData extends Component
         $this->state = $this->ubicacion->toArray();
         $this->state['es_clausurado'] = ($this->ubicacion->situacion === 'clausurado');
 
-        // fechas para inputs
-        foreach (['fecha_alta','fecha_baja','fecha_vto'] as $f) {
-            $this->state[$f] = !empty($this->ubicacion->{$f}) ? $this->ubicacion->{$f}->format('Y-m-d') : null;
-        }
-        $this->state['estado'] = $this->normalizarEstado($this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite');
+        $estadoCrudo = (string) ($this->ubicacion->getOriginal('estado') ?? $this->ubicacion->estado ?? '');
+        $parsed = $this->parseCambioDesdeEstado($estadoCrudo);
+        $this->state['cambio_tipo'] = $parsed['cambio_key'];
 
-        // rubros (principal + anexos)
+        $this->state['estado'] = $this->normalizarEstado($estadoCrudo ?: ($this->ubicacion->estado ?? 'entramite'));
+
+        $estadoRaw = (string) ($this->ubicacion->estado ?? '');
+        $base = $this->estadoBaseNormalizeFromRaw($estadoRaw);
+
+        if (!array_key_exists('cambio_tipo', $this->state) || ($this->state['cambio_tipo'] ?? '') === '') {
+            $this->state['cambio_tipo'] = $this->inferCambioKeyFromEstado($estadoRaw, $base);
+        }
+
         $idsOrdenados = $this->ubicacion->rubros
             ->map(fn($r) => ['id' => $r->id, 'orden' => $r->pivot->orden ?? 9999])
             ->sortBy('orden')->pluck('id')->values()->all();
@@ -333,12 +456,33 @@ class ComercioData extends Component
 
     public function updateComercio()
     {
-        // No dejamos que 'situacion' venga del formulario
-        unset($this->state['situacion']);
+        $this->state['estado'] = $this->mapBaseToCanon($this->estadoBaseNormalize((string)($this->state['estado'] ?? 'entramite')));
 
-        $estadoNorm = $this->normalizarEstado($this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite');
+        // 1) Traducir estado del form → base → canónico + armar label
+        $rawEstado    = $this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite';
+        $estadoBase   = $this->estadoBaseNormalize($rawEstado);   // '021' | '032' | 'baja' | ...
+        $estadoCanon  = $this->mapBaseToCanon($estadoBase);       // 'entramite' | 'irregular' | ...
+        $cambioKey = trim((string)($this->state['cambio_tipo'] ?? ''));
+        if (($cambioKey === '' || $cambioKey === null) && in_array($estadoBase, ['021','032'], true)) {
+            $cambioKey = $this->inferCambioKeyFromEstado(
+                $this->ubicacion->estado_label ?? $this->ubicacion->estado ?? '',
+                $estadoBase
+            );
+        }
+        $estadoLabel  = $this->buildEstadoLabel($estadoBase, $cambioKey);
+        $dataUbic['estado']       = $estadoCanon;   // <-- FK válido (canónico)
+        $dataUbic['estado_base']  = $estadoBase;    // '021'/'032'/...
+        $dataUbic['estado_label'] = $this->buildEstadoLabel($estadoBase, $this->state['cambio_tipo'] ?? '');
 
-        // ===== Reglas de validación
+        if (array_key_exists('estado', $dataUbic)) {
+            $dataUbic['estado'] = $this->mapBaseToCanon(
+                $this->estadoBaseNormalize((string)$dataUbic['estado'])
+            );
+        }
+        // Colocar el canónico en el state para que las reglas por-estado funcionen
+        $this->state['estado'] = $estadoCanon;
+
+        // 2) Reglas + validación
         $rules = [
             'persona_tipo'          => 'required|in:fisica,juridica',
             'apellido'              => 'nullable|string|min:2|max:60',
@@ -354,14 +498,13 @@ class ComercioData extends Component
             'domicilio_comercio'    => 'nullable|string|min:3|max:160',
             'nomenclatura'          => 'nullable|string|max:80',
             'observaciones'         => 'nullable|string|max:500',
-            'estado'                => 'required|in:entramite,vigente,irregular,baja,baja_oficio,sin_efecto',
+            'estado'                => 'required|in:entramite,irregular,baja,baja_oficio,sin_efecto',
             'tipo_hab'              => 'required|in:definitiva,prev',
             'fecha_alta'            => 'nullable|date',
             'fecha_baja'            => 'nullable|date',
             'fecha_vto'             => 'nullable|date',
             'documentos'            => 'array',
             'es_clausurado'         => 'boolean',
-            // Repeaters
             'telefonos'               => 'array|min:1',
             'telefonos.*'             => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
             'disposiciones'           => 'array',
@@ -372,7 +515,7 @@ class ComercioData extends Component
             'habilitaciones.*.fecha'  => 'nullable|date',
         ];
 
-        // Condicionales por persona
+        // Persona física/jurídica
         if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
             $rules['apellido'] = 'required|string|min:2|max:60';
             $rules['nombres']  = 'required|string|min:2|max:80';
@@ -380,16 +523,14 @@ class ComercioData extends Component
             $rules['razon_social'] = 'required|string|min:2|max:120';
         }
 
-        // Condicionales por estado
-        $prevNorm       = $this->normalizarEstado($this->ubicacion->getOriginal('estado') ?? $this->ubicacion->estado ?? 'entramite');
+        // Condicionales por estado canónico
+        $prevCanon      = $this->normalizarEstado($this->ubicacion->getOriginal('estado') ?? $this->ubicacion->estado ?? 'entramite');
         $yaTeniaAlta    = !empty($this->ubicacion?->fecha_alta);
         $vieneAltaAhora = !empty($this->state['fecha_alta']);
 
-        switch ($estadoNorm) {
-            case 'vigente':
-                if ($prevNorm === 'entramite' && !$yaTeniaAlta && !$vieneAltaAhora) {
-                    $rules['fecha_alta'] = 'required|date';
-                }
+        switch ($estadoCanon) {
+            case 'entramite':
+                // sin extras
                 break;
             case 'irregular':
                 $rules['fecha_alta'] = 'required|date';
@@ -402,23 +543,29 @@ class ComercioData extends Component
                 if (!$tieneAltaAntes) {
                     $rules['fecha_alta'] = 'required|date|before_or_equal:today';
                 }
+                // fecha_vto opcional
                 break;
         }
 
-        // Validar
         $validated = \Validator::make($this->state, $rules)->validate();
 
-        // ===== Normalizar datos
+        // 3) Normalizar datos
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
             if (!empty($validated[$c] ?? null)) $validated[$c] = Str::title($validated[$c]);
         }
         $validated['dni_cuit'] = preg_replace('/\D/','', $validated['dni_cuit'] ?? '');
 
-        // calcular situacion según estado y checkbox
+        // Situación
         if (in_array('situacion', Schema::getColumnListing('ubicaciones'), true)) {
-            $validated['situacion'] = $this->calcularSituacion($validated['estado'] ?? null, (bool)($validated['es_clausurado'] ?? false));
+            $validated['situacion'] = $this->calcularSituacion($estadoCanon, (bool)($this->state['es_clausurado'] ?? false));
         }
-        unset($validated['domicilio_responsable'], $validated['es_clausurado']); // no se persisten directo
+
+        // Inyectar estado/códigos correctos para persistir (cumple FK)
+        $validated['estado']       = $estadoCanon;   // <-- CANÓNICO (evita el FK error)
+        $validated['estado_base']  = $estadoBase;    // '021' | '032' | ...
+        $validated['estado_label'] = $estadoLabel;   // legible
+
+        unset($validated['domicilio_responsable'], $validated['es_clausurado']);
 
         // Re-geocodificar si cambió la dirección
         $dirVieja = trim((string)$this->ubicacion->getOriginal('domicilio_comercio'));
@@ -432,16 +579,22 @@ class ComercioData extends Component
         $colsUbic = Schema::getColumnListing('ubicaciones');
         $dataUbic = array_intersect_key($validated, array_flip($colsUbic));
 
-        // Documentos provenientes del form
+        // 4) Docs del UI
         $docsFromUI = $this->state['documentos'] ?? [];
 
-        DB::transaction(function () use ($dataUbic, $docsFromUI) {
-            // 1) Actualizar Ubicación
+        // 5) Persistencia + historial
+        DB::transaction(function () use ($dataUbic, $docsFromUI, $estadoBase, $estadoLabel) {
+            
+            if (array_key_exists('estado', $dataUbic)) {
+                $dataUbic['estado'] = $this->mapBaseToCanon(
+                    $this->estadoBaseNormalize((string)$dataUbic['estado'])
+                );
+            }
+
             $this->ubicacion->update($dataUbic);
 
-            // 2) Documentos → normalizar + map select exclusivo de "uso de inmueble"
+            // Documentos (uso de inmueble exclusivo)
             $incoming = $this->normalizeDocsArray($docsFromUI);
-
             $tipo = $incoming['doc_uso_inmueble_tipo'] ?? null;
             foreach (['doc_uso_boleto','doc_uso_contrato','doc_uso_comodato','doc_uso_titulo','doc_uso_cert_ocupacion'] as $k) {
                 $incoming[$k] = false;
@@ -455,90 +608,62 @@ class ComercioData extends Component
             ];
             if ($tipo && isset($map[$tipo])) $incoming[$map[$tipo]] = true;
 
-            // Filtrar columnas reales y limpiar claves peligrosas
             $colsDocs = Schema::getColumnListing('ubicacion_documentos');
+            $actualBD = $this->ubicacion->documentos?->toArray() ?? [];
+            $actual   = array_intersect_key($actualBD, array_flip($colsDocs));
             $nuevo    = array_intersect_key($incoming, array_flip($colsDocs));
             unset($nuevo['id'], $nuevo['created_at'], $nuevo['updated_at'], $nuevo['ubicacion_id']);
 
-            // Merge con lo ya guardado para no perder tildes previas
-            $actualBD = $this->ubicacion->documentos?->toArray() ?? [];
-            $actual   = array_intersect_key($actualBD, array_flip($colsDocs));
             $payload  = array_merge($actual, $nuevo);
+            $this->ubicacion->documentos()->updateOrCreate(['ubicacion_id' => $this->ubicacion->id], $payload);
 
-            // Guardar documentos (NO pasamos ubicacion_id en el payload)
-            $this->ubicacion->documentos()->updateOrCreate(
-                ['ubicacion_id' => $this->ubicacion->id],
-                $payload
-            );
-
-            // 3) Rubros (principal + anexos)
+            // Rubros
             $principal = (int)($this->state['rubro_id'] ?? 0);
-            $anexos = collect($this->state['rubros_anexos'] ?? [])
-                ->map(fn($v)=>(int)$v)->filter()
-                ->reject(fn($id)=>$id===$principal)->unique()->values()->all();
-
+            $anexos = collect($this->state['rubros_anexos'] ?? [])->map(fn($v)=>(int)$v)->filter()
+                        ->reject(fn($id)=>$id === $principal)->unique()->values()->all();
             $this->ubicacion->rubros()->sync(array_values(array_unique(array_merge([$principal], $anexos))));
             $this->ubicacion->rubro_id = $principal ?: null;
             $this->ubicacion->save();
 
-            // 4) Teléfonos
+            // Teléfonos
             $this->ubicacion->telefonos()->delete();
-            $telSan = collect($this->state['telefonos'] ?? [])
-                ->map(fn($t)=>trim((string)$t))->filter()->unique()->values();
-            foreach ($telSan as $t) {
-                $this->ubicacion->telefonos()->create(['telefono'=>$t]);
-            }
+            $telSan = collect($this->state['telefonos'] ?? [])->map(fn($t)=>trim((string)$t))->filter()->unique()->values();
+            foreach ($telSan as $t) $this->ubicacion->telefonos()->create(['telefono'=>$t]);
 
-            $nd = trim((string)($this->state['numero_disposicion'] ?? ''));
-            $nh = trim((string)($this->state['numero_habilitacion'] ?? ''));
-
-            if (!empty($nd)) {
-                if (empty($this->state['disposiciones']) || !is_array($this->state['disposiciones'])) {
-                    $this->state['disposiciones'] = [['numero'=>$nd, 'fecha'=>null]];
-                } else {
-                    $this->state['disposiciones'][0]['numero'] = $nd;
-                }
-            }
-
-            if (!empty($nh)) {
-                if (empty($this->state['habilitaciones']) || !is_array($this->state['habilitaciones'])) {
-                    $this->state['habilitaciones'] = [['numero'=>$nh, 'fecha'=>null]];
-                } else {
-                    $this->state['habilitaciones'][0]['numero'] = $nh;
-                }
-            }
-
-
-            // 5) Disposiciones
+            // Disposiciones
             $this->ubicacion->disposiciones()->delete();
             foreach (($this->state['disposiciones'] ?? []) as $d) {
-                $num = trim((string)($d['numero'] ?? '')); if ($num === '') continue;
-                $this->ubicacion->disposiciones()->create([
-                    'numero' => $num,
-                    'fecha'  => !empty($d['fecha']) ? $d['fecha'] : null,
-                ]);
+                $num = trim((string)($d['numero'] ?? '')); if ($num==='') continue;
+                $this->ubicacion->disposiciones()->create(['numero'=>$num,'fecha'=>!empty($d['fecha'])?$d['fecha']:null]);
             }
 
-            // 6) Habilitaciones
+            // Habilitaciones
             $this->ubicacion->habilitaciones()->delete();
             foreach (($this->state['habilitaciones'] ?? []) as $h) {
-                $num = trim((string)($h['numero'] ?? '')); if ($num === '') continue;
-                $this->ubicacion->habilitaciones()->create([
-                    'numero' => $num,
-                    'fecha'  => !empty($h['fecha']) ? $h['fecha'] : null,
-                ]);
+                $num = trim((string)($h['numero'] ?? '')); if ($num==='') continue;
+                $this->ubicacion->habilitaciones()->create(['numero'=>$num,'fecha'=>!empty($h['fecha'])?$h['fecha']:null]);
             }
+
+            $this->registrarHistorialEstado(
+                $this->ubicacion,
+                $estadoBase,
+                $estadoLabel,
+                $this->state['cambio_tipo'] ?? null,
+                $this->state['fecha_alta'] ?? null,
+                $this->state['fecha_baja'] ?? null,
+                $this->state['fecha_vto']  ?? null
+            );
         });
 
-        // Notificar UI y refrescar datos mínimos
+        // Refrescar UI
         $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
-
         $this->ubicacion->refresh()->load('documentos','rubros','telefonos','disposiciones','habilitaciones');
         $this->state['persona_tipo'] = $this->ubicacion->persona_tipo ?? 'fisica';
         $this->state['estado']       = $this->normalizarEstado($this->ubicacion->estado ?? 'entramite');
 
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
     }
+
 
     /** ====== Repeater Teléfonos ====== */
     public function addTelefono(): void
@@ -783,6 +908,51 @@ class ComercioData extends Component
 
 
 
+    // === Inserta en tu tabla ubicacion_estado_historial ===
+    private function registrarHistorialEstado(
+        Ubicacion|int|null $ubic,   // acepta modelo, id o null
+        string $estadoBase,
+        string $estadoLabel,
+        ?string $fechaAlta = null,
+        ?string $fechaBaja = null,
+        ?string $fechaVto  = null
+    ): void {
+        // Resolver ID de la ubicación
+        $ubicacionId = $ubic instanceof Ubicacion
+            ? $ubic->id
+            : (is_numeric($ubic) ? (int)$ubic : null);
+
+        if (!$ubicacionId) {
+            // nada que hacer si no hay ID
+            Log::warning('registrarHistorialEstado: ubicacionId vacío', [
+                'estado_base' => $estadoBase,
+                'estado_label'=> $estadoLabel,
+            ]);
+            return;
+        }
+
+        // Normalizar fechas a 'Y-m-d' si vienen como Carbon/DateTime
+        $fmt = fn($v) => $v instanceof \DateTimeInterface ? $v->format('Y-m-d') : ($v ?: null);
+
+        try {
+            UbicacionEstadoHist::create([
+                'ubicacion_id' => $ubicacionId,
+                'estado_base'  => $estadoBase,
+                'estado_label' => $estadoLabel,
+                'fecha_alta'   => $fmt($fechaAlta),
+                'fecha_baja'   => $fmt($fechaBaja),
+                'fecha_vto'    => $fmt($fechaVto),
+                'user_id'      => auth()->id(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error guardando historial de estado', [
+                'msg' => $e->getMessage(),
+            ]);
+            // no rompas la UX
+        }
+    }
+
+
     #[On('prefill-desde-mapa')]
     public function prefillDesdeMapa($direccion = null, $barrio = null, $nomenclatura = null)
     {
@@ -794,7 +964,12 @@ class ComercioData extends Component
 
     public function render()
     {
+        $chips = $this->chipsFor($this->ubicacion);
         $this->ubicacion->loadMissing('rubros','telefonos');
+        $historial = $this->ubicacion->movimientos()
+            ->where('etapa','estado')
+            ->latest('id') // o por fecha si existe
+            ->get();
 
         // Docs desde BD normalizados
         $docsDB = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
@@ -810,7 +985,6 @@ class ComercioData extends Component
             if (!empty($docs[$it['key']])) $presentadas++;
         }
 
-        $historial = $this->ubicacion->movimientos()->get()->keyBy('etapa');
         $esJuridica = ($this->state['persona_tipo'] ?? 'fisica') === 'juridica';
 
         return view('livewire.comercio.comercio-data', [
@@ -822,6 +996,8 @@ class ComercioData extends Component
             'esJuridica' => $esJuridica,
             'docsTotal'  => $total,
             'docsOK'     => $presentadas,
+            'estadoChip' => $chips['estadoChip'],
+            'cambioChip' => $chips['cambioChip'],
         ])->layout('admin.layouts.app');
     }
 }

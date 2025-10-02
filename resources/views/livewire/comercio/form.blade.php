@@ -199,17 +199,50 @@
           </div>
         </div>
 
-        @php $estadoActual = data_get($state, 'estado'); @endphp
+          @php
+            // estado canónico para el select principal
+            $estadoCanon = (string) ($state['estado'] ?? '');
+
+            // para deducir BASE y renderizar opciones, priorizo el label guardado
+            $estadoFuente = (string) ($state['estado_label'] ?? $estadoCanon);
+
+            $sl = mb_strtolower(trim($estadoFuente));
+            if (preg_match('/^\s*0?21\b/', $sl) || in_array($sl, ['entramite','en tramite','en trámite','en_tramite','en-tramite','alta','vigente'])) {
+                $base = '021';
+            } elseif (preg_match('/^\s*0?32\b/', $sl) || $sl === 'irregular') {
+                $base = '032';
+            } elseif (in_array($sl, ['baja','baja de oficio','baja_oficio','baja-oficio','expediente sin efecto','sin_efecto','exp_sin_efecto'])) {
+                $base = $sl;
+            } else {
+                $base = '021';
+            }
+
+            $cambiosOpts = match ($base) {
+                '021' => [
+                    '' => 'Ninguno',
+                    'cambio_domicilio' => 'Cambio de Domicilio',
+                    'adicion_anexo'    => 'Adición de Rubro Anexo',
+                    'cambio_razon'     => 'Cambio de Razón Social',
+                ],
+                '032' => [
+                    '' => 'Ninguno',
+                    'cambio_rubro'     => 'Cambio de Rubro',
+                    'adicion_anexo'    => 'Adecion de Rubro Anexo',
+                    'cambio_fantasia'  => 'Cambio de Nombre de Fantasia',
+                    'baja_alojamiento' => 'Baja de Unidad de Alojamiento',
+                    'cambio_razon'     => 'Cambio de Razon Social',
+                ],
+                default => [],
+            };
+          @endphp
 
         <div class="form-row">
           {{-- Estado --}}
           <div class="form-group col-md-4 mb-2">
             <label class="mb-1" for="estado">Estado</label>
-            <select id="estado" wire:model.live="state.estado"
-                    class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
+            <select id="estado" wire:model.live="state.estado" class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
               <option value="">-- Seleccioná estado --</option>
               <option value="entramite">021</option>
-              <option value="vigente">Alta</option>
               <option value="irregular">032</option>
               <option value="baja">Baja</option>
               <option value="baja_oficio">Baja de oficio</option>
@@ -217,6 +250,17 @@
             </select>
             @error('state.estado') <div class="invalid-feedback">{{ $message }}</div> @enderror
           </div>
+
+          @if(in_array($base, ['021','032']))
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="cambio_tipo">Cambios:</label>
+              <select id="cambio_tipo" wire:model.live="state.cambio_tipo" class="form-control form-control-sm">
+                @foreach($cambiosOpts as $key => $txt)
+                  <option value="{{ $key }}">{{ $txt }}</option>
+                @endforeach
+              </select>
+            </div>
+          @endif
 
           {{-- Tipo de habilitación --}}
           <div class="form-group col-md-4 mb-2">
@@ -228,7 +272,46 @@
             </select>
             @error('state.tipo_hab') <div class="invalid-feedback">{{ $message }}</div> @enderror
           </div>
+        </div>
 
+        <div class="form-row">
+          @if($base === '021')
+            {{-- alta + vto (requeridas) --}}
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_alta">Fecha de alta</label>
+              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta" class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
+              @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
+              <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto" class="form-control form-control-sm @error('state.fecha_vto') is-invalid @enderror">
+              @error('state.fecha_vto') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+          @elseif($base === '032')
+            {{-- alta requerida, vto opcional --}}
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_alta">Fecha de alta</label>
+              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta" class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
+              @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_vto">Fecha de vencimiento (opcional)</label>
+              <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto" class="form-control form-control-sm @error('state.fecha_vto') is-invalid @enderror">
+              @error('state.fecha_vto') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+          @elseif(in_array($base,['baja','baja_oficio','exp_sin_efecto'],true))
+            {{-- alta + baja --}}
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_alta">Fecha de alta</label>
+              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta" class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
+              @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_baja">Fecha de baja</label>
+              <input type="date" id="fecha_baja" wire:model.defer="state.fecha_baja" class="form-control form-control-sm @error('state.fecha_baja') is-invalid @enderror">
+              @error('state.fecha_baja') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+          @endif
           <div class="form-group col-md-4 mb-3">
             <label class="mb-1 d-block">Situación</label>
 
@@ -242,41 +325,6 @@
               </label>
             </div>
           </div>
-        </div>
-
-        <div class="form-row">
-          {{-- Fecha de alta --}}
-          @if($estadoActual && $estadoActual !== 'entramite')
-            <div class="form-group col-md-4 mb-2" id="grp-fecha-alta">
-              <label class="mb-1" for="fecha_alta">Fecha de alta</label>
-              <input type="date" id="fecha_alta"
-                     wire:model.defer="state.fecha_alta"
-                     class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
-              @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-          @endif
-
-          {{-- Fecha de vencimiento --}}
-          @if(in_array($estadoActual, ['vigente','irregular']))
-            <div class="form-group col-md-4 mb-2" id="grp-fecha-vto">
-              <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
-              <input type="date" id="fecha_vto"
-                     wire:model.defer="state.fecha_vto"
-                     class="form-control form-control-sm @error('state.fecha_vto') is-invalid @enderror">
-              @error('state.fecha_vto') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-          @endif
-
-          {{-- Fecha de baja --}}
-          @if($estadoActual === 'baja')
-            <div class="form-group col-md-4 mb-2" id="grp-fecha-baja">
-              <label class="mb-1" for="fecha_baja">Fecha de baja</label>
-              <input type="date" id="fecha_baja"
-                     wire:model.defer="state.fecha_baja"
-                     class="form-control form-control-sm @error('state.fecha_baja') is-invalid @enderror">
-              @error('state.fecha_baja') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-          @endif
         </div>
 
         <div class="form-group mb-2">

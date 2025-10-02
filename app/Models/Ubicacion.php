@@ -35,6 +35,8 @@ class Ubicacion extends Model
         'nomenclatura',
         'lat','lng','barrio','cpu_cod','cpu_nombre',
         'observaciones',
+        'estado_base',
+        'estado_label',
         'estado',        // entramite | vigente | irregular | baja | baja_oficio | sin_efecto
         'situacion',     // null | alta | baja | clausurado
         'tipo_hab',      // definitiva | prev
@@ -51,13 +53,22 @@ class Ubicacion extends Model
         'lat'         => 'float',
         'lng'         => 'float',
         'monto_pagar' => 'decimal:2',
+        'estado'       => 'string',
+        'estado_base'  => 'string',
+        'estado_label' => 'string',
     ];
 
     // ─── Scopes ─────────────────────────────────────────────────────────────────
     public function scopeVigentes($q)  { return $q->where('estado','vigente')->whereDate('fecha_vto','>=', now()); }
     public function scopeVencidos($q)  { return $q->where('estado','vigente')->whereDate('fecha_vto','<',  now()); }
     public function scopeEnTramite($q) { return $q->where('estado','entramite'); }
-    public function scopeClausurados($q){ return $q->where('situacion','clausurado'); } // ← corregido
+    public function scopeClausurados($q){ return $q->where('situacion','clausurado'); }
+    public function scopeCodigo021($q){ return $q->where('estado_base','021'); }
+    public function scopeCodigo032($q){ return $q->where('estado_base','032'); }
+    public function scopeBaja($q){ return $q->where('estado_base','baja'); }
+    public function scopeBajaOficio($q){ return $q->where('estado_base','baja_oficio'); }
+    public function scopeExpSinEfecto($q){ return $q->where('estado_base','exp_sin_efecto'); }
+
 
     // ─── Rels ───────────────────────────────────────────────────────────────────
     public function rubro(): BelongsTo { return $this->belongsTo(Rubro::class, 'rubro_id'); }
@@ -88,50 +99,122 @@ class Ubicacion extends Model
     protected static function booted()
     {
         static::saving(function (Ubicacion $m) {
-            // Normalizar dirección (sin forzar ciudad/país duplicado)
+            // Normalizar dirección
             $m->domicilio_comercio = self::normalizeDireccionComercio($m->domicilio_comercio);
 
-            $estado = $m->estado ?: 'entramite';
+            // Resolver estado_base (preferir el nuevo; sino mapear desde 'estado' legacy)
+            $resolverBase = function (?string $raw): string {
+                $e = trim(mb_strtolower((string)$raw));
+                return match ($e) {
+                    'entramite', 'en tramite', 'en trámite', '021' => '021',
+                    'irregular', '032'                                => '032',
+                    'baja'                                           => 'baja',
+                    'baja de oficio', 'baja_oficio', 'baja-oficio'   => 'baja_oficio',
+                    'expediente sin efecto', 'exp_sin_efecto', 'exp-sin-efecto', 'sin_efecto'
+                                                                => 'exp_sin_efecto',
+                    default                                          => '021',
+                };
+            };
 
-            // Si ya está marcado como clausurado, respetar
+            $estadoBase = $m->estado_base ?: $resolverBase($m->estado);
+            $m->estado_base = $estadoBase;
+
+            // Si ya está clausurado, respetar (no tocamos fechas ni situación)
             if ($m->situacion === 'clausurado') {
-                // fechas no se tocan; el flag de clausura manda
                 return;
             }
 
-            // Mapear situacion por estado (sin pisar clausurado)
-            $m->situacion = match ($estado) {
-                'vigente', 'irregular' => 'alta',
-                'baja', 'baja_oficio', 'sin_efecto' => 'baja',
-                default => null, // entramite u otros
+            $m->estado = match ($estadoBase) {
+                '021'           => 'entramite',
+                '032'           => 'irregular',
+                'baja'          => 'baja',
+                'baja_oficio'   => 'baja_oficio',
+                'exp_sin_efecto'=> 'sin_efecto',
+                default         => 'entramite',
             };
+            // Mapear 'situacion' según el estado base
+            // 021 / 032 => 'alta' | bajas => 'baja' | otro => null
+            $m->situacion = in_array($estadoBase, ['baja','baja_oficio','exp_sin_efecto'], true)
+                ? 'baja'
+                : (in_array($estadoBase, ['021','032'], true) ? 'alta' : null);
 
-            // Fechas por estado:
-            switch ($estado) {
-                case 'entramite':
-                    // En trámite: normalmente sin fechas (dejar manual si ya venían? tu lógica actual las limpia)
-                    $m->fecha_alta = null;
+            // Reglas de fechas por estado base
+            switch ($estadoBase) {
+                case '021':
+                    // 021 ahora tiene alta y vto. No las anulamos.
+                    // Aseguramos que 'baja' no se mezcle.
                     $m->fecha_baja = null;
-                    $m->fecha_vto  = null;
+
+                    // Si hay alta y NO hay vto cargado, calcularlo por tipo_hab (sin pisar manual)
+                    if (!empty($m->fecha_alta) && empty($m->fecha_vto)) {
+                        $alta = $m->fecha_alta instanceof \Carbon\Carbon
+                            ? $m->fecha_alta->copy()
+                            : \Carbon\Carbon::parse($m->fecha_alta);
+
+                        $m->fecha_vto = ($m->tipo_hab === 'definitiva')
+                            ? $alta->addYearNoOverflow()
+                            : $alta->addMonthsNoOverflow(6);
+                    }
                     break;
 
-                case 'vigente':
-                case 'irregular':
-                    // Alta: NO tocar fecha_vto (es manual). Solo asegurar baja = null.
+                case '032':
+                    // Igual criterio que antes: alta requerida; vto opcional o calculado si falta
                     $m->fecha_baja = null;
-                    // fecha_alta la maneja el form/validador; no la forzamos.
+
+                    if (!empty($m->fecha_alta) && empty($m->fecha_vto)) {
+                        $alta = $m->fecha_alta instanceof \Carbon\Carbon
+                            ? $m->fecha_alta->copy()
+                            : \Carbon\Carbon::parse($m->fecha_alta);
+
+                        $m->fecha_vto = ($m->tipo_hab === 'definitiva')
+                            ? $alta->addYearNoOverflow()
+                            : $alta->addMonthsNoOverflow(6);
+                    }
                     break;
 
                 case 'baja':
                 case 'baja_oficio':
-                case 'sin_efecto':
-                    // Estados de baja: no tiene sentido mantener vencimiento
+                case 'exp_sin_efecto':
+                    // En bajas no aplica vencimiento
                     $m->fecha_vto = null;
-                    // fecha_baja la controla el form (y validación); no la forzamos aquí
+                    // Las fechas de alta/baja las maneja el form + validación
                     break;
             }
         });
     }
+
+    public function setEstadoAttribute($value): void
+    {
+        $e = trim(mb_strtolower((string)$value));
+
+        // si ya viene canónico, lo dejamos
+        if (in_array($e, ['entramite','vigente','irregular','baja','baja_oficio','sin_efecto'], true)) {
+            $this->attributes['estado'] = $e;
+            return;
+        }
+
+        // si viene en base o variantes, mapeamos a canónico
+        $base = match ($e) {
+            '021', 'en tramite','en trámite','en_tramite','en-tramite','alta','vigente' => '021',
+            '032','irregular'                                                          => '032',
+            'baja'                                                                     => 'baja',
+            'baja de oficio','baja_oficio','baja-de-oficio'                            => 'baja_oficio',
+            'expediente sin efecto','sin_efecto','exp_sin_efecto'                      => 'exp_sin_efecto',
+            default                                                                    => '021',
+        };
+
+        $canon = match ($base) {
+            '021'           => 'entramite',
+            '032'           => 'irregular',
+            'baja'          => 'baja',
+            'baja_oficio'   => 'baja_oficio',
+            'exp_sin_efecto'=> 'sin_efecto',
+            default         => 'entramite',
+        };
+
+        $this->attributes['estado'] = $canon;
+    }
+
 
     // ─── Atributos auxiliares para la UI ───────────────────────────────────────
     public function getHabilitaSeguimientoAttribute(): bool
@@ -145,6 +228,11 @@ class Ubicacion extends Model
             default      => 'Provisoria',
         };
     }
+
+    // App\Models\Ubicacion.php
+    public function estadosHistorial()
+    { return $this->hasMany(\App\Models\UbicacionEstadoHist::class,'ubicacion_id')->latest('created_at'); }
+
 
     public function getEsClausuradoAttribute(): bool
     { return $this->situacion === 'clausurado'; }
@@ -198,6 +286,21 @@ class Ubicacion extends Model
 
     // Si tu tabla no tiene timestamps:
     public $timestamps = false;
+
+    public function getEstadoDisplayAttribute(): string
+    {
+        if (!empty($this->estado_label)) return $this->estado_label;
+
+        return match ($this->estado) {
+            'entramite'  => '021',
+            'irregular'  => '032',
+            'baja'       => 'Baja',
+            'baja_oficio'=> 'Baja de Oficio',
+            'sin_efecto' => 'Expediente sin Efecto',
+            default      => strtoupper((string)$this->estado),
+        };
+    }
+
 
     public function auditMessage(string $action, array $meta = []): string
     {
