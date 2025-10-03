@@ -49,17 +49,30 @@ class Reportes extends Component
     // ---------- EXPORTAR PDF ----------
     public function exportarPdf()
     {
+        $estadoVisual = function (?string $e) {
+            return match ($e) {
+                'entramite'  => '021/90',
+                'irregular'  => '032/01',
+                '040'        => '040/25',
+                'baja'       => 'Baja',
+                'baja_oficio'=> 'Baja de oficio',
+                'sin_efecto' => 'Expediente sin efecto',
+                null, ''     => 'Todos',
+                default      => $e,
+            };
+        };
+
         $subrubroNom = $this->rubro_id
             ? optional(Rubro::find($this->rubro_id))->subrubro
             : null;
 
         $filtros = [
             'Subrubro'               => $subrubroNom ?: 'Todos',
-            'Estado'                 => $this->estado ?: 'Todos',
+            'Estado'                 => $estadoVisual($this->estado),
             'Desde'                  => $this->desde ?: '—',
             'Hasta'                  => $this->hasta ?: '—',
             'Próx. a vencer (días)'  => (string)($this->proximos_vtos ?? 30),
-            'Sólo clausurados' => $this->solo_clausurados ? 'Sí' : 'No',
+            'Sólo clausurados'       => $this->solo_clausurados ? 'Sí' : 'No',
         ];
 
         $items = $this->base()
@@ -166,13 +179,14 @@ class Reportes extends Component
         $entramite   = (clone $base)->where('estado', 'entramite')->count();
         $vigente     = (clone $base)->where('estado', 'vigente')->count();
         $irregular   = (clone $base)->where('estado', 'irregular')->count();
+        $estado040   = (clone $base)->where('estado', '040')->count();
         $baja        = (clone $base)->where('estado', 'baja')->count();
         $bajaOficio  = (clone $base)->where('estado', 'baja_oficio')->count();
         $sinEfecto   = (clone $base)->where('estado', 'sin_efecto')->count();
 
         $clausurados = (clone $base)->where('situacion','clausurado')->count();
 
-        $total = $entramite + $vigente + $irregular + $baja + $bajaOficio + $sinEfecto;
+        $total = $entramite + $vigente + $irregular + $estado040 + $baja + $bajaOficio + $sinEfecto;
         $pct = fn (int $n) => $total ? round(($n * 100) / $total, 2) : 0;
 
         return [
@@ -180,6 +194,7 @@ class Reportes extends Component
             'entramite'    => ['n' => $entramite,  'pct' => $pct($entramite)],
             'vigente'      => ['n' => $vigente,    'pct' => $pct($vigente)],
             'irregular'    => ['n' => $irregular,  'pct' => $pct($irregular)],
+            '040'          => ['n' => $estado040,  'pct' => $pct($estado040)],
             'baja'         => ['n' => $baja,       'pct' => $pct($baja)],
             'baja_oficio'  => ['n' => $bajaOficio, 'pct' => $pct($bajaOficio)],
             'sin_efecto'   => ['n' => $sinEfecto,  'pct' => $pct($sinEfecto)],
@@ -226,7 +241,7 @@ class Reportes extends Component
         $hasta = Carbon::today()->addDays($this->proximos_vtos);
 
         return $this->base()
-            ->where('estado','vigente')
+            ->whereIn('estado', ['vigente','040']) // <- incluir 040
             ->whereBetween('fecha_vto', [$desde->toDateString(), $hasta->toDateString()])
             ->with(['rubro:id,subrubro'])
             ->orderBy('fecha_vto')
