@@ -20,8 +20,9 @@ class ComercioMapa extends AdminComponent
 
     public array $barrios = [];
     public array $estados = [
-        'entramite'   => '021',
-        'irregular'   => '032',
+        'entramite'   => '021/90',
+        'irregular'   => '032/01',
+        '040'         => '040/25',
         'baja'        => 'Baja',
         'baja_oficio' => 'Baja de Oficio',
         'sin_efecto'  => 'Expediente sin Efecto',
@@ -490,7 +491,10 @@ class ComercioMapa extends AdminComponent
             'en tramite','en trámite','en_tramite','en-tramite' => 'entramite',
             'vigente' => 'vigente',
             'irregular' => 'irregular',
+            '040'         => '040',
             'baja' => 'baja',
+            'baja_oficio'=> 'baja_oficio',
+            'sin_efecto' => 'sin_efecto',
             default => 'entramite',
         };
     }
@@ -519,7 +523,13 @@ class ComercioMapa extends AdminComponent
             case 'irregular':
                 $reglas['state.fecha_alta'] = 'required|date';
                 break;
+            case '040': 
+                $reglas['state.fecha_alta'] = 'required|date';
+                $reglas['state.fecha_vto']  = 'nullable|date|after_or_equal:state.fecha_alta';
+                break;
             case 'baja':
+            case 'baja_oficio':
+            case 'sin_efecto':
                 $tieneAltaAntes = !empty($this->state['fecha_alta']);
                 $reglas['state.fecha_baja'] = 'required|date'
                     . ($tieneAltaAntes ? '|after_or_equal:state.fecha_alta' : '')
@@ -533,21 +543,17 @@ class ComercioMapa extends AdminComponent
         return $reglas;
     }
 
-    // Reglas mínimas para validar el form de ComercioData
     protected function reglasComunes(bool $isUpdate = false): array
     {
         return [
             'state.persona_tipo' => ['required', Rule::in(['fisica','juridica'])],
-            'state.dni_cuit'     => [
-                'bail','required','string',
-                'regex:/^\d{7,8}$|^\d{2}-\d{7,8}-\d{1}$|^\d{11}$/',
-            ],
+            'state.dni_cuit'     => ['bail','required','string','regex:/^\d{7,8}$|^\d{2}-\d{7,8}-\d{1}$|^\d{11}$/'],
             'state.rubro_id'     => ['required','exists:rubros,id'],
 
-            // Acepta canónicos + bases (por si pasan '021', '032', etc.). Incluye '040'.
+            // Acepta canónicos y bases, incluyendo 040
             'state.estado'       => ['required', Rule::in([
                 'entramite','irregular','baja','baja_oficio','sin_efecto','040',
-                '021','032','exp_sin_efecto',
+                '021','032','040','exp_sin_efecto',
             ])],
             'state.tipo_hab'     => ['required', Rule::in(['definitiva','prev'])],
 
@@ -784,12 +790,11 @@ class ComercioMapa extends AdminComponent
     private function calcularSituacion(?string $estadoCanon, bool $esClausurado): ?string
     {
         if ($esClausurado) return 'clausurado';
-
         $e = trim(mb_strtolower((string)$estadoCanon));
+
         return match ($e) {
-            // 021/032 (canónico: entramite / irregular) => alta
-            'entramite','irregular' => 'alta',
-            // bajas => baja
+            // Alta para entramite/irregular y también 040
+            'entramite','irregular','040' => 'alta',   // <-- NUEVO incluye 040
             'baja','baja_oficio','sin_efecto' => 'baja',
             default => null,
         };
