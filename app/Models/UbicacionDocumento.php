@@ -51,6 +51,7 @@ class UbicacionDocumento extends Model
         'doc_cert_caldera',
         'doc_cert_zavecom',
         'doc_cert_salud_prov',
+        'doc_acta_inspeccion',
 
         // Uso del inmueble (exclusivos + tipo textual)
         'doc_uso_boleto',
@@ -102,6 +103,7 @@ class UbicacionDocumento extends Model
         'doc_cert_caldera'                 => 'bool',
         'doc_cert_zavecom'                 => 'bool',
         'doc_cert_salud_prov'              => 'bool',
+        'doc_acta_inspeccion'              => 'bool',
 
         // Uso del inmueble
         'doc_uso_boleto'                   => 'bool',

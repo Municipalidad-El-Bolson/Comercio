@@ -98,6 +98,7 @@ class ComercioData extends Component
         // Baja
         'doc_nota_baja'             => 'Nota de baja',
         'doc_pago_baja'             => 'Pago de baja',
+        'doc_acta_inspeccion'       => 'Acta de inspección',
         // Irregular
         'doc_cert_electricidad'     => 'Certificado de electricidad',
         'doc_cert_gasista'          => 'Certificado de gasista',
@@ -138,7 +139,7 @@ class ComercioData extends Component
 
         return match ($estado) {
             // entrámite: base – cartelería – PU – “uso del local” + manipulación de alimentos
-            'entramite' => array_values(array_unique(array_merge(
+            'entramite', '021' => array_values(array_unique(array_merge(
                 array_diff($baseGeneral, ['doc_nota_carteleria_obras','doc_planeamiento_urbano','doc_comprobante_uso_local']),
                 ['doc_manipulacion_alimentos'],
                 $juridica
@@ -146,16 +147,16 @@ class ComercioData extends Component
             // vigente: no pedimos nada
             'vigente'   => [],
             // baja: sólo estos
-            'baja'      => ['doc_nota_baja','doc_pago_baja','doc_libre_deuda_municipal'],
+            'baja','baja_oficio','exp_sin_efecto'      => ['doc_nota_baja','doc_pago_baja','doc_libre_deuda_municipal','doc_acta_inspeccion'],
             // irregular: lista específica + “uso de inmueble”
-            'irregular' => [
+            'irregular','032' => [
                 'doc_cert_electricidad','doc_cert_gasista','doc_inf_seg_hig','doc_protocolo_mput','doc_carga_fuego',
                 'doc_inf_ascensores','doc_poliza_seguro','doc_cert_cocapri','doc_inf_splif','doc_control_plagas',
                 'doc_cert_caldera','doc_cert_zavecom','doc_cert_salud_prov',
                 'doc_comprobante_uso_inmueble',
             ],
             // baja de oficio / sin efecto: por ahora sin lista especial
-            'baja_oficio','sin_efecto' => [],
+            '040' => [],
             default     => $baseGeneral
         };
     }

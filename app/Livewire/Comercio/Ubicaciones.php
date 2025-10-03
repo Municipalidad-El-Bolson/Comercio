@@ -68,6 +68,7 @@ class Ubicaciones extends AdminComponent
         // Baja
         'doc_nota_baja'             => 'Nota de baja',
         'doc_pago_baja'             => 'Pago de baja',
+        'doc_acta_inspeccion'       => 'Acta de inspección',
         // Irregular
         'doc_cert_electricidad'     => 'Certificado de electricidad',
         'doc_cert_gasista'          => 'Certificado de gasista',
@@ -115,10 +116,10 @@ class Ubicaciones extends AdminComponent
             ],
             '040' => [],
             'baja','baja_oficio','exp_sin_efecto' => [
-                'doc_pago_baja',                // (opcional)
-                'doc_libre_deuda_municipal',   // / Plan de Pago
-                'doc_acta_inspeccion',         // <-- agregá el label y columna si falta
-                'doc_nota_baja',               // (opcional)
+                'doc_pago_baja',
+                'doc_libre_deuda_municipal',
+                'doc_acta_inspeccion',         
+                'doc_nota_baja',
             ],
             default => array_merge($baseGeneral, $juridica),
         };

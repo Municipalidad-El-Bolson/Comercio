@@ -241,7 +241,7 @@ class Reportes extends Component
         $hasta = Carbon::today()->addDays($this->proximos_vtos);
 
         return $this->base()
-            ->whereIn('estado', ['vigente','040']) // <- incluir 040
+            ->whereIn('estado', ['vigente','040'])
             ->whereBetween('fecha_vto', [$desde->toDateString(), $hasta->toDateString()])
             ->with(['rubro:id,subrubro'])
             ->orderBy('fecha_vto')

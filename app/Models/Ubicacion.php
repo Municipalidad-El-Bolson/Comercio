@@ -107,12 +107,12 @@ class Ubicacion extends Model
                 return match ($e) {
                     'entramite', 'en tramite', 'en trámite', '021' => '021',
                     'irregular', '032'                              => '032',
-                    '040'                                           => '040',   // <-- NUEVO
+                    '040'                                           => '040',  
                     'baja'                                          => 'baja',
                     'baja de oficio', 'baja_oficio', 'baja-oficio'  => 'baja_oficio',
                     'expediente sin efecto', 'exp_sin_efecto', 'exp-sin-efecto', 'sin_efecto'
                                                                     => 'exp_sin_efecto',
-                    default                                         => ($raw ? $raw : '021'), // <-- NO fuerces a 021 a ciegas
+                    default                                         => ($raw ? $raw : '021'), 
                 };
             };
 
@@ -149,7 +149,7 @@ class Ubicacion extends Model
                     break;
 
                 case '032':
-                case '040': // <-- NUEVO: igual tratamiento que 032
+                case '040':
                     $m->fecha_baja = null;
                     if (!empty($m->fecha_alta) && empty($m->fecha_vto)) {
                         $alta = $m->fecha_alta instanceof Carbon ? $m->fecha_alta->copy() : Carbon::parse($m->fecha_alta);
@@ -191,7 +191,7 @@ class Ubicacion extends Model
         $canon = match ($base) {
             '021'            => 'entramite',
             '032'            => 'irregular',
-            '040'            => '040',        // <-- NUEVO
+            '040'            => '040',        
             'baja'           => 'baja',
             'baja_oficio'    => 'baja_oficio',
             'exp_sin_efecto' => 'sin_efecto',
