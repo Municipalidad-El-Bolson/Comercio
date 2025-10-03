@@ -533,49 +533,54 @@ class ComercioMapa extends AdminComponent
         return $reglas;
     }
 
-    private function reglasComunes(bool $isUpdate = false): array
+    // Reglas mínimas para validar el form de ComercioData
+    protected function reglasComunes(bool $isUpdate = false): array
     {
-        $rules = [
+        return [
             'state.persona_tipo' => ['required', Rule::in(['fisica','juridica'])],
-            'state.dni_cuit'     => ['bail','required','string','regex:/^\d{7,8}$|^\d{2}-\d{7,8}-\d{1}$|^\d{11}$/', function ($attr, $value, $fail) {
-                if (strlen(preg_replace('/\D/','', $value)) === 11 && !$this->isValidCuit($value)) $fail('El CUIT no es válido.');
-            }],
-            'state.rubro_id'                => ['required','exists:rubros,id'],
-            'state.apellido'                => ['nullable','string','min:2','max:60'],
-            'state.nombres'                 => ['nullable','string','min:2','max:80'],
-            'state.razon_social'            => ['nullable','string','min:2','max:120'],
-            'state.nombre_comercial'        => ['nullable','string','min:2','max:120'],
-            'state.domicilio_responsable'   => ['nullable','string','min:3','max:160'],
-            'state.domicilio_comercio'      => ['nullable','string','min:3','max:160'],
-            'state.correo'                  => ['nullable','email:rfc,dns','max:120'],
-            'state.telefono'                => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
-            'state.nomenclatura'            => ['nullable','string','max:80'],
-            'state.numero_disposicion'      => ['nullable','string','max:60'],
-            'state.numero_habilitacion'     => ['nullable','string','max:60'],
-            'state.monto_pagar'             => ['nullable','numeric','min:0','regex:/^\d{1,9}(\.\d{1,2})?$/'],
-            'state.observaciones'           => ['nullable','string','max:500'],
-            'state.estado'                  => ['required', Rule::in(['021','032','baja','baja_oficio','exp_sin_efecto','entramite','irregular','baja','baja_oficio','sin_efecto',])],
-            'state.tipo_hab'                => ['required', Rule::in(['definitiva','prev'])],
-            'state.fecha_alta'              => ['nullable','date'],
-            'state.fecha_baja'              => ['nullable','date'],
-            'state.fecha_vto'               => ['nullable','date'],
-            'state.documentos'              => ['array'],
-            'state.lat'                     => ['nullable','numeric','between:-90,90'],
-            'state.lng'                     => ['nullable','numeric','between:-180,180'],
-        ];
+            'state.dni_cuit'     => [
+                'bail','required','string',
+                'regex:/^\d{7,8}$|^\d{2}-\d{7,8}-\d{1}$|^\d{11}$/',
+            ],
+            'state.rubro_id'     => ['required','exists:rubros,id'],
 
-        foreach (array_keys($this->docDefaults) as $key) {
-            $rules["state.documentos.$key"] = ['boolean'];
-        }
+            // Acepta canónicos + bases (por si pasan '021', '032', etc.). Incluye '040'.
+            'state.estado'       => ['required', Rule::in([
+                'entramite','irregular','baja','baja_oficio','sin_efecto','040',
+                '021','032','exp_sin_efecto',
+            ])],
+            'state.tipo_hab'     => ['required', Rule::in(['definitiva','prev'])],
 
+            'state.fecha_alta'   => ['nullable','date'],
+            'state.fecha_baja'   => ['nullable','date'],
+            'state.fecha_vto'    => ['nullable','date'],
+
+            'state.nombre_comercial' => ['nullable','string','min:2','max:120'],
+            'state.apellido'         => ['nullable','string','min:2','max:60'],
+            'state.nombres'          => ['nullable','string','min:2','max:80'],
+            'state.razon_social'     => ['nullable','string','min:2','max:120'],
+            'state.domicilio_comercio'=> ['nullable','string','min:3','max:160'],
+            'state.correo'           => ['nullable','email:rfc,dns','max:120'],
+            'state.telefono'         => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
+            'state.nomenclatura'     => ['nullable','string','max:80'],
+            'state.observaciones'    => ['nullable','string','max:500'],
+            'state.documentos'       => ['array'],
+            'state.es_clausurado'    => ['boolean'],
+        ] + $this->reglasPorTipoPersona();
+    }
+
+    protected function reglasPorTipoPersona(): array
+    {
+        // Si es física: apellido + nombres obligatorios. Si es jurídica: razón social obligatoria.
         if (($this->state['persona_tipo'] ?? 'fisica') === 'fisica') {
-            $rules['state.apellido'] = ['required','string','min:2','max:60'];
-            $rules['state.nombres']  = ['required','string','min:2','max:80'];
-        } else {
-            $rules['state.razon_social'] = ['required','string','min:2','max:120'];
+            return [
+                'state.apellido' => ['required','string','min:2','max:60'],
+                'state.nombres'  => ['required','string','min:2','max:80'],
+            ];
         }
-
-        return $rules;
+        return [
+            'state.razon_social' => ['required','string','min:2','max:120'],
+        ];
     }
 
     private function mensajes(): array

@@ -61,6 +61,7 @@ trait HandlesEstados
                 'cambio_domicilio' => 'Cambio de Domicilio',
                 'adicion_anexo'    => 'Adición de Rubro Anexo',
                 'cambio_razon'     => 'Cambio de Razón Social',
+                'resolucion_482'   => 'Resolución 482/22'
             ],
             '032' => [
                 '' => 'Ninguno',
@@ -81,6 +82,7 @@ trait HandlesEstados
                 'cambio_domicilio' => 'Cambio de Domicilio',
                 'adicion_anexo'    => 'Adición de Rubro Anexo',
                 'cambio_razon'     => 'Cambio de Razón Social',
+                'resolucion_482'   => 'Resolución 482/22'
             ],
             '032' => [
                 '' => 'Ninguno',

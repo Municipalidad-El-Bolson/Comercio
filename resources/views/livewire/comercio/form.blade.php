@@ -223,6 +223,7 @@
               'cambio_domicilio' => 'Cambio de Domicilio',
               'adicion_anexo'    => 'Adición de Rubro Anexo',
               'cambio_razon'     => 'Cambio de Razón Social',
+              'resolucion_482'   => 'Resolución 482/22'
             ],
             '032' => [
               '' => 'Ninguno',
@@ -302,7 +303,7 @@
               @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             <div class="form-group col-md-4 mb-2">
-              <label class="mb-1" for="fecha_vto">Fecha de vencimiento (opcional)</label>
+              <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
               <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto"
                     class="form-control form-control-sm @error('state.fecha_vto') is-invalid @enderror">
               @error('state.fecha_vto') <div class="invalid-feedback">{{ $message }}</div> @enderror
