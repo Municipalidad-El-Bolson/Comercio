@@ -13,39 +13,42 @@
     if (!$estadoBase) {
       $raw = strtolower((string)($ubicacion->estado ?? ''));
       $estadoBase = match ($raw) {
-        'entramite','en trámite','021' => '021',
-        'irregular','032'              => '032',
-        'baja'                         => 'baja',
-        'baja_oficio','baja de oficio' => 'baja_oficio',
-        'sin_efecto','expediente sin efecto' => 'sin_efecto',
-        default                        => '021',
+        'entramite','en trámite','en tramite','021','alta','vigente' => '021',
+        'irregular','032'                                            => '032',
+        '040'                                                        => '040',
+        'baja'                                                       => 'baja',
+        'baja_oficio','baja de oficio'                               => 'baja_oficio',
+        'sin_efecto','expediente sin efecto'                         => 'sin_efecto',
+        default                                                      => '021',
       };
     }
     if ($estadoLabel === '') {
       $estadoLabel = match ($estadoBase) {
-        '021' => '021',
-        '032' => '032',
-        'baja' => 'Baja',
+        '021'         => '021',
+        '032'         => '032',
+        '040'         => '040',
+        'baja'        => 'Baja',
         'baja_oficio' => 'Baja de Oficio',
-        'sin_efecto' => 'Expediente sin Efecto',
-        default => strtoupper($estadoBase),
+        'sin_efecto'  => 'Expediente sin Efecto',
+        default       => strtoupper($estadoBase),
       };
     }
 
     // Parseo "BASE - Cambio"
     $cambioTxt = 'Ninguno';
     if (preg_match('/^\s*(021|032)\s*-\s*(.+)$/ui', $estadoLabel, $m)) {
-      $estadoLabel = trim($m[1]);    // 021 ó 032
-      $cambioTxt   = trim($m[2]);    // texto del cambio
+      $estadoLabel = trim($m[1]);    
+      $cambioTxt   = trim($m[2]);    
     }
 
     // Clases de badges
     $estadoClass = match ($estadoBase) {
-      '021' => 'badge-primary',
-      '032' => 'badge-warning',
-      'baja','baja_oficio' => 'badge-danger',
-      'sin_efecto' => 'badge-dark',
-      default => 'badge-secondary',
+      '021'                    => 'badge-success',
+      '032'                    => 'badge-warning',
+      '040'                    => 'badge-info',
+      'baja','baja_oficio'     => 'badge-danger',
+      'sin_efecto'             => 'badge-dark',
+      default                  => 'badge-light',
     };
     $cambioClass = ($cambioTxt !== 'Ninguno') ? 'badge-info' : 'badge-light';
 
@@ -64,6 +67,13 @@
     // Vencimiento
     $vto      = $ubicacion->fecha_vto ? \Illuminate\Support\Carbon::parse($ubicacion->fecha_vto) : null;
     $vtoBadge = $vto ? ($vto->isPast() ? 'danger' : ($vto->diffInDays(now()) <= 30 ? 'warning' : 'success')) : null;
+
+    $estadoVisual = match ($estadoBase) {
+        '021' => '021/90',
+        '032' => '032/01',
+        '040' => '040/25',
+        default => $estadoLabel, // Baja, Baja de Oficio, etc.
+    };
   @endphp
 
   <div class="content-header pt-3 pb-0">
@@ -86,7 +96,7 @@
           <div class="mt-2">
             {{-- Estado --}}
             <span class="badge {{ $estadoClass }} mr-1">
-              <i class="fas fa-clipboard-check mr-1"></i>{{ $estadoLabel }}
+              <i class="fas fa-clipboard-check mr-1"></i>{{ $estadoVisual }}
             </span>
 
             {{-- Cambio --}}
@@ -207,7 +217,7 @@
             <div class="row">
               <div class="col-md-4 mb-2">
                 <div class="text-muted small">Estado</div>
-                <span class="badge {{ $estadoChip['class'] }}">{{ $estadoChip['label'] }}</span>
+                <span class="badge {{ $estadoClass }} mr-1">{{ $estadoVisual  }}</span>
               </div>
               <div class="col-md-4 mb-2">
                 <div class="text-muted small">Cambio</div>

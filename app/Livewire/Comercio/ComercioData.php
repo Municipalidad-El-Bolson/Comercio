@@ -205,16 +205,7 @@ class ComercioData extends Component
     /** ===== Helpers ===== */
     private function normalizarEstado(?string $estado): string
     {
-        $e = trim(mb_strtolower($estado ?? ''));
-        return match ($e) {
-            'en tramite','en trámite','en_tramite','en-tramite','021' => 'entramite',
-            'vigente','alta' => 'vigente',
-            'irregular','032' => 'irregular',
-            'baja' => 'baja',
-            'baja de oficio','baja_oficio' => 'baja_oficio',
-            'expediente sin efecto','sin_efecto' => 'sin_efecto',
-            default => 'entramite',
-        };
+        return $this->estadoBaseNormalize($estado);
     }
 
     private function chipsFor(\App\Models\Ubicacion $u): array
@@ -246,6 +237,7 @@ class ComercioData extends Component
         $estadoClass = match ($base) {
             '021' => 'badge-primary',
             '032' => 'badge-warning',
+            '040' => 'badge-info',
             'baja','baja_oficio' => 'badge-danger',
             'exp_sin_efecto','sin_efecto' => 'badge-dark',
             default => 'badge-secondary',
@@ -281,34 +273,16 @@ class ComercioData extends Component
         // Si viene compuesto tipo "021- Cambio de Domicilio"
         if (str_starts_with($s, '021')) return '021';
         if (str_starts_with($s, '032')) return '032';
+        if (str_starts_with($s, '040')) return '040';
 
         return match ($s) {
-            'baja' => 'baja',
+            'entramite','en tramite','en trámite','en_tramite','en-tramite','vigente','alta' => '021',
+            'irregular'     => '032',
+            '040','040/25'  => '040',
+            'baja'          => 'baja',
             'baja de oficio','baja_oficio','baja-oficio' => 'baja_oficio',
-            'expediente sin efecto','sin_efecto','exp_sin_efecto' => 'exp_sin_efecto',
-            default => '021',
-        };
-    }
-
-    // Opciones válidas por base (misma clave/label que usás en Ubicaciones)
-    private function cambiosOptionsByBase(string $estadoBase): array
-    {
-        return match ($estadoBase) {
-            '021' => [
-                '' => 'Ninguno',
-                'cambio_domicilio' => 'Cambio de Domicilio',
-                'adicion_anexo'    => 'Adición de Rubro Anexo',
-                'cambio_razon'     => 'Cambio de Razón Social',
-            ],
-            '032' => [
-                '' => 'Ninguno',
-                'cambio_rubro'     => 'Cambio de Rubro',
-                'adicion_anexo'    => 'Adecion de Rubro Anexo',
-                'cambio_fantasia'  => 'Cambio de Nombre de Fantasia',
-                'baja_alojamiento' => 'Baja de Unidad de Alojamiento',
-                'cambio_razon'     => 'Cambio de Razon Social',
-            ],
-            default => [],
+            'expediente sin efecto','sin_efecto','exp_sin_efecto','exp-sin-efecto' => 'exp_sin_efecto',
+            default         => '021',
         };
     }
 
@@ -498,7 +472,7 @@ class ComercioData extends Component
             'domicilio_comercio'    => 'nullable|string|min:3|max:160',
             'nomenclatura'          => 'nullable|string|max:80',
             'observaciones'         => 'nullable|string|max:500',
-            'estado'                => 'required|in:entramite,irregular,baja,baja_oficio,sin_efecto',
+            'estado'                => 'required|in:entramite,irregular,baja,baja_oficio,sin_efecto,040',
             'tipo_hab'              => 'required|in:definitiva,prev',
             'fecha_alta'            => 'nullable|date',
             'fecha_baja'            => 'nullable|date',

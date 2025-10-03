@@ -199,59 +199,62 @@
           </div>
         </div>
 
-          @php
-            // estado canónico para el select principal
-            $estadoCanon = (string) ($state['estado'] ?? '');
+        @php
+          // Estado BASE seguro desde el state (por defecto '021')
+          $base = (string) ($state['estado'] ?? '021');
+          $base = trim(mb_strtolower($base));
 
-            // para deducir BASE y renderizar opciones, priorizo el label guardado
-            $estadoFuente = (string) ($state['estado_label'] ?? $estadoCanon);
+          // Normalización mínima en la vista (por si viene con legacy):
+          $map = [
+            'entramite' => '021', 'en tramite' => '021', 'en trámite' => '021', 'alta' => '021', 'vigente' => '021',
+            'irregular' => '032',
+            'sin_efecto' => 'exp_sin_efecto',
+          ];
+          $base = $map[$base] ?? $base;
 
-            $sl = mb_strtolower(trim($estadoFuente));
-            if (preg_match('/^\s*0?21\b/', $sl) || in_array($sl, ['entramite','en tramite','en trámite','en_tramite','en-tramite','alta','vigente'])) {
-                $base = '021';
-            } elseif (preg_match('/^\s*0?32\b/', $sl) || $sl === 'irregular') {
-                $base = '032';
-            } elseif (in_array($sl, ['baja','baja de oficio','baja_oficio','baja-oficio','expediente sin efecto','sin_efecto','exp_sin_efecto'])) {
-                $base = $sl;
-            } else {
-                $base = '021';
-            }
+          // Validar conjunto permitido
+          $permitidos = ['021','032','040','baja','baja_oficio','exp_sin_efecto'];
+          if (!in_array($base, $permitidos, true)) $base = '021';
 
-            $cambiosOpts = match ($base) {
-                '021' => [
-                    '' => 'Ninguno',
-                    'cambio_domicilio' => 'Cambio de Domicilio',
-                    'adicion_anexo'    => 'Adición de Rubro Anexo',
-                    'cambio_razon'     => 'Cambio de Razón Social',
-                ],
-                '032' => [
-                    '' => 'Ninguno',
-                    'cambio_rubro'     => 'Cambio de Rubro',
-                    'adicion_anexo'    => 'Adecion de Rubro Anexo',
-                    'cambio_fantasia'  => 'Cambio de Nombre de Fantasia',
-                    'baja_alojamiento' => 'Baja de Unidad de Alojamiento',
-                    'cambio_razon'     => 'Cambio de Razon Social',
-                ],
-                default => [],
-            };
-          @endphp
+          // Opciones de “Cambios” por estado base (sólo 021 y 032)
+          $cambiosOpts = match ($base) {
+            '021' => [
+              '' => 'Ninguno',
+              'cambio_domicilio' => 'Cambio de Domicilio',
+              'adicion_anexo'    => 'Adición de Rubro Anexo',
+              'cambio_razon'     => 'Cambio de Razón Social',
+            ],
+            '032' => [
+              '' => 'Ninguno',
+              'cambio_rubro'     => 'Cambio de Rubro',
+              'adicion_anexo'    => 'Adeción de Rubro Anexo',
+              'cambio_fantasia'  => 'Cambio de Nombre de Fantasía',
+              'baja_alojamiento' => 'Baja de Unidad de Alojamiento',
+              'cambio_razon'     => 'Cambio de Razón Social',
+            ],
+            default => [],
+          };
+        @endphp
 
         <div class="form-row">
-          {{-- Estado --}}
+          {{-- Estado (usa CÓDIGOS BASE) --}}
           <div class="form-group col-md-4 mb-2">
             <label class="mb-1" for="estado">Estado</label>
-            <select id="estado" wire:model.live="state.estado" class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
+            <select id="estado" wire:model.live="state.estado"
+                    class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
               <option value="">-- Seleccioná estado --</option>
-              <option value="entramite">021</option>
-              <option value="irregular">032</option>
+              <option value="021">021/90</option>
+              <option value="032">032/01</option>
+              <option value="040">040/25</option>
               <option value="baja">Baja</option>
               <option value="baja_oficio">Baja de oficio</option>
-              <option value="sin_efecto">Expediente sin efecto</option>
+              <option value="exp_sin_efecto">Expediente sin efecto</option>
             </select>
             @error('state.estado') <div class="invalid-feedback">{{ $message }}</div> @enderror
           </div>
 
-          @if(in_array($base, ['021','032']))
+          {{-- Cambios (sólo 021 y 032) --}}
+          @if(in_array($base, ['021','032'], true))
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="cambio_tipo">Cambios:</label>
               <select id="cambio_tipo" wire:model.live="state.cambio_tipo" class="form-control form-control-sm">
@@ -274,59 +277,62 @@
           </div>
         </div>
 
+        {{-- Fechas por estado base --}}
         <div class="form-row">
           @if($base === '021')
-            {{-- alta + vto (requeridas) --}}
+            {{-- 021: alta + vto (ambas requeridas por validación del componente) --}}
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="fecha_alta">Fecha de alta</label>
-              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta" class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
+              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta"
+                    class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
               @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
-              <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto" class="form-control form-control-sm @error('state.fecha_vto') is-invalid @enderror">
+              <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto"
+                    class="form-control form-control-sm @error('state.fecha_vto') is-invalid @enderror">
               @error('state.fecha_vto') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
-          @elseif($base === '032')
-            {{-- alta requerida, vto opcional --}}
+          @elseif($base === '032' || $base === '040')
+            {{-- 032/040: alta requerida, vto opcional --}}
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="fecha_alta">Fecha de alta</label>
-              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta" class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
+              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta"
+                    class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
               @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="fecha_vto">Fecha de vencimiento (opcional)</label>
-              <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto" class="form-control form-control-sm @error('state.fecha_vto') is-invalid @enderror">
+              <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto"
+                    class="form-control form-control-sm @error('state.fecha_vto') is-invalid @enderror">
               @error('state.fecha_vto') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
-          @elseif(in_array($base,['baja','baja_oficio','exp_sin_efecto'],true))
-            {{-- alta + baja --}}
+          @elseif(in_array($base, ['baja','baja_oficio','exp_sin_efecto'], true))
+            {{-- Bajas: alta (requerida si no existía) + baja (requerida) --}}
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="fecha_alta">Fecha de alta</label>
-              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta" class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
+              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta"
+                    class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
               @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="fecha_baja">Fecha de baja</label>
-              <input type="date" id="fecha_baja" wire:model.defer="state.fecha_baja" class="form-control form-control-sm @error('state.fecha_baja') is-invalid @enderror">
+              <input type="date" id="fecha_baja" wire:model.defer="state.fecha_baja"
+                    class="form-control form-control-sm @error('state.fecha_baja') is-invalid @enderror">
               @error('state.fecha_baja') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
           @endif
+
           <div class="form-group col-md-4 mb-3">
             <label class="mb-1 d-block">Situación</label>
-
             <div class="form-check mb-2">
-              <input type="checkbox"
-                    class="form-check-input"
-                    id="chkClausurado"
-                    wire:model="state.es_clausurado">
-              <label class="form-check-label" for="chkClausurado">
-                Clausurado
-              </label>
+              <input type="checkbox" class="form-check-input" id="chkClausurado" wire:model="state.es_clausurado">
+              <label class="form-check-label" for="chkClausurado">Clausurado</label>
             </div>
           </div>
         </div>
 
+        {{-- Observaciones --}}
         <div class="form-group mb-2">
           <label class="mb-1" for="observaciones">Observaciones</label>
           <textarea id="observaciones" wire:model.defer="state.observaciones"
@@ -335,72 +341,66 @@
           @error('state.observaciones') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
-        {{-- Documentación (dinámica por estado) --}}
+        {{-- Documentación (dinámica por estado base) --}}
         @php
-          /** BLINDAJE docSchema (acepta inyección por include y evita tocar $this si no hace falta) */
           $docSchema = isset($docSchema) && is_array($docSchema)
-            ? $docSchema
-            : (method_exists($this, 'getDocSchemaProperty') ? $this->docSchema : ['items' => [], 'uso_inmueble' => ['show' => false]]);
-
+              ? $docSchema
+              : (method_exists($this, 'getDocSchemaProperty') ? $this->docSchema : ['items' => [], 'uso_inmueble' => ['show' => false]]);
         @endphp
-        @php $estadoActual = data_get($state,'estado'); @endphp
+
         <div class="border rounded p-2 mt-2">
           <div class="d-flex align-items-center justify-content-between mb-2">
             <h6 class="mb-0">Documentación</h6>
             <div class="btn-group btn-group-sm">
-              <button type="button" class="btn btn-success" wire:click="marcarTodosLosDocs(true)" @disabled(empty($docSchema['items']) && empty($docSchema['uso_inmueble']['show']))>Presentó toda la documentación</button>
-              <button type="button" class="btn btn-outline-secondary" wire:click="marcarTodosLosDocs(false)">Limpiar</button>
+              <button type="button" class="btn btn-success"
+                      wire:click="marcarTodosLosDocs(true)"
+                      @disabled(empty($docSchema['items']) && empty($docSchema['uso_inmueble']['show']))>
+                Presentó toda la documentación
+              </button>
+              <button type="button" class="btn btn-outline-secondary" wire:click="marcarTodosLosDocs(false)">
+                Limpiar
+              </button>
             </div>
           </div>
 
-          @if($estadoActual === 'vigente')
-            <div class="alert alert-info py-2 mb-0">
-              Este comercio está dado de <strong>Alta</strong>: no se requiere documentación adicional.
-            </div>
+          @if(empty($docSchema['items']) && empty($docSchema['uso_inmueble']['show']))
+            <em>No hay documentos para este estado.</em>
           @else
             <div class="row">
-              <div class="col-md-12">
-                @if(empty($docSchema['items']) && empty($docSchema['uso_inmueble']['show']))
-                  <em>No hay documentos para este estado.</em>
-                @else
-                  <div class="row">
-                    @foreach($docSchema['items'] as $i => $it)
-                      <div class="col-md-6">
-                        <label class="form-check mb-1">
-                          <input class="form-check-input" type="checkbox" wire:model="state.documentos.{{ $it['key'] }}">
-                          <span class="form-check-label">{{ $it['label'] }}</span>
-                        </label>
-                      </div>
-                    @endforeach
-                  </div>
-
-                  {{-- Uso de inmueble: checkbox + select (reemplaza el de entrámite y vale para irregular) --}}
-                  @if(data_get($docSchema,'uso_inmueble.show'))
-                    <hr class="my-2">
-                    <div class="form-row align-items-end">
-                      <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1 d-block">{{ data_get($docSchema,'uso_inmueble.label','Uso de inmueble') }}</label>
-                        <label class="form-check m-0">
-                          <input class="form-check-input" type="checkbox"
-                                wire:model="state.documentos.{{ $docSchema['uso_inmueble']['checkboxKey'] }}">
-                          <span class="form-check-label">Presenta comprobante</span>
-                        </label>
-                      </div>
-                      <div class="form-group col-md-8 mb-2">
-                        <label class="mb-1" for="uso_inmueble_tipo">Tipo</label>
-                        <select id="uso_inmueble_tipo" class="form-control form-control-sm"
-                                wire:model="state.documentos.{{ $docSchema['uso_inmueble']['selectKey'] }}">
-                          <option value="">-- Seleccione uno--</option>
-                          @foreach($docSchema['uso_inmueble']['options'] as $val => $txt)
-                            <option value="{{ $val }}">{{ $txt }}</option>
-                          @endforeach
-                        </select>
-                      </div>
-                    </div>
-                  @endif
-                @endif
-              </div>
+              @foreach($docSchema['items'] as $i => $it)
+                <div class="col-md-6">
+                  <label class="form-check mb-1">
+                    <input class="form-check-input" type="checkbox" wire:model="state.documentos.{{ $it['key'] }}">
+                    <span class="form-check-label">{{ $it['label'] }}</span>
+                  </label>
+                </div>
+              @endforeach
             </div>
+
+            {{-- Uso de inmueble: checkbox + select (si aplica) --}}
+            @if(data_get($docSchema,'uso_inmueble.show'))
+              <hr class="my-2">
+              <div class="form-row align-items-end">
+                <div class="form-group col-md-4 mb-2">
+                  <label class="mb-1 d-block">{{ data_get($docSchema,'uso_inmueble.label','Uso de inmueble') }}</label>
+                  <label class="form-check m-0">
+                    <input class="form-check-input" type="checkbox"
+                          wire:model="state.documentos.{{ $docSchema['uso_inmueble']['checkboxKey'] }}">
+                    <span class="form-check-label">Presenta comprobante</span>
+                  </label>
+                </div>
+                <div class="form-group col-md-8 mb-2">
+                  <label class="mb-1" for="uso_inmueble_tipo">Tipo</label>
+                  <select id="uso_inmueble_tipo" class="form-control form-control-sm"
+                          wire:model="state.documentos.{{ $docSchema['uso_inmueble']['selectKey'] }}">
+                    <option value="">-- Seleccione uno --</option>
+                    @foreach($docSchema['uso_inmueble']['options'] as $val => $txt)
+                      <option value="{{ $val }}">{{ $txt }}</option>
+                    @endforeach
+                  </select>
+                </div>
+              </div>
+            @endif
           @endif
         </div>
       </div>

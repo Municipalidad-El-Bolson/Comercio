@@ -93,27 +93,34 @@ class Ubicaciones extends AdminComponent
     // Defaults (todos los booleanos en false; el select textual aparte)
     protected array $docDefaults = [];
 
-    /** ======== Helpers ======== */
-    private function docKeysForEstado(string $estado, bool $esJuridica): array
+    private function docKeysForEstado(string $estadoBase, bool $esJuridica): array
     {
         $baseGeneral = $this->docKeysGeneral;
-        $juridica = $esJuridica ? $this->docKeysJuridica : [];
+        $juridica    = $esJuridica ? $this->docKeysJuridica : [];
 
-        return match ($estado) {
-            'entramite' => array_values(array_unique(array_merge(
-                array_diff($baseGeneral, ['doc_nota_carteleria_obras','doc_planeamiento_urbano','doc_comprobante_uso_local']),
+        return match ($estadoBase) {
+            '021' => array_values(array_unique(array_merge(
+                array_diff($baseGeneral, [
+                    'doc_nota_carteleria_obras',
+                    'doc_planeamiento_urbano',
+                    'doc_comprobante_uso_local'
+                ]),
                 ['doc_manipulacion_alimentos'],
                 $juridica
             ))),
-            'vigente'   => [],
-            'baja'      => ['doc_nota_baja','doc_pago_baja','doc_libre_deuda_municipal'],
-            'irregular' => [
+            '032' => [
                 'doc_cert_electricidad','doc_cert_gasista','doc_inf_seg_hig','doc_protocolo_mput','doc_carga_fuego',
                 'doc_inf_ascensores','doc_poliza_seguro','doc_cert_cocapri','doc_inf_splif','doc_control_plagas',
                 'doc_cert_caldera','doc_cert_zavecom','doc_cert_salud_prov','doc_comprobante_uso_inmueble',
             ],
-            'baja_oficio','sin_efecto' => [],
-            default     => array_merge($baseGeneral, $juridica),
+            '040' => [],
+            'baja','baja_oficio','exp_sin_efecto' => [
+                'doc_pago_baja',                // (opcional)
+                'doc_libre_deuda_municipal',   // / Plan de Pago
+                'doc_acta_inspeccion',         // <-- agregá el label y columna si falta
+                'doc_nota_baja',               // (opcional)
+            ],
+            default => array_merge($baseGeneral, $juridica),
         };
     }
 
@@ -130,7 +137,7 @@ class Ubicaciones extends AdminComponent
 
     public function getDocSchemaProperty(): array
     {
-        $estado = $this->normalizarEstado($this->state['estado'] ?? 'entramite');
+        $estado = $this->normalizarEstado($this->state['estado'] ?? '021');
         $esJuridica = ($this->state['persona_tipo'] ?? 'fisica') === 'juridica';
         $keys = $this->docKeysForEstado($estado, $esJuridica);
 
@@ -152,19 +159,9 @@ class Ubicaciones extends AdminComponent
         ];
     }
 
-    /** ======== Normalizadores/Labels ======== */
     private function normalizarEstado(?string $estado): string
     {
-        $e = trim(mb_strtolower($estado ?? ''));
-        return match ($e) {
-            'en tramite','en trámite','en_tramite','en-tramite','021' => 'entramite',
-            'vigente','alta' => 'vigente',
-            'irregular','032' => 'irregular',
-            'baja' => 'baja',
-            'baja de oficio','baja_oficio' => 'baja_oficio',
-            'expediente sin efecto','sin_efecto' => 'sin_efecto',
-            default => 'entramite',
-        };
+        return $this->estadoBaseNormalize($estado);
     }
 
     public static function estadoLabels(): array
@@ -325,45 +322,27 @@ class Ubicaciones extends AdminComponent
         $this->dispatch('show-form', rubroId: ($this->state['rubro_id'] ?? null), anexos: ($this->state['rubros_anexos'] ?? []));
     }
 
-    // Devuelve base 021 / 032 / baja_oficio / exp_sin_efecto / baja a partir del estado crudo
     private function estadoBaseNormalizeFromRaw(?string $raw): string
     {
         $s = trim(mb_strtolower((string)$raw));
-        if ($s === '') return '021'; // default
+        if ($s === '') return '021';
 
-        // Si viene compuesto tipo "021- Cambio de Domicilio"
+        // Compuestos tipo "021 - Cambio ..." / "032 - ..." / "040 - ..."
         if (str_starts_with($s, '021')) return '021';
         if (str_starts_with($s, '032')) return '032';
+        if (str_starts_with($s, '040')) return '040';
 
         return match ($s) {
-            'baja' => 'baja',
+            'entramite','en tramite','en trámite','en_tramite','en-tramite','vigente','alta' => '021',
+            'irregular'     => '032',
+            '040','040/25'  => '040',
+            'baja'          => 'baja',
             'baja de oficio','baja_oficio','baja-oficio' => 'baja_oficio',
-            'expediente sin efecto','sin_efecto','exp_sin_efecto' => 'exp_sin_efecto',
-            default => '021',
+            'expediente sin efecto','sin_efecto','exp_sin_efecto','exp-sin-efecto' => 'exp_sin_efecto',
+            default         => '021',
         };
     }
 
-    // Opciones válidas por base (misma clave/label que usás en Ubicaciones)
-    private function cambiosOptionsByBase(string $estadoBase): array
-    {
-        return match ($estadoBase) {
-            '021' => [
-                '' => 'Ninguno',
-                'cambio_domicilio' => 'Cambio de Domicilio',
-                'adicion_anexo'    => 'Adición de Rubro Anexo',
-                'cambio_razon'     => 'Cambio de Razón Social',
-            ],
-            '032' => [
-                '' => 'Ninguno',
-                'cambio_rubro'     => 'Cambio de Rubro',
-                'adicion_anexo'    => 'Adecion de Rubro Anexo',
-                'cambio_fantasia'  => 'Cambio de Nombre de Fantasia',
-                'baja_alojamiento' => 'Baja de Unidad de Alojamiento',
-                'cambio_razon'     => 'Cambio de Razon Social',
-            ],
-            default => [],
-        };
-    }
 
     // Intenta inferir la key del cambio a partir del estado compuesto guardado
     private function inferCambioKeyFromEstado(string $estadoRaw, string $base): ?string
@@ -503,7 +482,7 @@ class Ubicaciones extends AdminComponent
             'state.nomenclatura'          => ['nullable','string','max:80'],
             'state.monto_pagar'           => ['nullable','numeric','min:0'],
             'state.observaciones'         => ['nullable','string','max:500'],
-            'state.estado'                => ['required', Rule::in(['entramite','irregular','baja','baja_oficio','sin_efecto'])],
+            'state.estado'                => ['required', Rule::in(['entramite','irregular','baja','baja_oficio','sin_efecto','040'])],
             'state.tipo_hab'              => ['required', Rule::in(['definitiva','prev'])],
             'state.fecha_alta'            => ['nullable','date'],
             'state.fecha_baja'            => ['nullable','date'],
@@ -585,7 +564,6 @@ class Ubicaciones extends AdminComponent
     /** ======== CREATE ======== */
     public function createCliente()
     {
-        $this->state['estado'] = $this->mapBaseToCanon($this->estadoBaseNormalize((string)($this->state['estado'] ?? 'entramite')));
 
         // --- 0) Mapear estado del form a base/canónico/label antes de validar ---
         $rawEstado   = $this->state['estado'] ?? 'entramite';        // puede venir "021"/"032" o "entramite"/"irregular"
@@ -595,26 +573,30 @@ class Ubicaciones extends AdminComponent
         $estadoLabel = $this->buildEstadoLabel($estadoBase, $cambioKey);
 
         // Poner el canónico en el state para que las reglas dependientes funcionen
+        $tmpState = $this->state;
         $this->state['estado'] = $estadoCanon;
 
         // --- 1) Reglas: comunes + por-estado (si las tenés en el componente, reusarlas) ---
-        $reglas  = $this->reglasComunes(false);
-        $reglas  = array_merge($reglas, $this->reglasFechasPorEstado(true), [
-            // repeaters y extras del create
-            'state.telefonos'               => ['array','min:1'],
-            'state.telefonos.*'             => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
-            'state.rubros_anexos'           => ['array'],
-            'state.rubros_anexos.*'         => ['integer','exists:rubros,id','different:state.rubro_id','distinct'],
-            'state.disposiciones'           => ['array'],
-            'state.disposiciones.*.numero'  => ['nullable','string','max:60'],
-            'state.disposiciones.*.fecha'   => ['nullable','date'],
-            'state.habilitaciones'          => ['array'],
-            'state.habilitaciones.*.numero' => ['nullable','string','max:60'],
-            'state.habilitaciones.*.fecha'  => ['nullable','date'],
-        ]);
+        $reglas = array_merge(
+            $this->reglasComunes(false),
+            $this->reglasFechasPorEstado(true),
+            [
+                'state.telefonos'               => ['array','min:1'],
+                'state.telefonos.*'             => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
+                'state.rubros_anexos'           => ['array'],
+                'state.rubros_anexos.*'         => ['integer','exists:rubros,id','different:state.rubro_id','distinct'],
+                'state.disposiciones'           => ['array'],
+                'state.disposiciones.*.numero'  => ['nullable','string','max:60'],
+                'state.disposiciones.*.fecha'   => ['nullable','date'],
+                'state.habilitaciones'          => ['array'],
+                'state.habilitaciones.*.numero' => ['nullable','string','max:60'],
+                'state.habilitaciones.*.fecha'  => ['nullable','date'],
+            ]
+        );
 
-        $validated = $this->validate($reglas, $this->mensajes(), $this->atributos());
-        $data = $validated['state'];
+        $validated = \Validator::make(['state' => $tmpState], $reglas, $this->mensajes(), $this->atributos())->validate();
+        $data = $this->state;
+
         if (array_key_exists('estado', $data)) {
             $data['estado'] = $this->mapBaseToCanon(
                 $this->estadoBaseNormalize((string)$data['estado'])
@@ -637,6 +619,7 @@ class Ubicaciones extends AdminComponent
         $data['estado']       = $estadoCanon;     // FK válida a comercio_estados.codigo
         $data['estado_base']  = $estadoBase;      // 021/032/baja...
         $data['estado_label'] = $estadoLabel;     // "021 - Cambio de ..."
+
         if (in_array('situacion', Schema::getColumnListing('ubicaciones'), true)) {
             $data['situacion'] = $this->calcularSituacion($estadoCanon, (bool)($this->state['es_clausurado'] ?? false));
         }
@@ -723,7 +706,7 @@ class Ubicaciones extends AdminComponent
             }
 
             $this->registrarHistorialEstado(
-                $this->ubicacion,
+                $ubic,
                 $estadoBase,
                 $estadoLabel,
                 $this->state['cambio_tipo'] ?? null,
@@ -737,7 +720,7 @@ class Ubicaciones extends AdminComponent
                     'etapa'   => 'estado',
                     'detalle' => $estadoLabel,
                 ]);
-            } catch (\Throwable $e) { /* noop */ }
+            } catch (\Throwable $e) { }
         });
 
         // --- 8) UI: reset y cerrar ---
@@ -749,7 +732,6 @@ class Ubicaciones extends AdminComponent
 
     public function updateComercio()
     {
-        $this->state['estado'] = $this->mapBaseToCanon($this->estadoBaseNormalize((string)($this->state['estado'] ?? 'entramite')));
 
         // 1) Validar
         $rules = $this->reglasComunes(true);
@@ -779,10 +761,14 @@ class Ubicaciones extends AdminComponent
             );
         }
         $estadoLabel = $this->buildEstadoLabel($estadoBase, $cambioKey);
+        $tmpState = $this->state;
+        $tmpState['estado'] = $estadoCanon;
+        $rules = $this->reglasComunes(true);
+        \Validator::make(['state'=>$tmpState], $rules)->validate();
 
-        $validated['estado']       = $estadoCanon;     // FK válida
-        $validated['estado_base']  = $estadoBase;      // para UI / reportes
-        $validated['estado_label'] = $estadoLabel;     // “021 - …”
+        $validated['estado']       = $estadoCanon;
+        $validated['estado_base']  = $estadoBase;
+        $validated['estado_label'] = $estadoLabel;
         $validated['situacion']    = $this->calcularSituacion($estadoCanon, (bool)($this->state['es_clausurado'] ?? false));
 
         // 4) Limpiar campos que no van directo a ubicaciones
@@ -1003,7 +989,7 @@ class Ubicaciones extends AdminComponent
 
     private function reglasFechasPorEstado(bool $esCreate): array
     {
-        $nuevo = $this->normalizarEstado($this->state['estado'] ?? null);
+        $base = $this->normalizarEstado($this->state['estado'] ?? null);
 
         $reglas = [
             'state.fecha_alta' => 'nullable|date',
@@ -1011,23 +997,43 @@ class Ubicaciones extends AdminComponent
             'state.fecha_vto'  => 'nullable|date',
         ];
 
-        switch ($nuevo) {
-            case 'vigente':
-                if ($esCreate) $reglas['state.fecha_alta'] = 'required|date';
-                break;
-            case 'irregular':
+        switch ($base) {
+            case '021':
+                // Ahora 021 requiere ALTA + VTO
                 $reglas['state.fecha_alta'] = 'required|date';
+                $reglas['state.fecha_vto']  = 'required|date|after_or_equal:state.fecha_alta';
+                $reglas['state.fecha_baja'] = 'nullable';
                 break;
+
+            case '032':
+                // 032 requiere ALTA; VTO opcional (pero coherente si se carga)
+                $reglas['state.fecha_alta'] = 'required|date';
+                $reglas['state.fecha_vto']  = 'nullable|date|after_or_equal:state.fecha_alta';
+                $reglas['state.fecha_baja'] = 'nullable';
+                break;
+
+            case '040':
+                // 040 requiere ALTA; VTO opcional (si querés obligatorio, cambiá a required)
+                $reglas['state.fecha_alta'] = 'required|date';
+                $reglas['state.fecha_vto']  = 'nullable|date|after_or_equal:state.fecha_alta';
+                $reglas['state.fecha_baja'] = 'nullable';
+                break;
+
             case 'baja':
             case 'baja_oficio':
-            case 'sin_efecto':
+            case 'exp_sin_efecto':
+                // Requiere ALTA y BAJA. BAJA >= ALTA y ambas no futuras.
                 $tieneAltaAntes = !empty($this->ubicacion?->fecha_alta) || !empty($this->state['fecha_alta']);
+
+                // Alta requerida (si no estaba previamente)
+                $reglas['state.fecha_alta'] = ($tieneAltaAntes ? 'nullable' : 'required') . '|date|before_or_equal:today';
+
+                // Baja requerida, posterior/igual a alta y no futura
                 $reglas['state.fecha_baja'] = 'required|date'
                     . ($tieneAltaAntes ? '|after_or_equal:state.fecha_alta' : '')
                     . '|before_or_equal:today';
-                if (empty($this->state['fecha_alta']) && empty($this->ubicacion?->fecha_alta)) {
-                    $reglas['state.fecha_alta'] = 'required|date|before_or_equal:today';
-                }
+
+                // VTO no aplica
                 $reglas['state.fecha_vto'] = 'nullable';
                 break;
         }

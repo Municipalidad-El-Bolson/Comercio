@@ -41,123 +41,152 @@
                         </thead>
 
                         <tbody>
-                        @forelse ($ubicaciones as $ubicacion)
-                            @php
-                            // Última habilitacion (viene eager-loaded con limit(1))
-                            $hab = $ubicacion->relationLoaded('habilitaciones')
-                                        ? optional($ubicacion->habilitaciones->first())->numero
-                                        : null;
+                            @forelse ($ubicaciones as $ubicacion)
+                                @php
+                                    // Nº habilitación (si la tenés con relación)
+                                    $hab = data_get($ubicacion, 'habilitacionActual.numero');
 
-                            // Subtítulo: razón social o Apellido + Nombres
-                            $subtitulo = $ubicacion->razon_social
-                                ?: trim(($ubicacion->apellido ?? '') . ' ' . ($ubicacion->nombres ?? ''));
-                            $subtitulo = $subtitulo !== '' ? $subtitulo : '—';
+                                    // Subtítulo (titular)
+                                    $subtitulo = $ubicacion->razon_social
+                                        ?: trim(($ubicacion->apellido ?? '') . ' ' . ($ubicacion->nombres ?? ''));
+                                    $subtitulo = $subtitulo !== '' ? $subtitulo : '—';
 
-                            $labelRaw  = trim((string)($ubicacion->estado_label ?? $ubicacion->estado ?? ''));
-                            $estadoRaw = strtolower(trim((string)($ubicacion->estado ?? '')));
+                                    // Preferí columnas normalizadas si existen
+                                    $baseRaw   = trim((string)($ubicacion->estado_base ?? ''));
+                                    $labelRaw  = trim((string)($ubicacion->estado_label ?? ''));
 
-                            $estadoBase = match ($estadoRaw) {
-                                'entramite','en trámite','en_tramite','en-tramite','021' => '021',
-                                'irregular','032'                                        => '032',
-                                'baja'                                                   => 'Baja',
-                                'baja_oficio','baja de oficio'                           => 'Baja de Oficio',
-                                'sin_efecto','expediente sin efecto','exp_sin_efecto'    => 'Expediente sin Efecto',
-                                default                                                  => '021', // fallback
-                            };
+                                    // Derivar base cuando no venga seteada
+                                    if ($baseRaw === '') {
+                                        $estadoRaw = mb_strtolower(trim((string)($ubicacion->estado ?? '')));
+                                        $baseRaw = match ($estadoRaw) {
+                                            'entramite','en tramite','en trámite','en_tramite','en-tramite','021' => '021',
+                                            'irregular','032'                                                    => '032',
+                                            '040'                                                                => '040',
+                                            'baja'                                                               => 'baja',
+                                            'baja_oficio','baja de oficio'                                       => 'baja_oficio',
+                                            'sin_efecto','expediente sin efecto','exp_sin_efecto'                => 'exp_sin_efecto',
+                                            default                                                              => '021',
+                                        };
+                                    }
 
-                            $cambio = null;
-                            if (preg_match('/^\s*(021|032)\s*-\s*(.+)$/u', $labelRaw, $m)) {
-                                $cambio = trim($m[2]);
-                            }
+                                    // Si no tenemos label, usar uno "lindo" según base
+                                    if ($labelRaw === '') {
+                                        $labelRaw = match ($baseRaw) {
+                                            '021'            => '021',
+                                            '032'            => '032',
+                                            '040'            => '040',
+                                            'baja'           => 'Baja',
+                                            'baja_oficio'    => 'Baja de Oficio',
+                                            'exp_sin_efecto' => 'Expediente sin Efecto',
+                                            default          => strtoupper($baseRaw),
+                                        };
+                                    }
 
-                            $badgeEstado = match ($estadoBase) {
-                                '021'                    => 'success',   // verde
-                                '032'                    => 'warning',   // amarillo
-                                'Baja'                   => 'danger',    // rojo
-                                'Baja de Oficio',
-                                'Expediente sin Efecto'  => 'secondary', // gris
-                                default                  => 'light',
-                            };
-                            @endphp
+                                    // Extraer "cambio" cuando el label viene como "021 - Algo" / "032 - Algo" / "040 - Algo"
+                                    $cambio = null;
+                                    if (preg_match('/^\s*(021|032|040)\s*-\s*(.+)$/u', $labelRaw, $m)) {
+                                        $labelBase = trim($m[1]);   // 021 / 032 / 040
+                                        $cambio    = trim($m[2]);   // texto del cambio
+                                    } else {
+                                        $labelBase = $labelRaw;     // ya viene amigable (Baja / Baja de Oficio / etc.)
+                                    }
 
-                            <tr onclick="window.location='{{ route('comercio.data', $ubicacion) }}'"
-                                style="cursor:pointer;"
-                                @if($ubicacion->situacion === 'clausurado') class="table-secondary text-muted" @endif
-                            >
-                            {{-- Comercio (título + subtítulo) --}}
-                            <td>
-                                <div class="d-flex align-items-start">
-                                <div class="mr-2 mt-1">
-                                    <i class="fas fa-store text-muted"></i>
-                                </div>
-                                <div class="text-truncate" style="max-width: 560px;">
-                                    <div class="font-weight-bold text-truncate">
-                                    {{ $ubicacion->nombre_comercial ?? '-' }}
-                                    @if($ubicacion->situacion === 'clausurado')
-                                        <span class="badge badge-danger ml-2">Clausurado</span>
-                                    @endif
-                                    </div>
-                                    <div class="small text-muted text-truncate">
-                                    {{ $subtitulo }}
-                                    </div>
-                                </div>
-                                </div>
-                            </td>
+                                    // Color del badge por base
+                                    $badgeEstado = match ($baseRaw) {
+                                        '021'            => 'success',   // 021
+                                        '032'            => 'warning',   // 032
+                                        '040'            => 'info',      // 040 
+                                        'baja'           => 'danger',
+                                        'baja_oficio',
+                                        'exp_sin_efecto' => 'dark',
+                                        default          => 'light',
+                                    };
 
-                            {{-- Nº Hab. --}}
-                            <td class="text-sm text-center">
-                            @php $hab = data_get($ubicacion, 'habilitacionActual.numero'); @endphp
-                            @if($hab)
-                                <span class="badge badge-light border" title="Última habilitación">
-                                <i class="fas fa-file-signature mr-1"></i>{{ $hab }}
-                                </span>
-                            @else
-                                —
-                            @endif
-                            </td>
+                                    $estadoVisual = match ($baseRaw) {
+                                        '021' => '021/90',
+                                        '032' => '032/01',
+                                        '040' => '040/25',
+                                        default => $labelRaw,
+                                    };
+                                @endphp
 
-                            {{-- DNI/CUIT --}}
-                            <td class="text-sm text-center">
-                                {{ $ubicacion->dni_cuit ?: '—' }}
-                            </td>
+                                <tr onclick="window.location='{{ route('comercio.data', $ubicacion) }}'"
+                                    style="cursor:pointer;"
+                                    @if($ubicacion->situacion === 'clausurado') class="table-secondary text-muted" @endif
+                                >
+                                    {{-- Comercio --}}
+                                    <td>
+                                        <div class="d-flex align-items-start">
+                                            <div class="mr-2 mt-1">
+                                                <i class="fas fa-store text-muted"></i>
+                                            </div>
+                                            <div class="text-truncate" style="max-width: 560px;">
+                                                <div class="font-weight-bold text-truncate">
+                                                    {{ $ubicacion->nombre_comercial ?? '-' }}
+                                                    @if($ubicacion->situacion === 'clausurado')
+                                                        <span class="badge badge-danger ml-2">Clausurado</span>
+                                                    @endif
+                                                </div>
+                                                <div class="small text-muted text-truncate">
+                                                    {{ $subtitulo }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
 
-                            {{-- Rubro --}}
-                            <td class="text-sm">
-                                {{ data_get($ubicacion, 'rubro.subrubro', '—') }}
-                            </td>
+                                    {{-- Nº Hab. --}}
+                                    <td class="text-sm text-center">
+                                        @if($hab)
+                                            <span class="badge badge-light border" title="Última habilitación">
+                                                <i class="fas fa-file-signature mr-1"></i>{{ $hab }}
+                                            </span>
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
 
-                            {{-- Domicilio --}}
-                            <td class="text-sm text-truncate">
-                                <i class="fas fa-map-marker-alt text-muted mr-1"></i>
-                                {{ $ubicacion->domicilio_comercio ?: '—' }}
-                            </td>
+                                    {{-- DNI/CUIT --}}
+                                    <td class="text-sm text-center">
+                                        {{ $ubicacion->dni_cuit ?: '—' }}
+                                    </td>
 
-                            {{-- Estado --}}
-                            <td class="text-sm text-center">
-                                <span class="badge badge-{{ $badgeEstado }}">
-                                    {{ $estadoBase }}
-                                </span>
-                                @if($cambio)
-                                    <div><small class="text-muted">{{ $cambio }}</small></div>
-                                @endif
-                            </td>
+                                    {{-- Rubro --}}
+                                    <td class="text-sm">
+                                        {{ data_get($ubicacion, 'rubro.subrubro', '—') }}
+                                    </td>
 
-                            {{-- Acciones --}}
-                            <td class="small text-center">
-                                <button type="button"
-                                        class="btn btn-primary btn-sm"
-                                        title="Ver Movimientos / Actas"
-                                        onclick="event.stopPropagation();"
-                                        wire:click="mostrarMovimientos({{ $ubicacion->id }})">
-                                Actas
-                                </button>
-                            </td>
-                            </tr>
-                        @empty
-                            <tr>
-                            <td colspan="7" class="text-center text-muted">No hay registros</td>
-                            </tr>
-                        @endforelse
+                                    {{-- Domicilio --}}
+                                    <td class="text-sm text-truncate">
+                                        <i class="fas fa-map-marker-alt text-muted mr-1"></i>
+                                        {{ $ubicacion->domicilio_comercio ?: '—' }}
+                                    </td>
+
+                                    {{-- Estado (muestra 021/032/040 o el label de baja…) --}}
+                                    <td class="text-sm text-center">
+                                        <span class="badge badge-{{ $badgeEstado }}">
+                                            {{ $estadoVisual }}
+                                        </span>
+                                        @if($cambio)
+                                            <div><small class="text-muted">{{ $cambio }}</small></div>
+                                        @endif
+                                    </td>
+
+                                    {{-- Acciones --}}
+                                    <td class="small text-center">
+                                        <button type="button"
+                                                class="btn btn-primary btn-sm"
+                                                title="Ver Movimientos / Actas"
+                                                onclick="event.stopPropagation();"
+                                                wire:click="mostrarMovimientos({{ $ubicacion->id }})">
+                                            Actas
+                                        </button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">No hay registros</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                     </div>

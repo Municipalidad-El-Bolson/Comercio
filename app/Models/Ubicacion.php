@@ -102,82 +102,66 @@ class Ubicacion extends Model
             // Normalizar dirección
             $m->domicilio_comercio = self::normalizeDireccionComercio($m->domicilio_comercio);
 
-            // Resolver estado_base (preferir el nuevo; sino mapear desde 'estado' legacy)
             $resolverBase = function (?string $raw): string {
                 $e = trim(mb_strtolower((string)$raw));
                 return match ($e) {
                     'entramite', 'en tramite', 'en trámite', '021' => '021',
-                    'irregular', '032'                                => '032',
-                    'baja'                                           => 'baja',
-                    'baja de oficio', 'baja_oficio', 'baja-oficio'   => 'baja_oficio',
+                    'irregular', '032'                              => '032',
+                    '040'                                           => '040',   // <-- NUEVO
+                    'baja'                                          => 'baja',
+                    'baja de oficio', 'baja_oficio', 'baja-oficio'  => 'baja_oficio',
                     'expediente sin efecto', 'exp_sin_efecto', 'exp-sin-efecto', 'sin_efecto'
-                                                                => 'exp_sin_efecto',
-                    default                                          => '021',
+                                                                    => 'exp_sin_efecto',
+                    default                                         => ($raw ? $raw : '021'), // <-- NO fuerces a 021 a ciegas
                 };
             };
 
             $estadoBase = $m->estado_base ?: $resolverBase($m->estado);
             $m->estado_base = $estadoBase;
 
-            // Si ya está clausurado, respetar (no tocamos fechas ni situación)
+            
             if ($m->situacion === 'clausurado') {
                 return;
             }
 
             $m->estado = match ($estadoBase) {
-                '021'           => 'entramite',
-                '032'           => 'irregular',
-                'baja'          => 'baja',
-                'baja_oficio'   => 'baja_oficio',
-                'exp_sin_efecto'=> 'sin_efecto',
-                default         => 'entramite',
+                '021'            => 'entramite',
+                '032'            => 'irregular',
+                '040'            => '040',         
+                'baja'           => 'baja',
+                'baja_oficio'    => 'baja_oficio',
+                'exp_sin_efecto' => 'sin_efecto',
+                default          => $m->estado ?: 'entramite',
             };
-            // Mapear 'situacion' según el estado base
-            // 021 / 032 => 'alta' | bajas => 'baja' | otro => null
+            
             $m->situacion = in_array($estadoBase, ['baja','baja_oficio','exp_sin_efecto'], true)
                 ? 'baja'
-                : (in_array($estadoBase, ['021','032'], true) ? 'alta' : null);
+                : (in_array($estadoBase, ['021','032','040'], true) ? 'alta' : null); // <-- incluye 040
 
-            // Reglas de fechas por estado base
             switch ($estadoBase) {
                 case '021':
-                    // 021 ahora tiene alta y vto. No las anulamos.
-                    // Aseguramos que 'baja' no se mezcle.
                     $m->fecha_baja = null;
-
-                    // Si hay alta y NO hay vto cargado, calcularlo por tipo_hab (sin pisar manual)
                     if (!empty($m->fecha_alta) && empty($m->fecha_vto)) {
-                        $alta = $m->fecha_alta instanceof \Carbon\Carbon
-                            ? $m->fecha_alta->copy()
-                            : \Carbon\Carbon::parse($m->fecha_alta);
-
-                        $m->fecha_vto = ($m->tipo_hab === 'definitiva')
-                            ? $alta->addYearNoOverflow()
-                            : $alta->addMonthsNoOverflow(6);
+                        $alta = $m->fecha_alta instanceof Carbon ? $m->fecha_alta->copy() : Carbon::parse($m->fecha_alta);
+                        $m->fecha_vto = ($m->tipo_hab === 'definitiva') ? $alta->addYearNoOverflow()
+                                                                        : $alta->addMonthsNoOverflow(6);
                     }
                     break;
 
                 case '032':
-                    // Igual criterio que antes: alta requerida; vto opcional o calculado si falta
+                case '040': // <-- NUEVO: igual tratamiento que 032
                     $m->fecha_baja = null;
-
                     if (!empty($m->fecha_alta) && empty($m->fecha_vto)) {
-                        $alta = $m->fecha_alta instanceof \Carbon\Carbon
-                            ? $m->fecha_alta->copy()
-                            : \Carbon\Carbon::parse($m->fecha_alta);
-
-                        $m->fecha_vto = ($m->tipo_hab === 'definitiva')
-                            ? $alta->addYearNoOverflow()
-                            : $alta->addMonthsNoOverflow(6);
+                        $alta = $m->fecha_alta instanceof Carbon ? $m->fecha_alta->copy() : Carbon::parse($m->fecha_alta);
+                        $m->fecha_vto = ($m->tipo_hab === 'definitiva') ? $alta->addYearNoOverflow()
+                                                                        : $alta->addMonthsNoOverflow(6);
                     }
                     break;
 
                 case 'baja':
                 case 'baja_oficio':
                 case 'exp_sin_efecto':
-                    // En bajas no aplica vencimiento
-                    $m->fecha_vto = null;
-                    // Las fechas de alta/baja las maneja el form + validación
+                    $m->fecha_vto = null; // en bajas no aplica vto
                     break;
             }
         });
@@ -187,29 +171,31 @@ class Ubicacion extends Model
     {
         $e = trim(mb_strtolower((string)$value));
 
-        // si ya viene canónico, lo dejamos
-        if (in_array($e, ['entramite','vigente','irregular','baja','baja_oficio','sin_efecto'], true)) {
+        // si ya viene canónico, lo dejamos (agregamos 040)
+        if (in_array($e, ['entramite','vigente','irregular','baja','baja_oficio','sin_efecto','040'], true)) {
             $this->attributes['estado'] = $e;
             return;
         }
 
-        // si viene en base o variantes, mapeamos a canónico
+        // mapear variantes a base
         $base = match ($e) {
-            '021', 'en tramite','en trámite','en_tramite','en-tramite','alta','vigente' => '021',
+            '021','en tramite','en trámite','en_tramite','en-tramite','alta','vigente' => '021',
             '032','irregular'                                                          => '032',
-            'baja'                                                                     => 'baja',
-            'baja de oficio','baja_oficio','baja-de-oficio'                            => 'baja_oficio',
-            'expediente sin efecto','sin_efecto','exp_sin_efecto'                      => 'exp_sin_efecto',
-            default                                                                    => '021',
+            '040'                                                                       => '040',
+            'baja'                                                                      => 'baja',
+            'baja de oficio','baja_oficio','baja-de-oficio'                             => 'baja_oficio',
+            'expediente sin efecto','sin_efecto','exp_sin_efecto'                       => 'exp_sin_efecto',
+            default                                                                     => '021',
         };
 
         $canon = match ($base) {
-            '021'           => 'entramite',
-            '032'           => 'irregular',
-            'baja'          => 'baja',
-            'baja_oficio'   => 'baja_oficio',
-            'exp_sin_efecto'=> 'sin_efecto',
-            default         => 'entramite',
+            '021'            => 'entramite',
+            '032'            => 'irregular',
+            '040'            => '040',        // <-- NUEVO
+            'baja'           => 'baja',
+            'baja_oficio'    => 'baja_oficio',
+            'exp_sin_efecto' => 'sin_efecto',
+            default          => 'entramite',
         };
 
         $this->attributes['estado'] = $canon;
@@ -291,16 +277,28 @@ class Ubicacion extends Model
     {
         if (!empty($this->estado_label)) return $this->estado_label;
 
+        if (!empty($this->estado_base)) {
+            return match ($this->estado_base) {
+                '021'            => '021',
+                '032'            => '032',
+                '040'            => '040',
+                'baja'           => 'Baja',
+                'baja_oficio'    => 'Baja de Oficio',
+                'exp_sin_efecto' => 'Expediente sin Efecto',
+                default          => strtoupper((string)$this->estado_base),
+            };
+        }
+
         return match ($this->estado) {
-            'entramite'  => '021',
-            'irregular'  => '032',
-            'baja'       => 'Baja',
-            'baja_oficio'=> 'Baja de Oficio',
-            'sin_efecto' => 'Expediente sin Efecto',
-            default      => strtoupper((string)$this->estado),
+            'entramite'   => '021',
+            'irregular'   => '032',
+            '040'         => '040', 
+            'baja'        => 'Baja',
+            'baja_oficio' => 'Baja de Oficio',
+            'sin_efecto'  => 'Expediente sin Efecto',
+            default       => strtoupper((string)$this->estado),
         };
     }
-
 
     public function auditMessage(string $action, array $meta = []): string
     {

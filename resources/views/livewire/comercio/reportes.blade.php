@@ -27,6 +27,7 @@
                 <option value="">-- Todos --</option>
                 <option value="entramite">021/90</option>
                 <option value="irregular">032/01</option>
+                <option value="040">040/25</option> 
                 <option value="baja">Baja</option>
                 <option value="baja_oficio">Baja de oficio</option>
                 <option value="sin_efecto">Expediente sin efecto</option>
@@ -206,6 +207,10 @@
                 <div class="col-6 col-md-2 mt-3 mt-md-0">
                   <h4 class="mb-0">{{ $e['irregular']['n'] ?? 0 }}</h4>
                   <small>032/01 ({{ $e['irregular']['pct'] ?? 0 }}%)</small>
+                </div>
+                <div class="col-6 col-md-2 mt-3 mt-md-0">
+                  <h4 class="mb-0">{{ $e['040']['n'] ?? 0 }}</h4>
+                  <small>040/25 ({{ $e['040']['pct'] ?? 0 }}%)</small>
                 </div>
                 <div class="col-6 col-md-2 mt-3 mt-md-0">
                   <h4 class="mb-0">{{ $e['baja']['n'] ?? 0 }}</h4>
