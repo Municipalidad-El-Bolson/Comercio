@@ -946,40 +946,70 @@ class ComercioData extends Component
         Ubicacion|int|null $ubic,
         string $estadoBase,
         string $estadoLabel,
-        ?string $fechaAlta = null,
-        ?string $fechaBaja = null,
-        ?string $fechaVto  = null
+        $fechaAlta = null,
+        $fechaBaja = null,
+        $fechaVto  = null
     ): void {
-        $ubicacionId = $ubic instanceof Ubicacion
+        $ubicacionId = $ubic instanceof \App\Models\Ubicacion
             ? $ubic->id
             : (is_numeric($ubic) ? (int)$ubic : null);
 
-        if (!$ubicacionId) {
-            Log::warning('registrarHistorialEstado: ubicacionId vacío', [
-                'estado_base' => $estadoBase,
-                'estado_label'=> $estadoLabel,
-            ]);
-            return;
+        if (!$ubicacionId) return;
+
+        // Normalizar base y fechas (strings vacíos → null)
+        $base = $this->estadoBaseNormalize($estadoBase);
+        $norm = function($v) {
+            if ($v instanceof \DateTimeInterface) return $v->format('Y-m-d');
+            $s = is_string($v) ? trim($v) : $v;
+            if ($s === '' || $s === null) return null;
+            try { return \Carbon\Carbon::parse($s)->format('Y-m-d'); } catch (\Throwable $e) { return null; }
+        };
+
+        $fAlta = $norm($fechaAlta);
+        $fBaja = $norm($fechaBaja);
+        $fVto  = $norm($fechaVto);
+
+        // Regla de negocio: limpiar fechas que NO aplican al estado
+        switch ($base) {
+            case '021':
+            case '032':
+            case '040':
+                // Estados de "alta/trámite": no debe haber fecha_baja
+                $fBaja = null;
+                break;
+
+            case 'baja':
+            case 'baja_oficio':
+            case 'exp_sin_efecto':
+                // Estados de baja: no debe haber fecha_vto
+                $fVto = null;
+                break;
         }
 
-        $fmt = fn($v) => $v instanceof \DateTimeInterface ? $v->format('Y-m-d') : ($v ?: null);
+        // Anti-duplicado: si el último registro tiene exactamente lo mismo, no grabes
+        $last = \App\Models\UbicacionEstadoHist::where('ubicacion_id', $ubicacionId)
+                    ->latest('id')->first();
 
-        try {
-            UbicacionEstadoHist::create([
-                'ubicacion_id' => $ubicacionId,
-                'estado_base'  => $estadoBase,
-                'estado_label' => $estadoLabel,
-                'fecha_alta'   => $fmt($fechaAlta),
-                'fecha_baja'   => $fmt($fechaBaja),
-                'fecha_vto'    => $fmt($fechaVto),
-                'user_id'      => auth()->id(),
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('Error guardando historial de estado', [
-                'msg' => $e->getMessage(),
-            ]);
+        if ($last
+            && $last->estado_base  === $base
+            && $last->estado_label === $estadoLabel
+            && $last->fecha_alta?->format('Y-m-d') === $fAlta
+            && $last->fecha_baja?->format('Y-m-d') === $fBaja
+            && $last->fecha_vto?->format('Y-m-d')  === $fVto) {
+            return; // nada cambió realmente
         }
+
+        \App\Models\UbicacionEstadoHist::create([
+            'ubicacion_id' => $ubicacionId,
+            'estado_base'  => $base,
+            'estado_label' => $estadoLabel,
+            'fecha_alta'   => $fAlta,
+            'fecha_baja'   => $fBaja,
+            'fecha_vto'    => $fVto,
+            'user_id'      => auth()->id(),
+        ]);
     }
+
 
     #[On('prefill-desde-mapa')]
     public function prefillDesdeMapa($direccion = null, $barrio = null, $nomenclatura = null)

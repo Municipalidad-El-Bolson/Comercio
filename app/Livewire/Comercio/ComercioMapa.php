@@ -783,7 +783,6 @@ class ComercioMapa extends AdminComponent
 
     public function updatedStateEstado($nuevo): void
     {
-        // si ya tenés un método con este nombre, agregale esta línea
         $this->state['cambio_tipo'] = '';
     }
 

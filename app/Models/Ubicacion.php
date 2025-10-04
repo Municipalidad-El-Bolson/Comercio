@@ -99,73 +99,82 @@ class Ubicacion extends Model
     protected static function booted()
     {
         static::saving(function (Ubicacion $m) {
-            // Normalizar dirección
+            // Normalizar dirección siempre
             $m->domicilio_comercio = self::normalizeDireccionComercio($m->domicilio_comercio);
 
+            // Resolver código base de estado (021/032/040/baja/baja_oficio/exp_sin_efecto)
             $resolverBase = function (?string $raw): string {
                 $e = trim(mb_strtolower((string)$raw));
                 return match ($e) {
                     'entramite', 'en tramite', 'en trámite', '021' => '021',
                     'irregular', '032'                              => '032',
-                    '040'                                           => '040',  
+                    '040'                                           => '040',
                     'baja'                                          => 'baja',
                     'baja de oficio', 'baja_oficio', 'baja-oficio'  => 'baja_oficio',
                     'expediente sin efecto', 'exp_sin_efecto', 'exp-sin-efecto', 'sin_efecto'
-                                                                    => 'exp_sin_efecto',
-                    default                                         => ($raw ? $raw : '021'), 
+                                                                => 'exp_sin_efecto',
+                    default                                         => ($raw ? $raw : '021'),
                 };
             };
 
+            // 1) Normalizar estado_base y estado canónico
             $estadoBase = $m->estado_base ?: $resolverBase($m->estado);
             $m->estado_base = $estadoBase;
 
-            
-            if ($m->situacion === 'clausurado') {
-                return;
-            }
-
+            // Si está clausurado, de todos modos dejamos coherentes estado/situación/fechas,
+            // pero no forzamos nada extra (no return temprano, así limpiamos fechas residuales).
             $m->estado = match ($estadoBase) {
                 '021'            => 'entramite',
                 '032'            => 'irregular',
-                '040'            => '040',         
+                '040'            => '040',          // se acordó que 040 se guarda tal cual
                 'baja'           => 'baja',
                 'baja_oficio'    => 'baja_oficio',
                 'exp_sin_efecto' => 'sin_efecto',
                 default          => $m->estado ?: 'entramite',
             };
-            
+
             $m->situacion = in_array($estadoBase, ['baja','baja_oficio','exp_sin_efecto'], true)
                 ? 'baja'
-                : (in_array($estadoBase, ['021','032','040'], true) ? 'alta' : null); // <-- incluye 040
+                : (in_array($estadoBase, ['021','032','040'], true) ? 'alta' : $m->situacion);
 
+            // Helpers seguros para fecha
+            $toCarbon = function($v) {
+                if ($v instanceof \Carbon\Carbon) return $v->copy();
+                if ($v instanceof \DateTimeInterface) return \Carbon\Carbon::instance($v);
+                if (empty($v)) return null;
+                try { return \Carbon\Carbon::parse($v); } catch (\Throwable $e) { return null; }
+            };
+
+            // 2) Reglas de limpieza / autocalculado por estado base
             switch ($estadoBase) {
                 case '021':
-                    $m->fecha_baja = null;
-                    if (!empty($m->fecha_alta) && empty($m->fecha_vto)) {
-                        $alta = $m->fecha_alta instanceof Carbon ? $m->fecha_alta->copy() : Carbon::parse($m->fecha_alta);
-                        $m->fecha_vto = ($m->tipo_hab === 'definitiva') ? $alta->addYearNoOverflow()
-                                                                        : $alta->addMonthsNoOverflow(6);
-                    }
-                    break;
-
                 case '032':
                 case '040':
+                    // No debe quedar fecha_baja en estados de alta/trámite
                     $m->fecha_baja = null;
+
+                    // Autocalcular vto si hay alta y no se cargó vto
                     if (!empty($m->fecha_alta) && empty($m->fecha_vto)) {
-                        $alta = $m->fecha_alta instanceof Carbon ? $m->fecha_alta->copy() : Carbon::parse($m->fecha_alta);
-                        $m->fecha_vto = ($m->tipo_hab === 'definitiva') ? $alta->addYearNoOverflow()
-                                                                        : $alta->addMonthsNoOverflow(6);
+                        $alta = $toCarbon($m->fecha_alta);
+                        if ($alta) {
+                            $m->fecha_vto = ($m->tipo_hab === 'definitiva')
+                                ? $alta->addYearNoOverflow()
+                                : $alta->addMonthsNoOverflow(6);
+                        }
                     }
                     break;
 
                 case 'baja':
                 case 'baja_oficio':
                 case 'exp_sin_efecto':
-                    $m->fecha_vto = null; // en bajas no aplica vto
+                    // En bajas no aplica vto → limpiar siempre
+                    $m->fecha_vto = null;
+                    // (fecha_baja la define la UI/validación; acá no la forzamos)
                     break;
             }
         });
     }
+
 
     public function setEstadoAttribute($value): void
     {

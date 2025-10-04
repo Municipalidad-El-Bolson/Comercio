@@ -545,24 +545,73 @@ class Ubicaciones extends AdminComponent
         ];
     }
 
-    /** ======== Cambios dinámicos del form ======== */
     public function updatedStateEstado($nuevo): void
     {
+        // 1) Normalizar a código base y fijarlo en el state
+        $base = $this->estadoBaseNormalize((string) $nuevo); // => '021' | '032' | '040' | 'baja' | 'baja_oficio' | 'exp_sin_efecto'
+        $this->state['estado'] = $base;
+
+        // 2) Limpiar fechas que no aplican según el estado base
+        switch ($base) {
+            case '021':
+            case '032':
+            case '040':
+                // Estados de alta / trámite / irregular no llevan fecha_baja
+                $this->state['fecha_baja'] = null;
+                break;
+
+            case 'baja':
+            case 'baja_oficio':
+            case 'exp_sin_efecto':
+                // Bajas no llevan vencimiento
+                $this->state['fecha_vto'] = null;
+                break;
+        }
+
+        // 3) Si está activo el hook de suspensión, no toques docs ni cambio_tipo
         if ($this->suspendEstadoHook) return;
 
-        $estado = $this->normalizarEstado($nuevo);
+        // Recalcular documentos permitidos para el estado base
         $esJuridica = ($this->state['persona_tipo'] ?? 'fisica') === 'juridica';
-        $permitidos = $this->docKeysForEstado($estado, $esJuridica);
+        $permitidos = $this->docKeysForEstado($base, $esJuridica);
 
         $docs = $this->state['documentos'] ?? [];
-        foreach (array_keys($this->docLabels) as $k) $docs[$k] = false;
-        foreach ($permitidos as $k) $docs[$k] = (bool)($docs[$k] ?? false);
+        // Apagar todos
+        foreach (array_keys($this->docLabels) as $k) {
+            $docs[$k] = false;
+        }
+        // Encender solo los del estado
+        foreach ($permitidos as $k) {
+            $docs[$k] = (bool)($docs[$k] ?? false);
+        }
+        // El select del uso de inmueble vuelve a null (si aplica lo volverá a elegir)
         $docs['doc_uso_inmueble_tipo'] = null;
-        if (!in_array($estado, ['021','032'], true)) {
+
+        $this->state['documentos'] = $docs;
+
+        // 4) Resetear "cambio" SOLO si el estado NO es 021 ni 032 (que sí usan cambios)
+        if (!in_array($base, ['021','032'], true)) {
             $this->state['cambio_tipo'] = '';
         }
-        $this->state['documentos'] = $docs;
     }
+
+    private function limpiarFechasSegunEstadoBase(array &$data, string $estadoBase): void
+    {
+        switch ($estadoBase) {
+            case '021':
+            case '032':
+            case '040':
+                $data['fecha_baja'] = null;
+                break;
+
+            case 'baja':
+            case 'baja_oficio':
+            case 'exp_sin_efecto':
+                $data['fecha_vto'] = null;
+                break;
+        }
+    }
+
 
     public function updatedStatePersonaTipo($tipo): void
     {
@@ -620,6 +669,8 @@ class Ubicaciones extends AdminComponent
 
         $validated = \Validator::make(['state' => $tmpState], $reglas, $this->mensajes(), $this->atributos())->validate();
         $data = $this->state;
+
+        $this->limpiarFechasSegunEstadoBase($data, $estadoBase);
 
         if (array_key_exists('estado', $data)) {
             $data['estado'] = $this->mapBaseToCanon(
@@ -756,7 +807,7 @@ class Ubicaciones extends AdminComponent
 
     public function updateComercio()
     {
-            // ---- 0) Mapear estado (form -> base -> canónico) ANTES de validar ----
+        // ---- 0) Mapear estado (form -> base -> canónico) ANTES de validar ----
         $rawEstado   = $this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite';
         $estadoBase  = $this->estadoBaseNormalize($rawEstado);     // '021' | '032' | '040' | 'baja' | 'baja_oficio' | 'exp_sin_efecto'
         $estadoCanon = $this->mapBaseToCanon($estadoBase);         // 'entramite' | 'irregular' | '040' | 'baja' | 'baja_oficio' | 'sin_efecto'
@@ -792,6 +843,8 @@ class Ubicaciones extends AdminComponent
         \Validator::make($this->state, $rules)->validate();
         $messages = method_exists($this, 'mensajes') ? $this->mensajes() : [];
 
+        $this->limpiarFechasSegunEstadoBase($dataUbic, $estadoBase);
+        
         // ---- 2) Normalizaciones varias (igual que tenías) ----
         $validated = $this->state;
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
@@ -920,49 +973,74 @@ class Ubicaciones extends AdminComponent
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
     }
 
-        // === Inserta en tu tabla ubicacion_estado_historial ===
     private function registrarHistorialEstado(
-        Ubicacion|int|null $ubic,   // acepta modelo, id o null
+        \App\Models\Ubicacion|int|null $ubic,
         string $estadoBase,
         string $estadoLabel,
-        ?string $fechaAlta = null,
-        ?string $fechaBaja = null,
-        ?string $fechaVto  = null
+        $fechaAlta = null,
+        $fechaBaja = null,
+        $fechaVto  = null
     ): void {
-        // Resolver ID de la ubicación
-        $ubicacionId = $ubic instanceof Ubicacion
+        $ubicacionId = $ubic instanceof \App\Models\Ubicacion
             ? $ubic->id
             : (is_numeric($ubic) ? (int)$ubic : null);
 
-        if (!$ubicacionId) {
-            // nada que hacer si no hay ID
-            Log::warning('registrarHistorialEstado: ubicacionId vacío', [
-                'estado_base' => $estadoBase,
-                'estado_label'=> $estadoLabel,
-            ]);
-            return;
+        if (!$ubicacionId) return;
+
+        // Normalizar base y fechas (strings vacíos → null)
+        $base = $this->estadoBaseNormalize($estadoBase);
+        $norm = function($v) {
+            if ($v instanceof \DateTimeInterface) return $v->format('Y-m-d');
+            $s = is_string($v) ? trim($v) : $v;
+            if ($s === '' || $s === null) return null;
+            try { return \Carbon\Carbon::parse($s)->format('Y-m-d'); } catch (\Throwable $e) { return null; }
+        };
+
+        $fAlta = $norm($fechaAlta);
+        $fBaja = $norm($fechaBaja);
+        $fVto  = $norm($fechaVto);
+
+        // Regla de negocio: limpiar fechas que NO aplican al estado
+        switch ($base) {
+            case '021':
+            case '032':
+            case '040':
+                // Estados de "alta/trámite": no debe haber fecha_baja
+                $fBaja = null;
+                break;
+
+            case 'baja':
+            case 'baja_oficio':
+            case 'exp_sin_efecto':
+                // Estados de baja: no debe haber fecha_vto
+                $fVto = null;
+                break;
         }
 
-        // Normalizar fechas a 'Y-m-d' si vienen como Carbon/DateTime
-        $fmt = fn($v) => $v instanceof \DateTimeInterface ? $v->format('Y-m-d') : ($v ?: null);
+        // Anti-duplicado: si el último registro tiene exactamente lo mismo, no grabes
+        $last = \App\Models\UbicacionEstadoHist::where('ubicacion_id', $ubicacionId)
+                    ->latest('id')->first();
 
-        try {
-            UbicacionEstadoHist::create([
-                'ubicacion_id' => $ubicacionId,
-                'estado_base'  => $estadoBase,
-                'estado_label' => $estadoLabel,
-                'fecha_alta'   => $fmt($fechaAlta),
-                'fecha_baja'   => $fmt($fechaBaja),
-                'fecha_vto'    => $fmt($fechaVto),
-                'user_id'      => auth()->id(),
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('Error guardando historial de estado', [
-                'msg' => $e->getMessage(),
-            ]);
-            // no rompas la UX
+        if ($last
+            && $last->estado_base  === $base
+            && $last->estado_label === $estadoLabel
+            && $last->fecha_alta?->format('Y-m-d') === $fAlta
+            && $last->fecha_baja?->format('Y-m-d') === $fBaja
+            && $last->fecha_vto?->format('Y-m-d')  === $fVto) {
+            return; // nada cambió realmente
         }
+
+        \App\Models\UbicacionEstadoHist::create([
+            'ubicacion_id' => $ubicacionId,
+            'estado_base'  => $base,
+            'estado_label' => $estadoLabel,
+            'fecha_alta'   => $fAlta,
+            'fecha_baja'   => $fBaja,
+            'fecha_vto'    => $fVto,
+            'user_id'      => auth()->id(),
+        ]);
     }
+
 
     public function movimientos()
     {
