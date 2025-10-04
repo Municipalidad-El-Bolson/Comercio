@@ -11,5 +11,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(\Database\Seeders\RubrosTableSeeder::class);
         $this->call(\Database\Seeders\AdminUserSeeder::class);
+        $this->call(\Database\Seeders\DocumentoSeeder::class);
+        $this->call(\Database\Seeders\MesaUserSeeder::class);
     }
 }

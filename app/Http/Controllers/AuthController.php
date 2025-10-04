@@ -7,16 +7,17 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    // Mostrar formulario de login
+
     public function showLogin()
     {
         if (Auth::check()) {
-            return redirect()->route('mapas');
+
+            return redirect()->route('panel');
         }
-        return view('auth.login'); // resources/views/auth/login.blade.php
+
+        return view('auth.login'); 
     }
 
-    // Procesar login
     public function login(Request $request)
     {
         $cred = $request->validate([
@@ -26,7 +27,8 @@ class AuthController extends Controller
 
         if (Auth::attempt($cred, $request->boolean('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended(route('mapas'));
+
+            return redirect()->intended(route('panel'));
         }
 
         return back()
@@ -34,7 +36,6 @@ class AuthController extends Controller
             ->onlyInput('email');
     }
 
-    // Logout
     public function logout(Request $request)
     {
         Auth::logout();

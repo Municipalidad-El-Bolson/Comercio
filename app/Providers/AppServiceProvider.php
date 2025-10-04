@@ -16,6 +16,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useBootstrapFive();
+
+        Gate::define('mesa-entrada-send', fn (User $u) => $u->role === 'mesa' || $u->role === 'admin');
+        Gate::define('mesa-entrada-view', fn (User $u) => in_array($u->role, ['admin','writer','reader','mesa'], true));
         
         Gate::define('view-maps', fn (User $u) =>
             in_array($u->role, ['admin','writer','reader'], true)

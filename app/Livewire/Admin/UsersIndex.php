@@ -34,6 +34,7 @@ class UsersIndex extends Component
         ['value' => 'admin',  'label' => 'Administrador'],
         ['value' => 'writer', 'label' => 'Escritor'],
         ['value' => 'reader', 'label' => 'Lector'],
+        ['value' => 'mesa',   'label' => 'Mesa de entrada'],
     ];
 
     protected $queryString = ['search' => ['except' => '']];
