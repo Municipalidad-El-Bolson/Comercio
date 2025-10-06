@@ -30,6 +30,7 @@
                         <p>Proximos a vencer</p>
                     </a>
                 </li> --}}
+                
                 <li class="nav-item">
                     <a href="{{ route('mapas') }}" class="nav-link">
                         <i class="nav-icon fas fa-map-marked-alt"></i>
@@ -63,12 +64,6 @@
                     <a href="{{ route('users.index') }}" class="nav-link">
                         <i class="nav-icon fas fa-users-cog"></i>
                         <p>Usuarios</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('register-user') }}" class="nav-link">
-                        <i class="nav-icon fas fa-user-plus"></i>
-                        <p>Usuario Nuevo</p>
                     </a>
                 </li>
                 @endcan
