@@ -14,22 +14,16 @@ use App\Notifications\MesaEntradaNotification;
 #[Layout('admin.layouts.mesa')]
 class Form extends Component
 {
-    /** Campos del formulario */
     public string $fecha;
     public ?int $nro_ingreso = null;
     public string $titular_razon = '';
     public ?string $hc = null;
 
-    /** Documentación seleccionable */
-    public array $documentacion_ids = [];   // IDs tildados (checkboxes)
-    public array $selectedDocsMap   = [];   // [id => nombre] para chips
+    /** IDs seleccionados (checkboxes) */
+    public array $documentacion_ids = [];
 
-    /** Catálogo */
-    public $opsDocs = [];                   // Collection de Documento (id, nombre)
-
-    /** Dropdown + búsqueda */
-    public bool $docsOpen = false;          // abrir/cerrar dropdown
-    public string $docsQuery = '';          // texto de búsqueda
+    /** Catálogo (Collection de Documento con id/nombre) */
+    public $opsDocs = [];
 
     public function mount(): void
     {
@@ -43,38 +37,20 @@ class Form extends Component
         $this->opsDocs = Documento::where('activo', true)
             ->orderBy('nombre')
             ->get(['id','nombre']);
-
-        $this->mapSelected();
     }
 
-    /** Propiedad computada: lista filtrada por texto */
-    public function getFilteredDocsProperty()
+    /**
+     * Propiedad computada: arma el mapa [id => nombre] de lo seleccionado.
+     * Livewire la expone como $this->selectedDocsMap.
+     */
+    public function getSelectedDocsMapProperty(): array
     {
-        if ($this->docsQuery === '') {
-            return $this->opsDocs;
+        $ids = array_map('intval', $this->documentacion_ids);
+        if (empty($ids)) {
+            return [];
         }
 
-        $q = mb_strtolower($this->docsQuery);
-        return $this->opsDocs->filter(function ($d) use ($q) {
-            return str_contains(mb_strtolower($d->nombre), $q);
-        });
-    }
-
-    /** Se dispara al tildar/destildar */
-    public function updatedDocumentacionIds(): void
-    {
-        $this->mapSelected();
-    }
-
-    /** Reconstruye el mapa id=>nombre para chips */
-    protected function mapSelected(): void
-    {
-        if (empty($this->documentacion_ids)) {
-            $this->selectedDocsMap = [];
-            return;
-        }
-
-        $this->selectedDocsMap = Documento::whereIn('id', $this->documentacion_ids)
+        return Documento::whereIn('id', $ids)
             ->orderBy('nombre')
             ->pluck('nombre', 'id')
             ->toArray();
@@ -87,23 +63,22 @@ class Form extends Component
             $this->documentacion_ids,
             fn ($v) => (int)$v !== (int)$id
         ));
-
-        $this->mapSelected();
+        // No hace falta recalcular: la propiedad computada se actualiza sola
     }
 
-    /** Tildar todos los visibles del filtro actual */
-    public function selectAllVisible(): void
+    /** Tildar todos */
+    public function selectAll(): void
     {
-        $ids = $this->filteredDocs->pluck('id')->map(fn($v) => (int)$v)->all();
-        $this->documentacion_ids = array_values(array_unique(array_merge($this->documentacion_ids, $ids)));
-        $this->mapSelected();
+        $this->documentacion_ids = $this->opsDocs
+            ->pluck('id')
+            ->map(fn ($v) => (int) $v)
+            ->all();
     }
 
     /** Destildar todo */
     public function clearAll(): void
     {
         $this->documentacion_ids = [];
-        $this->mapSelected();
     }
 
     public function rules(): array
@@ -122,7 +97,7 @@ class Form extends Component
     {
         $this->validate();
 
-        // Nombres legibles de los documentos seleccionados
+        // Nombres legibles de los documentos seleccionados (desde la prop computada)
         $docs = array_values($this->selectedDocsMap);
 
         $payload = [
@@ -131,6 +106,7 @@ class Form extends Component
             'docs'        => $docs,
             'titular'     => $this->titular_razon,
             'hc'          => $this->hc,
+            'sender_name' => auth()->user()->name ?? null,
         ];
 
         // Notificar a admin/writer/reader (excluyendo al emisor)
@@ -145,18 +121,16 @@ class Form extends Component
 
         session()->flash('status', 'Notificación enviada a los usuarios.');
 
-        // Reset del form
-        $this->reset(['nro_ingreso','documentacion_ids','titular_razon','hc','docsQuery']);
-        $this->selectedDocsMap = [];
+        // Reset (la prop computada se vacía sola al limpiar documentacion_ids)
+        $this->reset(['nro_ingreso','documentacion_ids','titular_razon','hc']);
         $this->fecha = now()->format('Y-m-d');
-        $this->docsOpen = false;
     }
 
     public function render()
     {
         return view('livewire.mesa-entrada.form', [
-            'opsDocs'          => $this->opsDocs,
-            'selectedDocsMap'  => $this->selectedDocsMap,
+            'opsDocs'         => $this->opsDocs,
+            'selectedDocsMap' => $this->selectedDocsMap, // <- propiedad computada
         ]);
     }
 }

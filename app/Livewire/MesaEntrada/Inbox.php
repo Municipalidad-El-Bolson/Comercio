@@ -1,6 +1,5 @@
 <?php
 
-// app/Livewire/MesaEntrada/Inbox.php
 namespace App\Livewire\MesaEntrada;
 
 use Livewire\Attributes\Layout;

@@ -14,7 +14,7 @@ class UserController extends Controller
     }
 
     public function create() {
-        $roles = ['admin' => 'Administrador', 'writer' => 'Escritor', 'reader' => 'Lector'];
+        $roles = ['admin' => 'Administrador', 'writer' => 'Escritor', 'reader' => 'Lector', 'mesa' => 'Mesa de entrada'];
         return view('admin.users.create', compact('roles'));
     }
 
@@ -23,7 +23,7 @@ class UserController extends Controller
             'name'     => ['required','string','max:255'],
             'email'    => ['required','email','max:255','unique:users,email'],
             'password' => ['required','string','min:8','confirmed'],
-            'role'     => ['required','in:admin,writer,reader'],
+            'role'     => ['required','in:admin,writer,reader,mesa'],
         ]);
 
         // NO Hash::make(): el cast 'hashed' lo hace solo

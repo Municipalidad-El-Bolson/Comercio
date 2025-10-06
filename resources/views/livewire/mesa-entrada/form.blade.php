@@ -1,4 +1,3 @@
-<!-- resources/views/livewire/mesa-entrada/form.blade.php -->
 <div class="container-fluid pt-4">
   <div class="row justify-content-center">
     <div class="col-12 col-lg-8">
@@ -40,97 +39,60 @@
               <input type="text" class="form-control" wire:model.defer="hc">
             </div>
 
-            {{-- Documentación (TomSelect múltiple + búsqueda + chips + scroll) --}}
-{{-- Documentación (TomSelect múltiple + checkboxes + búsqueda + chips + scroll) --}}
-<div class="col-12" wire:ignore>
-  <label class="form-label mb-1">Seleccioná Documentación</label>
+            {{-- Documentación (checkboxes con scroll + chips con X) --}}
+            <div class="col-12">
+              <label class="form-label mb-1">Seleccioná Documentación</label>
 
-  <select id="select-documentacion"
-          multiple
-          class="form-control form-control-sm"
-          autocomplete="off">
-    @foreach($opsDocs as $op)
-      <option value="{{ $op->id }}"
-        @selected(in_array($op->id, $documentacion_ids, true))>
-        {{ $op->nombre }}
-      </option>
-    @endforeach
-  </select>
+              <div class="d-flex gap-2 mb-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="selectAll">Tildar todo</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="clearAll">Destildar todo</button>
+              </div>
 
-  @error('documentacion_ids')
-    <div class="invalid-feedback d-block">{{ $message }}</div>
-  @enderror
-</div>
+              <div class="border rounded p-2" style="max-height: 280px; overflow-y: auto;">
+                <div class="row g-2">
+                  @foreach($opsDocs as $op)
+                    <div class="col-12 col-md-6">
+                      <div class="form-check">
+                        <input class="form-check-input"
+                              type="checkbox"
+                              id="doc-{{ $op->id }}"
+                              value="{{ $op->id }}"
+                              wire:model.live="documentacion_ids"> {{-- 👈 aquí el cambio --}}
+                        <label class="form-check-label" for="doc-{{ $op->id }}">
+                          {{ $op->nombre }}
+                        </label>
+                      </div>
+                    </div>
+                  @endforeach
+                </div>
+              </div>
 
-@push('styles')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
-<style>
-  /* Altura y scroll del dropdown */
-  .ts-dropdown, .ts-dropdown .dropdown-content {
-    max-height: 320px !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-    z-index: 1055;
-  }
-</style>
-@endpush
+              @error('documentacion_ids')
+                <div class="invalid-feedback d-block">{{ $message }}</div>
+              @enderror
 
-@push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-<script>
-document.addEventListener('livewire:init', () => {
-  let ts;
+              {{-- Chips azules con ✕ (aparecen al instante) --}}
+              @if(!empty($selectedDocsMap))
+                <div class="mt-3 d-flex flex-wrap gap-2">
+                  @foreach($selectedDocsMap as $id => $name)
+                    <span class="badge bg-primary text-white d-inline-flex align-items-center fade-in" style="transition:all .2s;">
+                      <span class="me-1">{{ $name }}</span>
+                      <button type="button"
+                              class="btn btn-sm btn-light py-0 px-1 ms-1 rounded-circle border-0"
+                              style="font-size:.8rem; line-height:1; color:#0d6efd;"
+                              aria-label="Quitar {{ $name }}"
+                              wire:click="removeDoc({{ $id }})">×</button>
+                    </span>
+                  @endforeach
+                </div>
+              @endif
+            </div>
 
-  function initTS(){
-    const el = document.getElementById('select-documentacion');
-    if(!el) return;
+            <style>
+              .fade-in{opacity:0;transform:scale(.95);animation:fadeIn .25s forwards}
+              @keyframes fadeIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+            </style>
 
-    // Si ya existe una instancia previa, destruirla para reinit correcto
-    if(el.tomselect){
-      el.tomselect.destroy();
-    }
-
-    ts = new TomSelect(el, {
-      // 👇 forzamos MULTI
-      mode: 'multi',
-      maxItems: 9999,
-
-      plugins: ['remove_button','checkbox_options','dropdown_input'],
-      dropdownParent: 'body',
-      persist: false,
-      create: false,
-      maxOptions: 5000,
-
-      onChange(values){
-        // values puede venir string o array; normalizamos a array
-        const arr = Array.isArray(values) ? values : (values ? [values] : []);
-        const ints = arr.map(v => parseInt(v,10)).filter(v => !isNaN(v));
-        @this.set('documentacion_ids', ints);
-      }
-    });
-
-    // Set inicial desde Livewire
-    const initial = @json($documentacion_ids ?? []);
-    if(initial.length){
-      ts.setValue(initial.map(String), false);
-    }
-  }
-
-  // Inicializar y re-sincronizar tras cada render de Livewire
-  Livewire.hook('message.processed', () => {
-    initTS();
-    const el = document.getElementById('select-documentacion');
-    if(el && el.tomselect){
-      const liveVals = (@json($documentacion_ids ?? []) || []).map(String);
-      el.tomselect.setValue(liveVals, false);
-    }
-  });
-
-  // Primera vez
-  initTS();
-});
-</script>
-@endpush
 
             <div class="col-12 d-flex justify-content-end">
               <button class="btn btn-primary">
@@ -141,7 +103,6 @@ document.addEventListener('livewire:init', () => {
           </form>
         </div>
       </div>
-
     </div>
   </div>
 </div>
