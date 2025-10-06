@@ -107,20 +107,22 @@ class Form extends Component
             Notification::send($destinatarios, new MesaEntradaNotification($payload));
         }
 
-        // 🔹 Limpieza total del formulario
         $this->resetErrorBag();
         $this->resetValidation();
-        $this->nro_ingreso = null;
-        $this->titular_razon = '';
-        $this->hc = null;
-        $this->documentacion_ids = [];
+        $this->reset([
+            'nro_ingreso',
+            'titular_razon',
+            'hc',
+            'documentacion_ids',
+        ]);
+
+        $this->loadDocs();
+
         $this->fecha = Carbon::today()->format('Y-m-d');
 
-        // 🔹 Mostrar mensaje
-        session()->flash('status', '✅ Notificación enviada correctamente.');
+        session()->flash('status', ' Notificación enviada correctamente.');
 
-        // 🔹 Forzar refresco del componente (para limpiar inputs visualmente)
-        $this->dispatch('form-reset');
+        $this->dispatch('$refresh');
     }
 
     public function render()

@@ -106,4 +106,59 @@
     </div>
   </div>
 </div>
+<script>
+document.addEventListener('livewire:init', () => {
+  Livewire.on('form-reset', () => {
+    // Buscar el componente Livewire actual (de forma automática)
+    const comp = Object.values(Livewire.components.componentsById || {})[0];
+    if (!comp) return;
+
+    const form = document.querySelector('form');
+    if (!form) return;
+
+    // 🧹 Limpiar todos los campos visualmente
+    form.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], textarea').forEach(el => {
+      el.value = '';
+    });
+
+    // 🧹 Destildar todos los checkboxes
+    form.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+      chk.checked = false;
+    });
+
+    // 🧹 Borrar chips visualmente
+    const chipsContainer = form.querySelector('.d-flex.flex-wrap.gap-2');
+    if (chipsContainer) chipsContainer.innerHTML = '';
+
+    // 🎨 Feedback en el botón
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.disabled = true;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = 'Enviado ✅';
+      btn.classList.add('btn-success');
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('btn-success');
+        btn.disabled = false;
+      }, 1500);
+    }
+
+    // 🔄 Resetear estado interno del componente Livewire
+    try {
+      comp.$wire.set('nro_ingreso', null);
+      comp.$wire.set('titular_razon', '');
+      comp.$wire.set('hc', null);
+      comp.$wire.set('documentacion_ids', []);
+      comp.$wire.set('fecha', new Date().toISOString().slice(0, 10));
+      comp.$wire.call('clearAll');
+    } catch (err) {
+      console.warn('Error reseteando Livewire state:', err);
+      Livewire.dispatch('$refresh'); // fallback
+    }
+  });
+});
+</script>
+
+
 <script src="https://unpkg.com/alpinejs@3.x.x" defer></script>
