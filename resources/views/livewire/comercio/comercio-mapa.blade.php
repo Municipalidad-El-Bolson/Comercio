@@ -4,7 +4,7 @@
     <div class="content-header">
       <div class="container-fluid">
         <div class="row mb-2">
-          <div class="col-sm-6"><h1 class="m-0">Mapa de comercios</h1></div>
+          <div class="col-sm-6"><h1 class="m-0 pb-2 border-bottom" style="font-size:2.50rem;">Mapa comercios</h1></div>
           <div class="col-sm-6 text-right">
             <button id="btnAddMode" type="button" class="btn btn-sm btn-primary">
               <i class="fas fa-map-pin mr-1"></i> Agregar comercio

@@ -1,8 +1,8 @@
 <section class="content">
   <div class="content-header">
     <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6"><h1 class="m-0">Reportes de Habilitaciones Comerciales</h1></div>
+      <div class="text-center mb-3">
+          <h1 class="m-0 pb-2 border-bottom" style="font-size:2.50rem;">Reportes</h1>
       </div>
 
       {{-- Filtros --}}

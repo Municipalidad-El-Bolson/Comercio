@@ -3,7 +3,7 @@
   <div class="row justify-content-center">
     <div class="col-12 col-lg-10">
       <div class="content-header py-0 mb-3 d-flex align-items-center justify-content-between">
-        <h1 class="m-0 pb-2 border-bottom">Notificaciones</h1>
+        <h1 class="m-0 pb-2 border-bottom" style="font-size:2.50rem;">Notificaciones</h1>
         <button class="btn btn-outline-secondary btn-sm" wire:click="markAllAsRead">
           Marcar todas como leídas
         </button>

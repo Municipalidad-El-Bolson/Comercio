@@ -6,24 +6,42 @@
 
     <div class="content-header">
         <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-12 col-md-6">
-                    <h1 class="m-0">Lista de comercios</h1>
-                </div>
+
+                <div class="text-center mb-3">
+                    <h1 class="m-0 pb-2 border-bottom" style="font-size:2.50rem;">Lista de comercios</h1>
+
             </div>
         </div>
     </div>
 
     <div class="container-fluid px-0">
         <div class="card">
-            <div class="d-flex flex-column flex-md-row justify-content-between mb-2 p-2">
-                <div></div>
-                <button class="btn btn-primary btn-sm mt-2 mt-md-0" wire:click="nuevoComercio">
-                    <i class="fa fa-plus mr-1"></i> Nuevo
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-2 mb-3 p-2">
+                <div class="flex-wrap align-items-center gap-2">
+
+                    {{-- Buscador --}}
+                    <div class="input-group input-group-sm" style="min-width:260px;">
+                    <span class="input-group-text bg-white">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input
+                        type="text"
+                        class="form-control"
+                        placeholder="Buscar comercio, DNI/CUIT o rubro…"
+                        wire:model.debounce.300ms="searchTerm">
+                    </div>
+
+                </div>
+
+                {{-- Crear nuevo comercio --}}
+                <button
+                    class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2"
+                    wire:click="nuevoComercio">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Nuevo comercio</span>
                 </button>
             </div>
 
-            <x-search-input wire:model.live="searchTerm" />
 
             <div class="card-body">
                 <div class="table-responsive">
