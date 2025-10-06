@@ -26,7 +26,6 @@ class UserController extends Controller
             'role'     => ['required','in:admin,writer,reader,mesa'],
         ]);
 
-        // NO Hash::make(): el cast 'hashed' lo hace solo
         User::create($data);
 
         return redirect()->route('admin.users.index')->with('ok','Usuario creado.');
