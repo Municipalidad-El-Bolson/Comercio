@@ -1,4 +1,3 @@
-<!-- resources/views/livewire/mesa-entrada/inbox.blade.php -->
 <div class="container-fluid pt-4">
   <div class="row justify-content-center">
     <div class="col-12 col-lg-10">

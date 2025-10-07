@@ -18,6 +18,24 @@
                     </a>
                 </li>
 
+                {{-- Próximos a vencer --}}
+                <li class="nav-item">
+                <a href="{{ route('prox_vto.index') }}"
+                    class="nav-link d-flex align-items-center justify-content-between {{ request()->routeIs('prox_vto.index') ? 'active' : '' }}">
+                    <span><i class="fas fa-hourglass-half me-2"></i> Próximos a vencer</span>
+                    @livewire('notifications.bell-prox-vto')
+                </a>
+                </li>
+
+                {{-- Vencidos --}}
+                <li class="nav-item">
+                <a href="{{ route('vto.index') }}"
+                    class="nav-link d-flex align-items-center justify-content-between {{ request()->routeIs('vto.index') ? 'active' : '' }}">
+                    <span><i class="fas fa-calendar-times me-2"></i> Vencidos</span>
+                    @livewire('notifications.bell-vencidos')
+                </a>
+                </li>
+
                 {{-- Mapa --}}
                 <li class="nav-item">
                     <a href="{{ route('mapas') }}"

@@ -3,10 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
-// Auth básico
 use App\Http\Controllers\AuthController;
 
-// Livewire components
 use App\Livewire\Comercio\Ubicaciones;
 use App\Livewire\Comercio\ComercioMapa;
 use App\Livewire\Comercio\Historial;
@@ -16,6 +14,8 @@ use App\Livewire\Auth\RegisterUser;
 use App\Livewire\Admin\UsersIndex;
 use App\Livewire\MesaEntrada\Form as MesaForm;
 use App\Livewire\MesaEntrada\Inbox as MesaInbox;
+use App\Livewire\Vencimientos\ProximosIndex;
+use App\Livewire\Vencimientos\VencidosIndex;
 
 Route::redirect('/', '/login');
 
@@ -39,10 +39,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/mesa/enviar', MesaForm::class)
         ->middleware('can:mesa-entrada-send') // solo 'mesa' (y admin si querés)
         ->name('mesa.form');
-
-    Route::middleware('role:admin,writer,reader')->group(function () {
-        Route::get('/mesa', MesaInbox::class)->name('mesa.inbox'); // todos estos roles pueden ver su inbox
-    });
+ 
 
     /** Mapas (mesa NO entra) */
     Route::middleware('role:admin,writer,reader')->group(function () {
@@ -53,6 +50,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin,writer')->group(function () {
         Route::get('/ubicaciones', Ubicaciones::class)->name('ubicaciones');
         Route::get('/comercios/{ubicacion}', ComercioData::class)->name('comercio.data');
+        Route::get('/mesa', MesaInbox::class)->name('mesa.inbox'); 
+        Route::get('/vencimientos/proximos', ProximosIndex::class)->name('prox_vto.index');
+        Route::get('/vencimientos/vencidos',  VencidosIndex::class)->name('vto.index');
     });
 
     /** Solo Admin */

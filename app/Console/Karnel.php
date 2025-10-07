@@ -7,18 +7,13 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
 class Kernel extends ConsoleKernel
 {
-    /**
-     * Define the application's command schedule.
-     */
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('ubicaciones:marcar-irregulares')->dailyAt('00:15');
-        //$schedule->command('ubicaciones:marcar-irregulares')->everyMinute();
+        $schedule->command('vto:alert-proximos')->dailyAt('08:00')->timezone('America/Argentina/Salta');
+        $schedule->command('vto:mark-vencidos')->hourly()->timezone('America/Argentina/Salta');
     }
 
-    /**
-     * Register the commands for the application.
-     */
     protected function commands(): void
     {
         $this->load(__DIR__.'/Commands');
