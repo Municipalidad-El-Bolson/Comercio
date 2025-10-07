@@ -31,7 +31,9 @@ trait AuditsModelChanges
 
 protected static function writeAudit(string $action, $model, array $meta = []): void
 {
-    // guarda acción técnica y data útil para formatear
+    if (!auth()->check()) {
+        return;
+    }
     $meta = [
         'action'      => $action,
         'route'       => optional(request()->route())->getName(),
@@ -44,7 +46,7 @@ protected static function writeAudit(string $action, $model, array $meta = []): 
 
     \App\Models\AuditLog::create([
         'user_id'     => auth()->id(),
-        'action'      => $message, // lo seguís guardando si querés
+        'action'      => $message, 
         'entity_type' => get_class($model),
         'entity_id'   => (string) $model->getKey(),
         'ip'          => request()?->ip(),

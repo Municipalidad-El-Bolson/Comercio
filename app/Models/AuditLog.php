@@ -94,16 +94,15 @@ class AuditLog extends Model
             if (!empty($this->attributes['action'])) {
                 return $this->attributes['action'];
             }
-            $art = in_array(Str::lower($ename), ['ubicacion','inspeccion','tarea']) ? 'la' : 'el';
-            $cls = $ename ?: 'Movimiento';
-            return "{$verb} {$art} {$cls} #{$this->entity_id}";
+            [$label, $article] = $this->entityLabelAndArticle(); // usa config('audit.entities')
+            $cls = $label ?: ($ename ?: 'Movimiento');
+            return "{$verb} " . ($article ?: 'el') . " {$cls} #{$this->entity_id}";
         });
     }
 
     public function subtitle(): Attribute
     {
-        // solo el usuario, sin método/path/IP
-        return Attribute::get(fn () => $this->user?->name ?? 'Invitado');
+        return Attribute::get(fn () => $this->user?->name ?? '(sistema)');
     }
 
 

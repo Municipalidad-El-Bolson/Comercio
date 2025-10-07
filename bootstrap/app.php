@@ -21,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\LogRequestActivity::class,
         ]);
-        
+        $middleware->append(\App\Http\Middleware\SingleSession::class);
         $middleware->alias([
         'role' => \App\Http\Middleware\RoleMiddleware::class,
         'log.activity' => \App\Http\Middleware\LogRequestActivity::class,

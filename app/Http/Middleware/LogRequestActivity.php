@@ -1,65 +1,58 @@
 <?php
 
+// app/Http/Middleware/LogRequestActivity.php
 namespace App\Http\Middleware;
 
-use App\Models\AuditLog;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpFoundation\Response;
+use App\Models\AuditLog;
 
 class LogRequestActivity
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
-
-        if (!in_array($request->method(), ['POST','PUT','PATCH','DELETE'], true)) {
-            return $next($request);
-        }
-
-        // Evitar Livewire payloads
-        if (
-            $request->routeIs('livewire.*') ||         // nombre de ruta
-            $request->is('livewire/*') ||              // path /livewire/...
-            $request->headers->has('X-Livewire')       // header propio
-        ) {
-            return $next($request);
-        }
-
-        // Evitar rutas internas/sistemas
-        if ($request->routeIs('ignition.*', 'horizon.*', 'sanctum.*')) {
-            return $next($request);
-        }
-
         $response = $next($request);
 
-        // Usuario (puede ser null en /login)
-        $userId = Auth::id(); // null|int
-
-        $routeName = $request->route()?->getName();
-        $action    = $routeName ?: 'request';
-
-        $meta = [
-            'query'  => $request->query(),
-            'input'  => collect($request->except(['password','password_confirmation','_token']))->take(10),
-            'status' => $response->getStatusCode(),
-            'ua'     => $request->userAgent(),
-        ];
-
-        try {
-            AuditLog::create([
-                'user_id'     => $userId,           
-                'action'      => $action,           
-                'entity_type' => null,
-                'entity_id'   => null,
-                'ip'          => $request->ip(),
-                'method'      => $request->method(),
-                'path'        => $request->path(),
-                'meta'        => $meta,             
-            ]);
-        } catch (\Throwable $e) {
-
+        // Solo usuarios autenticados
+        if (!auth()->check()) {
+            return $response;
         }
+
+        // Solo métodos que modifican estado
+        if (!in_array($request->getMethod(), ['POST','PUT','PATCH','DELETE'], true)) {
+            return $response;
+        }
+
+        // Excluir paths internos (desde config/audit.php)
+        $internal = (array) config('audit.internal_paths', []);
+        foreach ($internal as $frag) {
+            if ($frag && str_contains($request->path(), $frag)) {
+                return $response;
+            }
+        }
+
+        // Excluir rutas/acciones de sólo vista (si agregás más, ponelas en config)
+        $excludedRoutes = (array) config('audit.excluded_routes', []);
+        $rname = $request->route()?->getName();
+        if ($rname && in_array($rname, $excludedRoutes, true)) {
+            return $response;
+        }
+
+        // Guardar una actividad genérica SOLO si querés loguear otras acciones mutantes
+        // (si preferís registrar SOLO via modelos/traits, podés comentar esto)
+        AuditLog::create([
+            'user_id'     => auth()->id(),
+            'action'      => $rname ?: $request->path(),
+            'entity_type' => null,
+            'entity_id'   => null,
+            'ip'          => $request->ip(),
+            'method'      => $request->method(),
+            'path'        => $request->path(),
+            'meta'        => [
+                'route'  => $rname,
+                // si tenés un mapeo, podés setear meta[action] acá
+            ],
+        ]);
 
         return $response;
     }
