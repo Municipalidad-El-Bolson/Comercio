@@ -1,18 +1,18 @@
-<?php 
+<?php
 
 namespace App\Livewire\Notifications;
 
 use Livewire\Component;
-use App\Notifications\ProxVtoNotification;
+use App\Notifications\MesaEntradaNotification;
 
-class BellProxVto extends Component
+class BellMesa extends Component
 {
     public int $unread = 0;
 
     public function refreshCount(): void
     {
         $this->unread = auth()->user()?->unreadNotifications()
-            ->where('type', ProxVtoNotification::class)
+            ->where('type', MesaEntradaNotification::class)
             ->count() ?? 0;
     }
 

@@ -545,6 +545,22 @@ class Ubicaciones extends AdminComponent
         ];
     }
 
+    public function addTelefono(): void
+    {
+        $tels = $this->state['telefonos'] ?? [];
+        $tels[] = '';
+        $this->state['telefonos'] = array_values($tels);
+    }
+
+    public function removeTelefono(int $index): void
+    {
+        $tels = $this->state['telefonos'] ?? [];
+        unset($tels[$index]);
+        // si queda vacío, dejá al menos un input
+        if (empty($tels)) $tels = [''];
+        $this->state['telefonos'] = array_values($tels);
+    }
+
     public function updatedStateEstado($nuevo): void
     {
         // 1) Normalizar a código base y fijarlo en el state

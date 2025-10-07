@@ -16,13 +16,13 @@
 
     <div class="container-fluid px-0">
         <div class="card">
-            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-2 mb-3 p-2">
-                <div class="flex-wrap align-items-center gap-2">
-
-                    {{-- Buscador --}}
-                    <div class="input-group input-group-sm" style="min-width:260px;">
+            <div class="d-flex flex-column flex-md-row align-items-center justify-content-center justify-content-md-between gap-2 mb-3 p-2 rounded-3 bg-light shadow-sm">
+  
+                {{-- Buscador --}}
+                <div class="d-flex align-items-center justify-content-center flex-grow-1" style="max-width:400px;">
+                    <div class="input-group input-group-sm w-100">
                     <span class="input-group-text bg-white">
-                        <i class="fas fa-search"></i>
+                        <i class="fas fa-search text-muted"></i>
                     </span>
                     <input
                         type="text"
@@ -30,17 +30,20 @@
                         placeholder="Buscar comercio, DNI/CUIT o rubro…"
                         wire:model.debounce.300ms="searchTerm">
                     </div>
-
                 </div>
 
-                {{-- Crear nuevo comercio --}}
-                <button
-                    class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2"
+                {{-- Botón nuevo comercio --}}
+                <div class="text-center text-md-end mt-2 mt-md-0">
+                    <button
+                    class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2 shadow-sm"
                     wire:click="nuevoComercio">
                     <i class="fas fa-user-plus"></i>
                     <span>Nuevo comercio</span>
-                </button>
+                    </button>
+                </div>
+
             </div>
+
 
 
             <div class="card-body">

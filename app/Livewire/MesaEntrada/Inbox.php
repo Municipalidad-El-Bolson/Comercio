@@ -14,10 +14,9 @@ class Inbox extends Component
     public function mount(): void
     {
         abort_unless(Gate::allows('mesa-entrada-view'), 403);
-
-        // Traer en orden desc
         $this->items = auth()->user()
             ->notifications()
+            ->where('type', \App\Notifications\MesaEntradaNotification::class)
             ->latest()
             ->take(200)
             ->get()
@@ -31,21 +30,27 @@ class Inbox extends Component
                 'hc'          => data_get($n->data, 'hc'),
                 'sender_name' => data_get($n->data, 'sender_name'),
                 'created_at'  => $n->created_at?->format('d/m/Y H:i'),
-            ])->toArray();
+            ])
+            ->toArray();
     }
 
     public function markAsRead(string $id): void
     {
         $n = auth()->user()->notifications()->findOrFail($id);
         $n->markAsRead();
-        $this->mount(); // recargar lista
+        $this->mount();
     }
 
     public function markAllAsRead(): void
     {
-        auth()->user()->unreadNotifications->markAsRead();
+        auth()->user()
+            ->unreadNotifications()
+            ->where('type', \App\Notifications\MesaEntradaNotification::class)
+            ->update(['read_at' => now()]);
+
         $this->mount();
     }
+
 
     public function render()
     {

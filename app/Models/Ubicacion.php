@@ -12,6 +12,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Notifications\VencidoNotification;
+use Illuminate\Validation\ValidationException;
+use App\Models\User;
 
 
 class Ubicacion extends Model
@@ -37,9 +40,9 @@ class Ubicacion extends Model
         'observaciones',
         'estado_base',
         'estado_label',
-        'estado',        // entramite | vigente | irregular | baja | baja_oficio | sin_efecto
-        'situacion',     // null | alta | baja | clausurado
-        'tipo_hab',      // definitiva | prev
+        'estado',         
+        'situacion',     
+        'tipo_hab',      
         'fecha_alta',
         'fecha_baja',
         'fecha_vto',
@@ -99,7 +102,27 @@ class Ubicacion extends Model
     protected static function booted()
     {
         static::saving(function (Ubicacion $m) {
-            // Normalizar dirección siempre
+            $toCarbon = fn($v) => $v instanceof \Carbon\Carbon ? $v
+                 : ($v instanceof \DateTimeInterface ? \Carbon\Carbon::instance($v)
+                 : ($v ? \Carbon\Carbon::parse($v) : null));
+
+            $e = trim(mb_strtolower((string) ($m->estado_base ?: $m->estado)));
+            $incomingBase = match ($e) {
+                '021','entramite','en tramite','en trámite' => '021',
+                '032','irregular'                           => '032',
+                '040'                                       => '040',
+                'baja'                                      => 'baja',
+                'baja de oficio','baja_oficio','baja-oficio'=> 'baja_oficio',
+                'expediente sin efecto','sin_efecto','exp_sin_efecto' => 'exp_sin_efecto',
+                default => '021',
+            };
+
+            $fv = $toCarbon($m->fecha_vto);
+            if ($incomingBase === '021' && $fv && $fv->isPast()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'fecha_vto' => 'No podés registrar con estado 021 un comercio con la HC vencida.',
+                ]);
+            }
             $m->domicilio_comercio = self::normalizeDireccionComercio($m->domicilio_comercio);
 
             // Resolver código base de estado (021/032/040/baja/baja_oficio/exp_sin_efecto)
@@ -116,6 +139,8 @@ class Ubicacion extends Model
                     default                                         => ($raw ? $raw : '021'),
                 };
             };
+
+            
 
             // 1) Normalizar estado_base y estado canónico
             $estadoBase = $m->estado_base ?: $resolverBase($m->estado);
@@ -167,14 +192,85 @@ class Ubicacion extends Model
                 case 'baja':
                 case 'baja_oficio':
                 case 'exp_sin_efecto':
-                    // En bajas no aplica vto → limpiar siempre
                     $m->fecha_vto = null;
-                    // (fecha_baja la define la UI/validación; acá no la forzamos)
                     break;
+            }
+            // Si la fecha de vencimiento ya pasó, forzar 032
+            if (!empty($m->fecha_vto) && \Carbon\Carbon::parse($m->fecha_vto)->isPast()) {
+                // Solo si no está en baja ni ya 032
+                if (!in_array($m->estado_base, ['032', 'baja', 'baja_oficio', 'exp_sin_efecto'], true)) {
+                    $m->estado_base = '032';
+                    $m->estado = 'irregular';
+                }
+            }
+        });
+        static::updated(function (Ubicacion $u) {
+            $cambioABase032 = $u->wasChanged('estado_base')
+                && $u->estado_base === '032'
+                && $u->getOriginal('estado_base') !== '032';
+
+            $cambioACanonicIrregular = $u->wasChanged('estado')
+                && $u->estado === 'irregular'
+                && $u->getOriginal('estado') !== 'irregular';
+
+            if (!($cambioABase032 || $cambioACanonicIrregular)) {
+                return;
+            }
+
+            if (empty($u->fecha_vto) || \Carbon\Carbon::parse($u->fecha_vto)->isFuture()) {
+                return;
+            }
+
+            $users = User::whereIn('role', ['admin','writer','reader'])->get();
+
+            $nombre = $u->nombre_comercial
+                ?: ($u->razon_social ?: trim(($u->apellido ?? '').' '.($u->nombres ?? '')));
+
+            foreach ($users as $usr) {
+                $ya = $usr->notifications()
+                    ->where('type', VencidoNotification::class)
+                    ->whereJsonContains('data->ubicacion_id', $u->id)
+                    ->whereDate('created_at', now()->toDateString())
+                    ->exists();
+
+                if (!$ya) {
+                    $usr->notify(new VencidoNotification(
+                        ubicacion_id: $u->id,
+                        nombre: $nombre ?: "Ubicación #{$u->id}",
+                        fecha_vto: (string) $u->fecha_vto,
+                        fecha_cambio: now()->format('Y-m-d H:i'),
+                        estado_anterior: (string) ($u->getOriginal('estado_base') ?? '021'),
+                        estado_nuevo: '032'
+                    ));
+                }
             }
         });
     }
 
+    public function scopeVenceEsteMes($q)
+    {
+        $hoy = Carbon::today();
+        return $q->whereNotNull('fecha_vto')
+                ->whereBetween('fecha_vto', [$hoy->copy()->startOfMonth(), $hoy->copy()->endOfMonth()]);
+    }
+
+    public function scopeNoVencidos($q)
+    {
+        return $q->whereDate('fecha_vto', '>', \Carbon\Carbon::today()->toDateString()); // ← antes >=
+    }
+
+    public function scopeSoloActivos($q)
+    {
+        return $q->whereIn('estado_base', ['021','040']);
+    }
+
+
+    public function getDiasRestantesAttribute(): int
+    {
+        $hoy = Carbon::today();
+        $vto = Carbon::parse($this->fecha_vto);
+        return $hoy->diffInDays($vto, false); // firmado
+    }
 
     public function setEstadoAttribute($value): void
     {
@@ -319,4 +415,5 @@ class Ubicacion extends Model
             default   => "Comercio {$nombre}: {$action}",
         };
     }
+    
 }

@@ -291,7 +291,7 @@
             <div class="form-group col-md-4 mb-2">
               <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
               <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto"
-                    class="form-control form-control-sm @error('state.fecha_vto') is-invalid @enderror">
+                    class="form-control @error('fecha_vto') is-invalid @enderror">
               @error('state.fecha_vto') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
           @elseif($base === '032' || $base === '040')

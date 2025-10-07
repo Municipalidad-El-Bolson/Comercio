@@ -14,7 +14,7 @@
                     <a href="{{ route('mesa.inbox') }}"
                        class="nav-link d-flex align-items-center justify-content-between {{ request()->routeIs('mesa.inbox') ? 'active' : '' }}">
                         <span><i class="fas fa-inbox me-2"></i> Mesa de entrada</span>
-                        @livewire('notifications.bell')
+                        @livewire('notifications.bell-mesa')
                     </a>
                 </li>
 

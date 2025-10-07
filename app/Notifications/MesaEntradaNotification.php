@@ -18,9 +18,10 @@ class MesaEntradaNotification extends Notification
 
     public function toDatabase($notifiable): array
     {
-        return $this->payload + [
+        return [
+            'tipo' => 'mesa',
             'receiver_id' => $notifiable->id,
-        ];
+        ] + $this->payload;
     }
 
     public function toArray($notifiable): array
