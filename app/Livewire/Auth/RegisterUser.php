@@ -46,16 +46,16 @@ class RegisterUser extends Component
     {
         $this->validate();
 
-        User::create([
+        \App\Models\User::create([
             'name'     => $this->name,
             'email'    => $this->email,
-            'password' => Hash::make($this->password),
+            'password' => \Illuminate\Support\Facades\Hash::make($this->password),
             'role'     => $this->role,
         ]);
 
         session()->flash('status', 'Usuario registrado correctamente.');
-        $this->reset(['name','email','password','password_confirmation']);
-        $this->role = 'reader';
+
+        $this->redirectRoute('users.index', navigate: true);
     }
 
     public function render()

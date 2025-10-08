@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\LogRequestActivity::class,
+            \App\Http\Middleware\SingleSession::class,
         ]);
         $middleware->append(\App\Http\Middleware\SingleSession::class);
         $middleware->alias([

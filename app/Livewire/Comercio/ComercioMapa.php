@@ -49,6 +49,49 @@ class ComercioMapa extends AdminComponent
 
     public array $anexoOpts = [];
 
+    protected array $docLabels = [
+        // General
+        'doc_libre_deuda_municipal' => 'Certificado de libre deuda municipal',
+        'doc_planeamiento_urbano'   => 'Dirección de Planeamiento Urbano',
+        'doc_solicitud_habilitacion_pago' => 'Solicitud de habilitación + pago',
+        'doc_comprobante_uso_local' => 'Comprobante de uso del local',
+        'doc_afip_constancia'       => 'Constancia de inscripción AFIP',
+        'doc_recaudacion_rn'        => 'Constancia de inscripción Agencia Recaudación RN',
+        'doc_fotocopia_dni'         => 'Fotocopia de DNI',
+        'doc_comprobante_uso_inmueble'    => 'Comprobante de uso del inmueble',
+        'doc_libre_deuda_tasas_inmueble'  => 'Libre deuda de tasas del inmueble',
+        'doc_aptitud_tecnica_local' => 'Certificado de aptitud técnica',
+        'doc_cocap_rhi'             => 'Certificado CO.CA.P.RHI',
+        'doc_nota_carteleria_obras' => 'Nota a Obras por cartelería',
+        'doc_libro_actas_100'       => 'Libro de actas (100 hojas)',
+        // Jurídica
+        'doc_acta_constitucion'     => 'Acta de constitución',
+        'doc_contrato_societario'   => 'Contrato societario',
+        'doc_docs_representantes'   => 'Documentación de representantes',
+
+        // Extras de “irregular”
+        'doc_cert_electricidad' => 'Certificado de electricidad',
+        'doc_cert_gasista'      => 'Certificado de gasista',
+        'doc_inf_seg_hig'       => 'Informe de seguridad e higiene',
+        'doc_protocolo_mput'    => 'Protocolo de puesta a tierra',
+        'doc_carga_fuego'       => 'Carga de fuego',
+        'doc_inf_ascensores'    => 'Informe de ascensores',
+        'doc_poliza_seguro'     => 'Póliza de seguro',
+        'doc_cert_cocapri'      => 'Certificado CO.CA.P.R.I',
+        'doc_inf_splif'         => 'Informe del SPLIF',
+        'doc_control_plagas'    => 'Control de plagas',
+        'doc_cert_caldera'      => 'Certificado de caldera',
+        'doc_cert_zavecom'      => 'Certificado ZAVECOM',
+        'doc_cert_salud_prov'   => 'Certificado de salud (Provincia)',
+
+        // Otros
+        'doc_manipulacion_alimentos'=> 'Certificado de manipulación de alimentos',
+        'doc_nota_baja'             => 'Nota de baja',
+        'doc_pago_baja'             => 'Pago de baja',
+        'doc_acta_inspeccion'       => 'Acta de inspección',
+    ];
+
+
     protected array $docKeysGeneral = [
         'doc_libre_deuda_municipal','doc_planeamiento_urbano','doc_solicitud_habilitacion_pago',
         'doc_comprobante_uso_local','doc_afip_constancia','doc_recaudacion_rn','doc_fotocopia_dni',
@@ -61,14 +104,13 @@ class ComercioMapa extends AdminComponent
     #[On('open-create-from-map')]
     public function openCreateFromMap($payload = null): void
     {
-        // --- helpers heurísticos ---
         $isCoord = fn($v) => is_string($v) && preg_match('/^\s*-?\d+(\.\d+)?\s*$/', $v);
         $looksLikeAddress = function($s) {
             if (!is_string($s)) return false;
             $s = mb_strtolower(trim($s));
-            // Tiene espacios y al menos un dígito -> suele ser "Calle 123"
+            
             if (preg_match('/\d/', $s) && str_contains($s, ' ')) return true;
-            // Palabras típicas de calles
+            
             foreach (['calle','av','avenida','ruta','pasaje','barrio'] as $w) {
                 if (str_contains($s, $w)) return true;
             }
@@ -77,7 +119,7 @@ class ComercioMapa extends AdminComponent
         $looksLikeNomen = function($s) {
             if (!is_string($s)) return false;
             $s = trim($s);
-            // Ejemplos: "J749 052F000", "J749-052F000", "052F000", etc. (letras+números, pocos símbolos)
+            
             return (bool) preg_match('/^[A-Za-z0-9\-\/\s]{4,}$/', $s) && !$isCoord($s);
         };
 
@@ -128,7 +170,7 @@ class ComercioMapa extends AdminComponent
         $this->state = [
             'persona_tipo'       => 'fisica',
             'tipo_hab'           => 'prev',
-            'estado'             => null,
+            'estado'             => '021',
             'fecha_alta'         => null,
             'fecha_baja'         => null,
             'fecha_vto'          => null,
@@ -166,6 +208,73 @@ class ComercioMapa extends AdminComponent
             rubroId: ($this->state['rubro_id'] ?? null),
             anexos:  ($this->state['rubros_anexos'] ?? [])
         );
+    }
+
+    private function docKeysForEstado(string $estadoBase, bool $esJuridica): array
+    {
+        $baseGeneral = $this->docKeysGeneral;
+        $juridica    = $esJuridica ? $this->docKeysJuridica : [];
+
+        return match ($estadoBase) {
+            '021','entramite' => array_values(array_unique(array_merge(
+                array_diff($baseGeneral, [
+                    'doc_nota_carteleria_obras',
+                    'doc_planeamiento_urbano',
+                    'doc_comprobante_uso_local'
+                ]),
+                ['doc_manipulacion_alimentos'],
+                $juridica
+            ))),
+            '032','irregular' => [
+                'doc_cert_electricidad','doc_cert_gasista','doc_inf_seg_hig','doc_protocolo_mput','doc_carga_fuego',
+                'doc_inf_ascensores','doc_poliza_seguro','doc_cert_cocapri','doc_inf_splif','doc_control_plagas',
+                'doc_cert_caldera','doc_cert_zavecom','doc_cert_salud_prov','doc_comprobante_uso_inmueble',
+            ],
+            'baja','baja_oficio','exp_sin_efecto' => [
+                'doc_pago_baja','doc_libre_deuda_municipal','doc_acta_inspeccion','doc_nota_baja',
+            ],
+            '040' => [],
+            default => array_merge($baseGeneral, $juridica),
+        };
+    }
+
+    public function getDocSchemaProperty(): array
+    {
+        // usar base normalizada como en el otro componente
+        $estadoBase = $this->estadoBaseNormalize($this->state['estado'] ?? '021'); // default 021
+        $esJuridica = ($this->state['persona_tipo'] ?? 'fisica') === 'juridica';
+
+        $keys = $this->docKeysForEstado($estadoBase, $esJuridica);
+
+        $items = [];
+        foreach ($keys as $k) {
+            $items[] = ['key' => $k, 'label' => $this->docLabels[$k] ?? $k, 'type' => 'checkbox'];
+        }
+
+        $showUsoInmueble = in_array('doc_comprobante_uso_inmueble', $keys, true) || $estadoBase === '021';
+
+        return [
+            'items' => $items,
+            'uso_inmueble' => [
+                'show'        => $showUsoInmueble,
+                'checkboxKey' => 'doc_comprobante_uso_inmueble',
+                'selectKey'   => 'doc_uso_inmueble_tipo',
+                'label'       => 'Uso de inmueble',
+                'options'     => $this->usoInmuebleOptions(),
+            ],
+        ];
+    }
+
+
+    private function usoInmuebleOptions(): array
+    {
+        return [
+            'boleto'         => 'Boleto de compra-venta',
+            'contrato'       => 'Contrato',
+            'comodato'       => 'Comodato',
+            'titulo'         => 'Título de propiedad',
+            'cert_ocupacion' => 'Certificado de ocupación',
+        ];
     }
 
     private function normalizeDocsArray(array $docs): array
@@ -783,8 +892,23 @@ class ComercioMapa extends AdminComponent
 
     public function updatedStateEstado($nuevo): void
     {
-        $this->state['cambio_tipo'] = '';
+        // normalizá a base para decidir docs
+        $base = $this->estadoBaseNormalize($nuevo); // 021/032/040/baja/etc.
+        $esJuridica = ($this->state['persona_tipo'] ?? 'fisica') === 'juridica';
+        $permitidos = $this->docKeysForEstado($base, $esJuridica);
+
+        $docs = $this->state['documentos'] ?? [];
+        // apago todos
+        foreach (array_keys($this->docLabels) as $k) $docs[$k] = false;
+        // enciendo solo los del estado
+        foreach ($permitidos as $k) $docs[$k] = (bool)($docs[$k] ?? false);
+
+        // reset del select de uso de inmueble
+        $docs['doc_uso_inmueble_tipo'] = null;
+
+        $this->state['documentos'] = $docs;
     }
+
 
     private function calcularSituacion(?string $estadoCanon, bool $esClausurado): ?string
     {
