@@ -447,7 +447,7 @@ class ComercioMapa extends AdminComponent
             ->when($subId, fn($q)=> $q->where('rubro_id', $subId))
             ->when($this->selectedBarrio !== '', fn($q)=> $q->where('barrio', $this->selectedBarrio))
             ->when($this->selectedEstado !== '', fn($q)=> $q->where('estado', $this->selectedEstado))
-            ->when($this->solo_clausurados, fn($q)=> $q->where('situacion', 'clausurado')) // ✅ filtro clausurados
+            ->when($this->solo_clausurados, fn($q)=> $q->where('situacion', 'clausurado'))
             ->when($fantasia !== '', function($q) use ($fantasia) {
                 $t = '%'.$fantasia.'%';
                 $q->where('nombre_comercial','like',$t);

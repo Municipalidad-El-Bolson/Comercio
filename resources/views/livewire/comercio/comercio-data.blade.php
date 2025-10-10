@@ -314,7 +314,7 @@
     <div class="card mb-4 border-secondary" x-data="{open:false}">
       <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
-          <strong class="mr-3"><i class="far fa-folder-open mr-1"></i>Histirial de estado</strong>
+          <strong class="mr-3"><i class="far fa-folder-open mr-1"></i>Historial de estado</strong>
         </div>
         <button class="btn btn-sm btn-outline-secondary" type="button" @click="open=!open">
           <span class="mr-1" x-text="open ? 'ocultar' : 'ver'"></span>

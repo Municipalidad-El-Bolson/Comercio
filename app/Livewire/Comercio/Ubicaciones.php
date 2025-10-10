@@ -683,8 +683,13 @@ class Ubicaciones extends AdminComponent
             ]
         );
 
+        
         $validated = \Validator::make(['state' => $tmpState], $reglas, $this->mensajes(), $this->atributos())->validate();
         $data = $this->state;
+
+        $esClaus = (bool)($this->state['es_clausurado'] ?? false);
+
+        $data['situacion'] = $this->calcularSituacion($estadoCanon, $esClaus);
 
         $this->limpiarFechasSegunEstadoBase($data, $estadoBase);
 
@@ -911,6 +916,8 @@ class Ubicaciones extends AdminComponent
             }
 
             $this->ubicacion->update($dataUbic);
+
+            $this->state['es_clausurado'] = $ubicacion->situacion === 'clausurado';
 
             // Historial de estados (siempre que guardamos)
             $this->registrarHistorialEstado(

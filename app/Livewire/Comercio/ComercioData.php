@@ -642,6 +642,9 @@ class ComercioData extends Component
             }
 
             $this->ubicacion->update($dataUbic);
+            $this->ubicacion->refresh();
+
+            $this->state['es_clausurado'] = $this->ubicacion->situacion === 'clausurado';
 
             // Documentos (uso de inmueble exclusivo)
             $incoming = $this->normalizeDocsArray($docsFromUI);

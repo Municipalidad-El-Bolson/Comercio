@@ -102,10 +102,15 @@ class Ubicacion extends Model
     protected static function booted()
     {
         static::saving(function (Ubicacion $m) {
-            $toCarbon = fn($v) => $v instanceof \Carbon\Carbon ? $v
-                 : ($v instanceof \DateTimeInterface ? \Carbon\Carbon::instance($v)
-                 : ($v ? \Carbon\Carbon::parse($v) : null));
+            // Helper único para fechas
+            $toCarbon = function($v) {
+                if ($v instanceof \Carbon\Carbon) return $v->copy();
+                if ($v instanceof \DateTimeInterface) return \Carbon\Carbon::instance($v);
+                if (empty($v)) return null;
+                try { return \Carbon\Carbon::parse($v); } catch (\Throwable) { return null; }
+            };
 
+            // ── Normalización de estado base entrante ───────────────────────────────
             $e = trim(mb_strtolower((string) ($m->estado_base ?: $m->estado)));
             $incomingBase = match ($e) {
                 '021','entramite','en tramite','en trámite' => '021',
@@ -117,12 +122,15 @@ class Ubicacion extends Model
                 default => '021',
             };
 
+            // Validación rápida de vto para 021
             $fv = $toCarbon($m->fecha_vto);
             if ($incomingBase === '021' && $fv && $fv->isPast()) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'fecha_vto' => 'No podés registrar con estado 021 un comercio con la HC vencida.',
                 ]);
             }
+
+            // Normalizar domicilio
             $m->domicilio_comercio = self::normalizeDireccionComercio($m->domicilio_comercio);
 
             // Resolver código base de estado (021/032/040/baja/baja_oficio/exp_sin_efecto)
@@ -135,41 +143,36 @@ class Ubicacion extends Model
                     'baja'                                          => 'baja',
                     'baja de oficio', 'baja_oficio', 'baja-oficio'  => 'baja_oficio',
                     'expediente sin efecto', 'exp_sin_efecto', 'exp-sin-efecto', 'sin_efecto'
-                                                                => 'exp_sin_efecto',
-                    default                                         => ($raw ? $raw : '021'),
+                                                                    => 'exp_sin_efecto',
+                    default                                         => ($raw ?: '021'),
                 };
             };
-
-            
 
             // 1) Normalizar estado_base y estado canónico
             $estadoBase = $m->estado_base ?: $resolverBase($m->estado);
             $m->estado_base = $estadoBase;
 
-            // Si está clausurado, de todos modos dejamos coherentes estado/situación/fechas,
-            // pero no forzamos nada extra (no return temprano, así limpiamos fechas residuales).
             $m->estado = match ($estadoBase) {
                 '021'            => 'entramite',
                 '032'            => 'irregular',
-                '040'            => '040',          // se acordó que 040 se guarda tal cual
+                '040'            => '040',        // 040 se guarda tal cual
                 'baja'           => 'baja',
                 'baja_oficio'    => 'baja_oficio',
                 'exp_sin_efecto' => 'sin_efecto',
                 default          => $m->estado ?: 'entramite',
             };
 
-            $m->situacion = in_array($estadoBase, ['baja','baja_oficio','exp_sin_efecto'], true)
-                ? 'baja'
-                : (in_array($estadoBase, ['021','032','040'], true) ? 'alta' : $m->situacion);
+            $flagClausura = (trim(mb_strtolower((string)$m->situacion)) === 'clausurado');
 
-            // Helpers seguros para fecha
-            $toCarbon = function($v) {
-                if ($v instanceof \Carbon\Carbon) return $v->copy();
-                if ($v instanceof \DateTimeInterface) return \Carbon\Carbon::instance($v);
-                if (empty($v)) return null;
-                try { return \Carbon\Carbon::parse($v); } catch (\Throwable $e) { return null; }
-            };
-
+            if ($flagClausura) {
+                // respetar clausura y NO tocar timestamps ni forzar 'alta'/'baja'
+                $m->situacion = 'clausurado';
+            } else {
+                // si no está clausurado, calcular situación normal por estado_base
+                $m->situacion = in_array($estadoBase, ['baja','baja_oficio','exp_sin_efecto'], true)
+                    ? 'baja'
+                    : (in_array($estadoBase, ['021','032','040'], true) ? 'alta' : $m->situacion);
+            }
             // 2) Reglas de limpieza / autocalculado por estado base
             switch ($estadoBase) {
                 case '021':
@@ -195,15 +198,16 @@ class Ubicacion extends Model
                     $m->fecha_vto = null;
                     break;
             }
-            // Si la fecha de vencimiento ya pasó, forzar 032
+
+            // Si la fecha de vto ya pasó, forzar 032 (pero esto NO cambia clausura)
             if (!empty($m->fecha_vto) && \Carbon\Carbon::parse($m->fecha_vto)->isPast()) {
-                // Solo si no está en baja ni ya 032
                 if (!in_array($m->estado_base, ['032', 'baja', 'baja_oficio', 'exp_sin_efecto'], true)) {
                     $m->estado_base = '032';
                     $m->estado = 'irregular';
                 }
             }
         });
+
         static::updated(function (Ubicacion $u) {
             $cambioABase032 = $u->wasChanged('estado_base')
                 && $u->estado_base === '032'
@@ -246,6 +250,7 @@ class Ubicacion extends Model
             }
         });
     }
+
 
     public function scopeVenceEsteMes($q)
     {
