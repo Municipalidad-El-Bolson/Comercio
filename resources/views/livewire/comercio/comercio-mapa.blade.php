@@ -77,6 +77,7 @@
                   </select>
                 </div>
 
+
                 <div class="form-group col-md-4 mb-2">
                   <label class="mb-1">Nomenclatura catastral</label>
                   <input class="form-control form-control-sm"
@@ -161,6 +162,16 @@
     style: 'mapbox://styles/mapbox/streets-v12',
     center: [-71.53, -41.9645],
     zoom: 14
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const sel = document.getElementById('select-map-rubro');
+
+    sel.addEventListener('change', function () {
+      @this.set('selectedRubroId', this.value || null);
+    });
+
+
   });
 
   // ======== Helpers comunes ========
@@ -434,24 +445,34 @@
   }
 
   window.addEventListener('ubicacionesUpdated', (ev) => {
-    const list = ev.detail?.ubicaciones ?? [];
-    const nom  = ev.detail?.selectedNomen ?? '';
-    if (srcReady){
-      const src = map.getSource('comercios-src');
+      const list = ev.detail?.ubicaciones ?? [];
+      const nom  = ev.detail?.selectedNomen ?? '';
       const data = toGeo(list);
-      src && src.setData(data);
-      // Zoom a puntos visibles si no hay nomen marcada
-      if (!nom && data.features.length) fitToFeaturesBounds(data);
-    }
 
-    // Resaltar y ZOOM a la nomen buscada
-    if (GEO_CATASTRO && NOM_KEY){
-      const feats = (GEO_CATASTRO.features||[]).filter(f => (f.properties?.[NOM_KEY]??'') === nom);
-      const hl = map.getSource('catastro-hl-src');
-      if (hl){ hl.setData({ type:'FeatureCollection', features: feats }); }
-      if (feats.length) fitToFeaturesBounds({ type:'FeatureCollection', features: feats });
-    }
+      if (srcReady){
+          const src = map.getSource('comercios-src');
+          if (src) src.setData(data);
+
+          // 👉 ZOOM SIEMPRE que haya puntos, salvo cuando la búsqueda fue por nomen
+          if (!nom && data.features.length > 0) {
+              fitToFeaturesBounds(data);
+          }
+      }
+
+      // 👉 Si hay nomen: resaltar y hacer zoom
+      if (nom && GEO_CATASTRO && NOM_KEY){
+          const feats = (GEO_CATASTRO.features || [])
+              .filter(f => normNom(f.properties?.[NOM_KEY]) === normNom(nom));
+
+          const hl = map.getSource('catastro-hl-src');
+          if (hl) hl.setData({ type:'FeatureCollection', features: feats });
+
+          if (feats.length > 0){
+              fitToFeaturesBounds({ type:'FeatureCollection', features: feats });
+          }
+      }
   });
+
 
   let addMode = false, addMarker = null;
   document.getElementById('btnAddMode')?.addEventListener('click', () => {

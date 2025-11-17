@@ -19,12 +19,13 @@ class DocumentoSeeder extends Seeder
             'Nota de Permiso para espectáculos en vivo',
             'Nota de Permiso para espectáculos en espacios cerrados',
             'Nota de prórroga',
+            'Nota de denuncia',
+            'Nota de baja comercial',
 
             // --- Documentación ---
             'Informe de Seguridad e Higiene',
             'Informe de electricidad',
             'Informe técnico gasista matriculado',
-            'Informe puesta a tierra y continuidad de tasas',
             'Informe SPLIF',
             'Informe medio ambiente',
             'Póliza de seguro',
@@ -32,6 +33,7 @@ class DocumentoSeeder extends Seeder
             'Libre deuda Inmueble',
             'Final de obra',
             'Certificado Turismo RN',
+            'Certificado de defunción',
             'Constancia de Turismo RN',
             'DNI',
             'ARCA',
@@ -45,7 +47,11 @@ class DocumentoSeeder extends Seeder
             'Certificado de salud RN',
             'Certificado de habilitación de RN',
             'Zavecom',
+            'Control de plagas',
             'Informe tratamientos de residuos patológicos',
+            'Informe puesta a tierra y continuidad de tasas',   
+            'Informe de mantenimiento y buen funcionamiento de ascensores',
+            'Informe de mantenimiento y buen funcionamiento de camillas',
         ];
 
         foreach ($nombres as $nombre) {

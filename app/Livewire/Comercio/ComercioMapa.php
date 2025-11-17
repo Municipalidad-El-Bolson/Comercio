@@ -436,7 +436,7 @@ class ComercioMapa extends AdminComponent
     public function updatedSelectedBarrio()  { $this->emitUbicaciones(); }
     public function updatedSelectedEstado()  { $this->emitUbicaciones(); }
     public function updatedSelectedNomen()   { $this->emitUbicaciones(); }
-    public function updatedSoloClausurados() { $this->emitUbicaciones(); } // ✅
+    public function updatedSoloClausurados() { $this->emitUbicaciones(); } 
 
     private function queryUbicaciones()
     {
@@ -455,7 +455,7 @@ class ComercioMapa extends AdminComponent
             ->orderByRaw("COALESCE(NULLIF(nombre_comercial,''), razon_social) asc")
             ->get([
                 'id','razon_social','nombre_comercial','domicilio_comercio',
-                'lat','lng','rubro_id','barrio','estado','situacion', // ✅ incluir situacion
+                'lat','lng','rubro_id','barrio','estado','situacion', 
                 \DB::raw('nomenclatura as nomen'),
             ])
             ->map(function ($u) {
@@ -468,7 +468,7 @@ class ComercioMapa extends AdminComponent
                     'lng'               => $u->lng,
                     'barrio'            => $u->barrio,
                     'estado'            => $u->estado,
-                    'situacion'         => $u->situacion, // ✅ para badge en popup
+                    'situacion'         => $u->situacion, 
                     'nomen'             => $u->nomen,
                     'rubro'             => [
                         'id'       => $u->rubro?->id,

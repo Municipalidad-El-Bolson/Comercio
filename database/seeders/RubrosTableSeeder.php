@@ -161,7 +161,7 @@ class RubrosTableSeeder extends Seeder
 
         // Si querés, podés sumar aquí una lista manual extra:
         $manual = [
-                'MERCERIA', 'TIENDA', 'MASAJE', 'SALA DE ELABORACION','KIOSCOS', 'TEJAS', 'FRAMBUESAS', 'VENTA DE HELADOS', 'ELABORACION DE PANIFICADOS',
+                'MERCERIA', 'TIENDA', 'MASAJE', 'SALA DE ELABORACION','KIOSCOS', 'TEJAS', 'FRAMBUESAS', 'VENTA DE HELADOS', 'ELABORACION DE PANIFICADOS', 'VIDIRIERIA', 'COTILLONERIA', 'PAPELERIA', 'EDERSA', 'OFICINA DE INFORMES Y RECAUDACIONES', 'HORMIGON (VENTA)', 'PANTALLA LED CON PUBLICIDAD', 'ARTICULOS DE LIMPIEZA (VENTA)'
         ];
 
         // ===================== normalizar + deduplicar =====================
