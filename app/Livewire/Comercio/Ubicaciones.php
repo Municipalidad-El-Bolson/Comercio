@@ -269,8 +269,17 @@ class Ubicaciones extends AdminComponent
     {
         $t = '%'.$this->searchTerm.'%';
 
-        $ubicaciones = Ubicacion::with(['rubro','estadoModel']) // <- removido 'habilitacionActual'
-            ->where('nombre_comercial','like',$t)
+        $ubicaciones = Ubicacion::with(['rubro','estadoModel'])
+            ->where(function($q) use ($t) {
+                $q->where('nombre_comercial','like',$t)
+                ->orWhere('razon_social','like',$t)
+                ->orWhere(DB::raw("CONCAT(apellido,' ',nombres)"), 'like', $t)
+                ->orWhere('dni_cuit', 'like', $t)
+                ->orWhere('domicilio_comercio','like',$t)
+                ->orWhereHas('rubro', function($r) use ($t) {
+                    $r->where('subrubro','like',$t);
+                });
+            })
             ->orderBy('nombre_comercial')
             ->paginate(10);
 
@@ -278,6 +287,7 @@ class Ubicaciones extends AdminComponent
             'ubicaciones' => $ubicaciones,
         ])->layout('admin.layouts.app');
     }
+
 
     /** ======== Form actions ======== */
     public function nuevoComercio()

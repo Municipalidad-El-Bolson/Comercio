@@ -18,19 +18,19 @@
         <div class="card">
             <div class="d-flex flex-column flex-md-row align-items-center justify-content-center justify-content-md-between gap-2 mb-3 p-2 rounded-3 bg-light shadow-sm">
   
-                {{-- Buscador --}}
-                <div class="d-flex align-items-center justify-content-center flex-grow-1" style="max-width:400px;">
-                    <div class="input-group input-group-sm w-100">
-                    <span class="input-group-text bg-white">
-                        <i class="fas fa-search text-muted"></i>
-                    </span>
-                    <input
-                        type="text"
-                        class="form-control"
-                        placeholder="Buscar comercio, DNI/CUIT o rubro…"
-                        wire:model.debounce.300ms="searchTerm">
-                    </div>
-                </div>
+            <div class="input-group input-group-sm w-100">
+                <span class="input-group-text bg-white">
+                    <i class="fas fa-search text-muted"></i>
+                </span>
+
+                <input
+                    type="text"
+                    wire:model.live="searchTerm"
+                    class="form-control"
+                    style="z-index:0 !important"
+                    autocomplete="off"
+                    placeholder="Buscar comercio por Nombre comercial, Nº Hab., Razón social, Titular, DNI/CUIT, Rubro o Domicilio.">
+            </div>
 
                 {{-- Botón nuevo comercio --}}
                 <div class="text-center text-md-end mt-2 mt-md-0">
@@ -51,11 +51,11 @@
                     <table class="table table-sm table-hover table-bordered mb-0 align-middle">
                         <thead class="thead-light">
                         <tr class="text-center">
-                            <th class="text-sm" style="min-width:240px">Comercio</th>
+                            <th class="text-sm" >Comercio</th>
                             <th class="text-sm" style="width:120px">Nº Hab.</th>
                             <th class="text-sm" style="width:140px">DNI / CUIT</th>
-                            <th class="text-sm" style="min-width:160px">Rubro</th>
-                            <th class="text-sm" style="min-width:220px">Domicilio</th>
+                            <th class="text-sm" >Rubro</th>
+                            <th class="text-sm" >Domicilio</th>
                             <th class="text-sm" style="width:120px">Estado</th>
                             <th class="text-sm text-center" style="width:120px">Subir Actas</th>
                         </tr>
