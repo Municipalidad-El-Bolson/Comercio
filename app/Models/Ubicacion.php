@@ -123,12 +123,14 @@ class Ubicacion extends Model
             };
 
             // Validación rápida de vto para 021
-            $fv = $toCarbon($m->fecha_vto);
-            if ($incomingBase === '021' && $fv && $fv->isPast()) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'fecha_vto' => 'No podés registrar con estado 021 un comercio con la HC vencida.',
-                ]);
-            }
+            // Eliminado: Permitimos cargar 021 aunque la HC esté vencida.
+            // $fv = $toCarbon($m->fecha_vto);
+            // if ($incomingBase === '021' && $fv && $fv->isPast()) {
+            //     throw \Illuminate\Validation\ValidationException::withMessages([
+            //         'fecha_vto' => 'No podés registrar con estado 021 un comercio con la HC vencida.',
+            //     ]);
+            // }
+
 
             // Normalizar domicilio
             $m->domicilio_comercio = self::normalizeDireccionComercio($m->domicilio_comercio);

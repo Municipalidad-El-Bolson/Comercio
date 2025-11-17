@@ -545,7 +545,7 @@ class ComercioData extends Component
             'apellido'              => 'nullable|string|min:2|max:60',
             'nombres'               => 'nullable|string|min:2|max:80',
             'razon_social'          => 'nullable|string|min:2|max:120',
-            'dni_cuit'              => 'required|string',
+            'dni_cuit'              => 'nullable|string',
             'rubro_id'              => 'required|exists:rubros,id',
             'rubros_anexos'         => 'array',
             'rubros_anexos.*'       => 'integer|exists:rubros,id|different:rubro_id|distinct',

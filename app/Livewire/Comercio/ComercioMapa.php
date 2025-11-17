@@ -656,7 +656,7 @@ class ComercioMapa extends AdminComponent
     {
         return [
             'state.persona_tipo' => ['required', Rule::in(['fisica','juridica'])],
-            'state.dni_cuit'     => ['bail','required','string','regex:/^\d{7,8}$|^\d{2}-\d{7,8}-\d{1}$|^\d{11}$/'],
+            'state.dni_cuit'    => ['nullable','string','regex:/^\d{7,8}$|^\d{11}$/'],
             'state.rubro_id'     => ['required','exists:rubros,id'],
 
             // Acepta canónicos y bases, incluyendo 040
@@ -702,7 +702,6 @@ class ComercioMapa extends AdminComponent
     {
         return [
             'state.persona_tipo.required'  => 'Seleccioná el tipo de persona.',
-            'state.dni_cuit.required'      => 'Ingresá DNI o CUIT.',
             'state.rubro_id.required'      => 'Seleccioná el subrubro.',
             'state.estado.required'        => 'Seleccioná el estado.',
             'state.monto_pagar.regex'      => 'Usá hasta 2 decimales (ej: 123.45).',

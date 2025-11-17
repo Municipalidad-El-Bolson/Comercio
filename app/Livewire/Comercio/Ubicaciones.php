@@ -523,6 +523,9 @@ class Ubicaciones extends AdminComponent
             'state.fecha_baja' => ['nullable','date'],
             'state.fecha_vto'  => ['nullable','date'],
 
+            // 👉 CUIL/DNI OPCIONAL
+            'state.dni_cuit'  => ['nullable','string','max:20'],
+
             // opcionales comunes (no rompen si no existen en el state)
             'state.observaciones' => ['nullable','string','max:500'],
         ];
@@ -859,7 +862,7 @@ class Ubicaciones extends AdminComponent
             'state.fecha_vto'  => ['nullable','date'],
             'state.observaciones' => ['nullable','string','max:500'],
         ];
-
+        $rules = array_merge($rules, $this->reglasFechasPorEstado($estadoBase));
         // si validás directamente $this->state:
         \Validator::make($this->state, $rules)->validate();
         $messages = method_exists($this, 'mensajes') ? $this->mensajes() : [];
@@ -1140,7 +1143,7 @@ class Ubicaciones extends AdminComponent
             case '021':
                 // Ahora 021 requiere ALTA + VTO
                 $reglas['state.fecha_alta'] = 'required|date';
-                $reglas['state.fecha_vto']  = 'required|date|after_or_equal:state.fecha_alta';
+                $reglas['state.fecha_vto']  = 'nullable|date|after_or_equal:state.fecha_alta';
                 $reglas['state.fecha_baja'] = 'nullable';
                 break;
 
