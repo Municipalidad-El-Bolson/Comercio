@@ -14,8 +14,16 @@ class Inbox extends Component
     public function mount(): void
     {
         abort_unless(Gate::allows('mesa-entrada-view'), 403);
-        $this->items = auth()->user()
-            ->notifications()
+
+        $user = auth()->user();
+
+        // IDs de no leídas (para animar)
+        $unread = $user->unreadNotifications
+            ->where('type', \App\Notifications\MesaEntradaNotification::class)
+            ->pluck('id')
+            ->toArray();
+
+        $this->items = $user->notifications()
             ->where('type', \App\Notifications\MesaEntradaNotification::class)
             ->latest()
             ->take(200)
@@ -23,6 +31,7 @@ class Inbox extends Component
             ->map(fn ($n) => [
                 'id'          => $n->id,
                 'read_at'     => $n->read_at,
+                'nuevo'       => in_array($n->id, $unread), // ← ANIMACIÓN
                 'fecha'       => data_get($n->data, 'fecha'),
                 'nro_ingreso' => data_get($n->data, 'nro_ingreso'),
                 'docs'        => data_get($n->data, 'docs', []),
@@ -33,6 +42,19 @@ class Inbox extends Component
             ])
             ->toArray();
     }
+
+
+    public function deleteItem(string $id): void
+    {
+        auth()->user()
+            ->notifications()
+            ->where('id', $id)
+            ->delete();
+
+        // Remover visualmente de la lista
+        $this->items = array_filter($this->items, fn($i) => $i['id'] !== $id);
+    }
+
 
     public function markAsRead(string $id): void
     {
