@@ -76,8 +76,10 @@
     };
   @endphp
 
-  <div class="content-header pt-3 pb-0">
-    <div class="container-fluid">
+  <div class="container-fluid mt-3">
+  <div class="card mb-4 border-secondary">
+    <div class="card-body">
+
       <div class="d-flex align-items-start justify-content-between">
         <div>
           <h1 class="m-0 titulo-comercio">
@@ -94,54 +96,54 @@
           </div>
 
           <div class="mt-2">
-            {{-- Estado --}}
             <span class="badge {{ $estadoClass }} mr-1">
               <i class="fas fa-clipboard-check mr-1"></i>{{ $estadoVisual }}
             </span>
 
-            {{-- Cambio --}}
             <span class="badge {{ $cambioClass }} mr-1">
               <i class="fas fa-exchange-alt mr-1"></i>{{ $cambioTxt }}
             </span>
 
-            {{-- Vencimiento (si aplica) --}}
             @if($vto)
               <span class="badge badge-{{ $vtoBadge }} mr-1">
                 <i class="far fa-clock mr-1"></i>Vto: {{ $vto->format('d/m/Y') }}
               </span>
             @endif
 
-            {{-- Tipo de hab --}}
             @if(!empty($ubicacion->tipo_hab))
               <span class="badge badge-light">
-                <i class="fas fa-certificate mr-1"></i>{{ $ubicacion->tipo_hab === 'definitiva' ? 'Definitiva' : 'Provisoria' }}
+                <i class="fas fa-certificate mr-1"></i>
+                {{ $ubicacion->tipo_hab === 'definitiva' ? 'Definitiva' : 'Provisoria' }}
               </span>
             @endif
           </div>
         </div>
+
+        <!-- Botonera -->
         <div class="btn-group">
           <a wire:navigate href="{{ url()->previous() }}" class="btn btn-secondary btn-sm">
             <i class="fas fa-arrow-left mr-1"></i> Volver
           </a>
+
           @isset($ubicacion->id)
             <a href="#" wire:click.prevent="editaComercio({{ $ubicacion->id }})" class="btn btn-primary btn-sm">
               <i class="fa fa-edit mr-1"></i> Editar
             </a>
           @endisset
+
           @can('manage-ubicaciones')
-            <button
-              type="button"
-              class="btn btn-danger btn-sm"
-              x-on:click.prevent="if (confirm('¿Eliminar definitivamente este comercio? Esta acción no se puede deshacer.')) { $wire.deleteComercio() }"
-            >
+            <button type="button" class="btn btn-danger btn-sm"
+              x-on:click.prevent="if (confirm('¿Eliminar definitivamente este comercio? Esta acción no se puede deshacer.')) { $wire.deleteComercio() }">
               <i class="fa fa-trash mr-1"></i> Eliminar
             </button>
           @endcan
-
         </div>
       </div>
+
     </div>
   </div>
+</div>
+
 
   <div class="container-fluid mt-3">
 
@@ -200,18 +202,37 @@
                 <div class="text-muted small">Rubro (principal)</div>
                 <div class="font-weight-bold">{{ optional($ubicacion->rubro)->subrubro ?: '—' }}</div>
               </div>
-              <div class="col-md-6 mb-2">
-                <div class="text-muted small">Rubros anexos</div>
-                @if(empty($anexos))
-                  <div class="text-muted">—</div>
-                @else
-                  <div>
-                    @foreach($anexos as $a)
-                      <span class="badge badge-secondary mr-1 mb-1">{{ $a }}</span>
-                    @endforeach
-                  </div>
-                @endif
-              </div>
+              {{-- Mostrar datos de alojamiento si existen --}}
+@if(!is_null($ubicacion->alojamiento_unidades) || !is_null($ubicacion->alojamiento_plazas))
+    <hr>
+    <div class="row">
+        <div class="col-md-6 mb-2">
+            <div class="text-muted small">Unidades de Alojamiento</div>
+            <div class="font-weight-bold">
+                {{ $ubicacion->alojamiento_unidades ?? '—' }}
+            </div>
+        </div>
+        <div class="col-md-6 mb-2">
+          <div class="text-muted small">Plazas Totales</div>
+            <div class="font-weight-bold">
+              {{ $ubicacion->alojamiento_plazas ?? '—' }}
+            </div>
+          </div>
+        </div>
+        @endif
+
+        <div class="col-md-6 mb-2">
+          <div class="text-muted small">Rubros anexos</div>
+          @if(empty($anexos))
+            <div class="text-muted">—</div>
+          @else
+            <div>
+              @foreach($anexos as $a)
+                <span class="badge badge-secondary mr-1 mb-1">{{ $a }}</span>
+              @endforeach
+            </div>
+          @endif
+        </div>
             </div>
 
             <div class="row">
@@ -312,15 +333,19 @@
     </div> {{-- row --}}
 
     <div class="card mb-4 border-secondary" x-data="{open:false}">
-      <div class="card-header bg-light d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-          <strong class="mr-3"><i class="far fa-folder-open mr-1"></i>Historial de estado</strong>
-        </div>
-        <button class="btn btn-sm btn-outline-secondary" type="button" @click="open=!open">
-          <span class="mr-1" x-text="open ? 'ocultar' : 'ver'"></span>
-          <i :class="open ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
-        </button>
-      </div>
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <strong class="mr-2">
+        <i class="far fa-folder-open mr-1"></i>Historial de estado
+      </strong>
+
+      <button class="btn btn-sm btn-outline-secondary d-flex align-items-center"
+              type="button"
+              @click="open=!open">
+        <span class="mr-1" x-text="open ? 'Ocultar' : 'Ver'"></span>
+        <i :class="open ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+      </button>
+    </div>
+
 
       <div x-show="open" x-collapse x-cloak>
         <div class="card-body">
@@ -509,12 +534,125 @@
   </div> {{-- /container-fluid --}}
   @include('livewire.comercio.form')
 </div>
+
 @push('styles')
 <style>
-  .titulo-comercio {
-    font-size: 1.75rem;
-    font-weight: bold;
+
+  /* ---------- General ---------- */
+  .card {
+    border-radius: 0.7rem !important;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e2e2e2 !important;
   }
+
+  .card-header {
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: #f7f9fb !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+  }
+
+  .card-body {
+    background: #ffffff;
+    padding-top: 1.15rem !important;
+  }
+
+  .titulo-comercio {
+    font-size: 1.9rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.5px;
+  }
+
+  /* ---------- Etiquetas / Categorías ---------- */
+  .badge {
+    padding: 0.45em 0.65em !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    border-radius: 0.35rem !important;
+  }
+
+  .badge-light { 
+    background: #f2f2f2 !important; 
+    color: #555 !important; 
+  }
+
+  .badge-success { background-color: #2ecc71 !important; }
+  .badge-info    { background-color: #3498db !important; }
+  .badge-warning { background-color: #f1c40f !important; color:#333 !important; }
+  .badge-danger  { background-color: #e74c3c !important; }
+
+  /* ---------- Títulos pequeños ---------- */
+  .text-muted.small {
+    font-size: 0.72rem !important;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .font-weight-bold {
+    font-size: 0.92rem;
+  }
+
+  /* ---------- Encabezado general ---------- */
+  .content-header {
+    border-bottom: 1px solid #e5e5e5;
+    background: linear-gradient(to right, #ffffff, #fafafa);
+    padding-bottom: 1rem;
+    padding-top: 0.5rem;
+  }
+
+  /* ---------- Botonera derecha ---------- */
+  .btn-group .btn {
+    border-radius: 0.4rem !important;
+    font-size: 0.78rem;
+  }
+
+  .btn-primary {
+    background: #4a6cf7 !important;
+    border-color: #4a6cf7 !important;
+  }
+
+  .btn-danger {
+    background: #e74c3c !important;
+    border-color: #e74c3c !important;
+  }
+
+  .btn-secondary {
+    background: #bdc3c7 !important;
+    border-color: #bdc3c7 !important;
+  }
+
+  /* ---------- Separadores ---------- */
+  hr.my-2 {
+    border-top: 1px solid #ddd !important;
+  }
+
+  /* ---------- Tablas ---------- */
+  table.table {
+    border-radius: 0.5rem !important;
+    overflow: hidden;
+  }
+
+  .table thead th {
+    background: #f7f9fb !important;
+    font-weight: 600 !important;
+  }
+
+  .table tbody tr td {
+    font-size: 0.82rem !important;
+  }
+
+  /* ---------- Badges de documentación ---------- */
+  .docs-box {
+    transition: 0.2s;
+  }
+
+  .docs-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+
 </style>
 @endpush
+
 

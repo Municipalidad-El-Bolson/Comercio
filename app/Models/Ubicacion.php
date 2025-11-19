@@ -47,6 +47,8 @@ class Ubicacion extends Model
         'fecha_baja',
         'fecha_vto',
         'monto_pagar',
+        'alojamiento_unidades',
+        'alojamiento_plazas',
     ];
 
     protected $casts = [
@@ -59,6 +61,8 @@ class Ubicacion extends Model
         'estado'       => 'string',
         'estado_base'  => 'string',
         'estado_label' => 'string',
+        'alojamiento_unidades' => 'integer',
+        'alojamiento_plazas'   => 'integer',
     ];
 
     // ─── Scopes ─────────────────────────────────────────────────────────────────

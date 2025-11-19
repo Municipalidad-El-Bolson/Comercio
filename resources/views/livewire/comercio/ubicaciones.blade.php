@@ -16,21 +16,33 @@
 
     <div class="container-fluid px-0">
         <div class="card">
+                <div class="form-group me-2" style="min-width:220px;">
+                    <select class="form-control form-control-sm"
+                            wire:model.live="rubroGeneral">
+                        <option value="">-- Rubro general (todos) --</option>
+                        <option value="ALOJAMIENTO">Alojamiento</option>
+                        <option value="GASTRONOMIA">Gastronomía</option>
+                        <option value="SERVICIOS">Servicios</option>
+                        <option value="COMERCIO">Comercio</option>
+                        <option value="AGRO / PRODUCCION">Agro / Producción</option>
+                        <option value="OTROS">Otros</option>
+                    </select>
+                </div>
             <div class="d-flex flex-column flex-md-row align-items-center justify-content-center justify-content-md-between gap-2 mb-3 p-2 rounded-3 bg-light shadow-sm">
-  
-            <div class="input-group input-group-sm w-100">
-                <span class="input-group-text bg-white">
-                    <i class="fas fa-search text-muted"></i>
-                </span>
 
-                <input
-                    type="text"
-                    wire:model.live="searchTerm"
-                    class="form-control"
-                    style="z-index:0 !important"
-                    autocomplete="off"
-                    placeholder="Buscar comercio por Nombre comercial, Nº Hab., Razón social, Titular, DNI/CUIT, Rubro o Domicilio.">
-            </div>
+                <div class="input-group input-group-sm w-100">
+                    <span class="input-group-text bg-white">
+                        <i class="fas fa-search text-muted"></i>
+                    </span>
+
+                    <input
+                        type="text"
+                        wire:model.live="searchTerm"
+                        class="form-control"
+                        style="z-index:0 !important"
+                        autocomplete="off"
+                        placeholder="Buscar comercio por Nombre comercial, Nº Hab., Razón social, Titular, DNI/CUIT, Rubro o Domicilio.">
+                </div>
 
                 {{-- Botón nuevo comercio --}}
                 <div class="text-center text-md-end mt-2 mt-md-0">

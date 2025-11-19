@@ -103,36 +103,79 @@
           $opsRubro = $rubroOpts ?? [];
           $opsAnexo = $anexoOpts ?? [];
         @endphp
-        <div class="form-group col-md-12 mb-1" wire:ignore>
-          <label class="mb-1">Seleccioná el Rubro Principal</label>
+
+        {{-- ================= RUBRO PRINCIPAL (SIN wire:ignore) ================= --}}
+        <div class="form-group col-md-12 mb-1">
+        <label class="mb-1">Seleccioná el Rubro Principal</label>
+
+        {{-- SELECT CONTROLADO POR TOMSELECT --}}
+        <div wire:ignore>
           <select id="select-rubro-principal"
                   class="form-control form-control-sm @error('state.rubro_id') is-invalid @enderror">
-            <option value="">-- Seleccione Rubro --</option>
-            @foreach($opsRubro as $op)
-              @php
-                // Soporta colección Eloquent ($rubros) o array plano ($rubroOpts)
-                $id  = is_array($op) ? $op['id'] : $op->id;
-                $txt = is_array($op) ? $op['subrubro'] : $op->subrubro;
-              @endphp
-              <option value="{{ $id }}">{{ $txt }}</option>
-            @endforeach
+              <option value="">-- Seleccione Rubro --</option>
+              @foreach($opsRubro as $op)
+                  @php
+                      $id  = is_array($op) ? $op['id'] : $op->id;
+                      $txt = is_array($op) ? $op['subrubro'] : $op->subrubro;
+                  @endphp
+                  <option value="{{ $id }}">{{ $txt }}</option>
+              @endforeach
           </select>
-          @error('state.rubro_id') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
-
-          <label class="mb-1">Seleccioná  Rubro Anexo</label>
-          <select multiple id="select-rubros-anexos"
-                  class="form-control form-control-sm @error('state.rubros_anexos') is-invalid @enderror" size="6">
-                  <option value="">-- Seleccione Anexo --</option>
-            @foreach($opsAnexo as $op)
-              @php
-                $id  = is_array($op) ? $op['id'] : $op->id;
-                $txt = is_array($op) ? $op['subrubro'] : $op->subrubro;
-              @endphp
-              <option value="{{ $id }}">{{ $txt }}</option>
-            @endforeach
-          </select>
-          @error('state.rubros_anexos') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
         </div>
+        {{-- INPUT REAL CONTROLADO POR LIVEWIRE --}}
+        <input type="hidden" wire:model="state.rubro_id">
+
+        @error('state.rubro_id')
+            <div class="invalid-feedback d-block">{{ $message }}</div>
+        @enderror
+
+        {{-- CAMPOS DINÁMICOS --}}
+        @if(
+            !empty($state['rubro_id'] ?? null) &&
+            optional(\App\Models\Rubro::find($state['rubro_id'] ?? null))->rubro_general === 'ALOJAMIENTO'
+          )
+            <div class="row mt-3">
+                <div class="col-md-6 mb-2">
+                    <label class="mb-1">Cantidad de Unidades</label>
+                    <input type="number"
+                          class="form-control form-control-sm"
+                          wire:model="state.alojamiento_unidades">
+                </div>
+
+                <div class="col-md-6 mb-2">
+                    <label class="mb-1">Cantidad de Plazas</label>
+                    <input type="number"
+                          class="form-control form-control-sm"
+                          wire:model="state.alojamiento_plazas">
+                </div>
+            </div>
+        @endif
+
+    </div>
+
+
+        {{-- ================= RUBROS ANEXOS (CON wire:ignore) ================= --}}
+        <div class="form-group col-md-12 mb-1" wire:ignore>
+            <label class="mb-1">Seleccioná Rubro Anexo</label>
+
+            <select multiple id="select-rubros-anexos"
+                    class="form-control form-control-sm @error('state.rubros_anexos') is-invalid @enderror"
+                    size="6">
+                <option value="">-- Seleccione Anexo --</option>
+                @foreach($opsAnexo as $op)
+                    @php
+                        $id  = is_array($op) ? $op['id'] : $op->id;
+                        $txt = is_array($op) ? $op['subrubro'] : $op->subrubro;
+                    @endphp
+                    <option value="{{ $id }}">{{ $txt }}</option>
+                @endforeach
+            </select>
+
+            @error('state.rubros_anexos')
+                <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
+        </div>
+
 
         {{-- Domicilio / Correo / Teléfonos --}}
         <div class="form-row">
@@ -422,191 +465,111 @@
 
 @push('scripts')
 <script>
-  function initTomSelectsOnce() {
-    // Rubro principal
-    const rp = document.getElementById('select-rubro-principal');
-    if (rp && !rp.tomselect) {
-      new TomSelect(rp, {
-        allowEmptyOption: true,
-        maxOptions: 4000,
-        plugins: ['dropdown_input']
-      });
-    }
+document.addEventListener('livewire:init', () => {
 
-    // Rubros anexos (chips + ✖)
-    const ra = document.getElementById('select-rubros-anexos');
-    if (ra && !ra.tomselect) {
-      new TomSelect(ra, {
-        plugins: ['remove_button','checkbox_options','dropdown_input'],
-        maxOptions: 8000,
-        persist: false
-      });
-    }
-  }
+    // Reinicia SIEMPRE TomSelect (destruye y crea)
+    function resetTomSelect(selector, options = {}) {
+        const el = document.querySelector(selector);
+        if (!el) return;
 
-  function setTomSelectValues(payload = {}) {
-    const { rubroId = null, anexos = [] } = payload;
-
-    // Principal: setear primero el <select> nativo y luego TomSelect (si existe)
-    const rp = document.getElementById('select-rubro-principal');
-    if (rp) {
-      const val = rubroId ? String(rubroId) : '';
-      rp.value = val; // nativo
-      if (rp.tomselect) rp.tomselect.setValue(val, false); // TomSelect
-    }
-
-    // Anexos: idem, nativo + TomSelect
-    const ra = document.getElementById('select-rubros-anexos');
-    if (ra) {
-      const vals = (anexos || []).map(String);
-
-      // nativo
-      Array.from(ra.options).forEach(o => { o.selected = vals.includes(o.value); });
-
-      // TomSelect
-      if (ra.tomselect) {
-        ra.tomselect.clear();
-        if (vals.length) ra.tomselect.setValue(vals, false);
-      }
-    }
-  }
-
-  function bindTomSelectChangeToLivewire() {
-    // Empujar cambios a Livewire
-    const rp = document.getElementById('select-rubro-principal');
-    if (rp && !rp.dataset._bound) {
-      rp.addEventListener('change', e => {
-        const val = e.target.value || null;
-        @this.set('state.rubro_id', val ? parseInt(val) : null);
-      });
-      rp.dataset._bound = '1';
-    }
-
-    const ra = document.getElementById('select-rubros-anexos');
-    if (ra && !ra.dataset._bound) {
-      ra.addEventListener('change', e => {
-        const arr = Array.from(e.target.selectedOptions).map(o => parseInt(o.value));
-        @this.set('state.rubros_anexos', arr);
-      });
-      ra.dataset._bound = '1';
-    }
-  }
-
-  document.addEventListener('livewire:init', () => {
-    // Aseguramos init idempotente en cada render de Livewire
-    Livewire.hook('message.processed', () => {
-      initTomSelectsOnce();
-      bindTomSelectChangeToLivewire();
-    });
-
-    // Al abrir el modal: inicializar y setear valores del payload SIEMPRE
-    Livewire.on('show-form', (payload = {}) => {
-      $('#form').modal('show');
-      setTimeout(() => {
-        initTomSelectsOnce();
-        bindTomSelectChangeToLivewire();
-        setTomSelectValues(payload);
-      }, 50);
-    });
-
-    function initTomSelectsOnce() {
-      const rp = document.getElementById('select-rubro-principal');
-      if (rp && !rp.tomselect) {
-        new TomSelect(rp, {
-          allowEmptyOption: true,
-          maxOptions: 4000,
-          plugins: ['dropdown_input']
-        });
-      }
-      const ra = document.getElementById('select-rubros-anexos');
-      if (ra && !ra.tomselect) {
-        new TomSelect(ra, {
-          plugins: ['remove_button','checkbox_options','dropdown_input'],
-          maxOptions: 8000,
-          persist: false
-        });
-      }
-    }
-
-    function setTomSelectValues(payload = {}, attempt = 0) {
-      const { rubroId = null, anexos = [] } = payload;
-      const rp = document.getElementById('select-rubro-principal');
-      const ra = document.getElementById('select-rubros-anexos');
-
-      // Si todavía no están listos los TomSelect, reintentar un par de veces.
-      const notReady = (rp && !rp.tomselect) || (ra && !ra.tomselect);
-      if (notReady && attempt < 5) {
-        setTimeout(() => setTomSelectValues(payload, attempt + 1), 60);
-        return;
-      }
-
-      if (rp) {
-        const val = rubroId ? String(rubroId) : '';
-        rp.value = val;
-        if (rp.tomselect) rp.tomselect.setValue(val, false);
-      }
-
-      if (ra) {
-        const vals = (anexos || []).map(String);
-        Array.from(ra.options).forEach(o => { o.selected = vals.includes(o.value); });
-        if (ra.tomselect) {
-          ra.tomselect.clear();
-          if (vals.length) ra.tomselect.setValue(vals, false);
+        // Si TomSelect ya existe, destruirlo
+        if (el.tomselect) {
+            el.tomselect.destroy();
         }
-      }
+
+        // Crear uno nuevo
+        const ts = new TomSelect(el, options);
+
+        return ts;
     }
 
-    function bindTomSelectChangeToLivewire() {
-      const rp = document.getElementById('select-rubro-principal');
-      if (rp && !rp.dataset._bound) {
-        rp.addEventListener('change', e => {
-          const val = e.target.value || null;
-          @this.set('state.rubro_id', val ? parseInt(val) : null);
-        });
-        rp.dataset._bound = '1';
-      }
+    // Setear valores iniciales desde Livewire → JS
+    function setValues(payload = {}) {
+        const { rubroId, anexos = [] } = payload;
 
-      const ra = document.getElementById('select-rubros-anexos');
-      if (ra && !ra.dataset._bound) {
-        ra.addEventListener('change', e => {
-          const arr = Array.from(e.target.selectedOptions).map(o => parseInt(o.value));
-          @this.set('state.rubros_anexos', arr);
-        });
-        ra.dataset._bound = '1';
-      }
+        const rp = document.getElementById('select-rubro-principal');
+        if (rp?.tomselect) {
+            rp.tomselect.setValue(rubroId ? String(rubroId) : '', false);
+        }
+
+        const ra = document.getElementById('select-rubros-anexos');
+        if (ra?.tomselect) {
+            ra.tomselect.clear();
+            if (anexos.length) {
+                ra.tomselect.setValue(anexos.map(String), false);
+            }
+        }
     }
 
-    document.addEventListener('livewire:init', () => {
-      Livewire.hook('message.processed', () => {
-        initTomSelectsOnce();
-        bindTomSelectChangeToLivewire();
-      });
+    // Vincular eventos por ÚNICA VEZ
+    function bindEvents() {
 
-      // Abrir modal y setear valores (create o edit)
-      Livewire.on('show-form', (payload = {}) => {
+        const rp = document.getElementById('select-rubro-principal');
+        if (rp && !rp.dataset.bound) {
+            rp.addEventListener('change', e => {
+                const v = e.target.value;
+                @this.set('state.rubro_id', v ? parseInt(v) : null);
+            });
+            rp.dataset.bound = "1";
+        }
+
+        const ra = document.getElementById('select-rubros-anexos');
+        if (ra && !ra.dataset.bound) {
+            ra.addEventListener('change', e => {
+                const values = Array.from(e.target.selectedOptions).map(o => parseInt(o.value));
+                @this.set('state.rubros_anexos', values);
+            });
+            ra.dataset.bound = "1";
+        }
+    }
+
+    // Al procesarse CUALQUIER mensaje Livewire
+    Livewire.hook('message.processed', () => {
+
+        // Inicializar ambos selects SIEMPRE
+        resetTomSelect('#select-rubro-principal', {
+            allowEmptyOption: true,
+            maxOptions: 4000,
+            plugins: ['dropdown_input']
+        });
+
+        resetTomSelect('#select-rubros-anexos', {
+            plugins: ['remove_button','checkbox_options','dropdown_input'],
+            maxOptions: 8000,
+            persist: false
+        });
+
+        bindEvents();
+    });
+
+    // Abrir modal → inicializar estados
+    Livewire.on('show-form', payload => {
         $('#form').modal('show');
         setTimeout(() => {
-          initTomSelectsOnce();
-          bindTomSelectChangeToLivewire();
-          setTomSelectValues(payload);
-        }, 50);
-      });
+            resetTomSelect('#select-rubro-principal', {
+                allowEmptyOption: true,
+                maxOptions: 4000,
+                plugins: ['dropdown_input']
+            });
 
-      // Cuando el lado PHP ya terminó de preparar el state en editar,
-      // reenviamos sólo el seteo (sin reabrir modal)
-      Livewire.on('refresh-selects', (payload = {}) => {
-        setTomSelectValues(payload);
-      });
+            resetTomSelect('#select-rubros-anexos', {
+                plugins: ['remove_button','checkbox_options','dropdown_input'],
+                maxOptions: 8000,
+                persist: false
+            });
 
-      Livewire.on('hide-form', () => $('#form').modal('hide'));
+            bindEvents();
+            setValues(payload);
+
+        }, 80);
     });
 
     Livewire.on('hide-form', () => $('#form').modal('hide'));
-  });
+
+});
 </script>
+
 @endpush
-
-
 
 <style>
   @media (max-width: 576px) {

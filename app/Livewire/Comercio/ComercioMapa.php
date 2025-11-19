@@ -27,6 +27,7 @@ class ComercioMapa extends AdminComponent
         'baja_oficio' => 'Baja de Oficio',
         'sin_efecto'  => 'Expediente sin Efecto',
     ];
+    public $rubroGeneral = '';
 
     public string $fantasiaQuery = '';
     public array $fantasiaSuggestions = [];
@@ -195,6 +196,9 @@ class ComercioMapa extends AdminComponent
             'disposiciones'      => [['numero'=>'','fecha'=>null]],
             'habilitaciones'     => [['numero'=>'','fecha'=>null]],
             'documentos'         => $this->docDefaults ?? [],
+            'alojamiento_unidades' => null,
+            'alojamiento_plazas'   => null,
+
         ];
 
         $this->formKey = (string) \Illuminate\Support\Str::uuid();
@@ -354,7 +358,10 @@ class ComercioMapa extends AdminComponent
             'rubros_anexos'      => [],
             'disposiciones'      => [['numero'=>'','fecha'=>null]],
             'habilitaciones'     => [['numero'=>'','fecha'=>null]],
-            'documentos'         => $this->docDefaults ?? [], // usa tus defaults
+            'documentos'         => $this->docDefaults ?? [],
+            'alojamiento_unidades' => null,
+            'alojamiento_plazas'   => null,
+
         ];
 
         $this->formKey = (string) \Illuminate\Support\Str::uuid();
@@ -383,7 +390,10 @@ class ComercioMapa extends AdminComponent
         abort_unless(Gate::allows('view-maps'), 403);
 
         $this->barrios   = $geo->barriosList();
-        $this->rubroOpts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
+        $this->rubroOpts = Rubro::orderBy('subrubro')
+            ->get(['id','subrubro','rubro_general','mega_rubro'])
+            ->toArray();
+
         $this->nomenOpts = $this->leerNomenclaturas();
 
         $this->emitUbicaciones();
@@ -559,6 +569,9 @@ class ComercioMapa extends AdminComponent
             'disposiciones'        => [['numero'=>'', 'fecha'=>null]],
             'habilitaciones'       => [['numero'=>'', 'fecha'=>null]],
             'documentos'           => $this->docDefaults,
+            'alojamiento_unidades' => null,
+            'alojamiento_plazas'   => null,
+
         ];
         $this->formKey = (string) \Illuminate\Support\Str::uuid();
         $this->showEditModal = false;
@@ -681,6 +694,9 @@ class ComercioMapa extends AdminComponent
             'state.observaciones'    => ['nullable','string','max:500'],
             'state.documentos'       => ['array'],
             'state.es_clausurado'    => ['boolean'],
+            'state.alojamiento_unidades' => ['nullable','integer','min:0'],
+            'state.alojamiento_plazas'   => ['nullable','integer','min:0'],
+
         ] + $this->reglasPorTipoPersona();
     }
 
@@ -777,6 +793,8 @@ class ComercioMapa extends AdminComponent
         $data['estado_base']  = $estadoBase;          // '021'/'032'/...
         $data['estado_label'] = $estadoLabel;         // "021 - ..."
         $data['situacion']    = $this->calcularSituacion($estadoCanon, (bool)($this->state['es_clausurado'] ?? false));
+        $data['alojamiento_unidades'] = $this->state['alojamiento_unidades'] ?? null;
+        $data['alojamiento_plazas'] = $this->state['alojamiento_plazas'] ?? null;
 
         // Helpers de número sueltos → primer item del repeater
         $nd = trim((string)($this->state['numero_disposicion'] ?? ''));
@@ -888,6 +906,34 @@ class ComercioMapa extends AdminComponent
         $this->dispatch('hide-form', ['message' => 'Comercio creado correctamente.']);
     }
 
+    public function getEsAlojamientoProperty(): bool
+    {
+        $id = $this->state['rubro_id'] ?? null;
+        if (!$id) {
+            return false;
+        }
+
+        // Usamos las opciones que ya cargaste en mount()
+        $opts = collect($this->rubroOpts);
+
+        $rubro = $opts->first(function ($op) use ($id) {
+            $opId = is_array($op) ? $op['id'] : $op['id'];
+            return (int) $opId === (int) $id;
+        });
+
+        if (!$rubro) {
+            return false;
+        }
+
+        // Ajustá acá según en qué columna tengas "ALOJAMIENTO"
+        $general = is_array($rubro)
+            ? ($rubro['rubro_general'] ?? $rubro['mega_rubro'] ?? null)
+            : ($rubro->rubro_general ?? $rubro->mega_rubro ?? null);
+
+        return strtoupper(trim((string) $general)) === 'ALOJAMIENTO';
+    }
+
+
 
     public function updatedStateEstado($nuevo): void
     {
@@ -925,6 +971,12 @@ class ComercioMapa extends AdminComponent
 
     public function render()
     {
+        if ($this->rubroGeneral !== '') {
+            $ubicaciones->whereHas('rubro', function ($q) {
+                $q->where('rubro_general', $this->rubroGeneral);
+            });
+        }
+
         return view('livewire.comercio.comercio-mapa', [
             'barrios'     => $this->barrios,
             'estados'     => $this->estados,

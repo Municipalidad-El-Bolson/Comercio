@@ -33,19 +33,6 @@
                 <option value="sin_efecto">Expediente sin efecto</option>
               </select>
             </div>
-
-            <div class="form-group col-md-4">
-              <label class="mb-1">Cambio</label>
-              <select class="form-control form-control-sm" wire:model.live="cambio">
-                <option value="">-- Todos --</option>
-                <option value="cambio_domicilio">Cambio de Domicilio</option>
-                <option value="adicion_anexo">Adición de Rubro Anexo</option>
-                <option value="cambio_razon">Cambio de Razón Social</option>
-                <option value="cambio_rubro">Cambio de Rubro</option>
-                <option value="cambio_fantasia">Cambio de Nombre de Fantasía</option>
-                <option value="baja_alojamiento">Baja de Unidad de Alojamiento</option>
-              </select>
-            </div>
           </div>
 
           {{-- Fila 2: Desde / Hasta / Próx. a vencer / Clausurados --}}

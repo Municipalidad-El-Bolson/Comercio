@@ -25,39 +25,36 @@ class RubrosTableSeeder extends Seeder
             return strtr($s, $tr);
         };
 
-        // Palabras que no singularizamos aunque terminen en S
         $noSingular = ['ANALISIS','PAIS','BUS','TORAX','POLIRRUBRO','KIOSCO','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES'];
 
         $singularWord = function(string $w) use ($noSingular, $toUpper): string {
             $u = $toUpper($w);
             if (in_array($u, $noSingular, true)) return $u;
-            if (preg_match('/CES$/u', $u)) return preg_replace('/CES$/u', 'Z', $u);               // LUCES -> LUZ
-            if (preg_match('/[B-DF-HJ-NP-TV-Z]ES$/u', $u)) return preg_replace('/ES$/u', '', $u); // PAPELES -> PAPEL
-            if (preg_match('/[AEIOUÁÉÍÓÚ]S$/u', $u)) return preg_replace('/S$/u', '', $u);        // CASAS -> CASA
+            if (preg_match('/CES$/u', $u)) return preg_replace('/CES$/u', 'Z', $u);
+            if (preg_match('/[B-DF-HJ-NP-TV-Z]ES$/u', $u)) return preg_replace('/ES$/u', '', $u);
+            if (preg_match('/[AEIOUÁÉÍÓÚ]S$/u', $u)) return preg_replace('/S$/u', '', $u);
             return $u;
         };
 
         $singularize = fn(string $s) =>
             preg_replace_callback('/\p{L}{3,}/u', fn($m) => $singularWord($m[0]), $s);
 
-        // Palabras-acción: si están presentes, ya “explican” la actividad
         $hasAction = function(string $u): bool {
             return (bool) preg_match('/\b(ALQUILER|VENTA|SERVICIO|SERV\.|ELABORACION|ELAB\.|FABRICACION|FAB\.|PRODUCCION|COLOCACION|MANTENIMIENTO|REPARACION|DISTRIBUIDORA|TALLER|CONSULTOR|CONSULTORIA|CURSO|CLASE|HOSTEL|HOTEL|HOSTERIA|SUPERMERCADO|RESTAURANTE|PANADERIA|PIZZERIA|HELADERIA|KIOSCO|FERRETERIA|VIDRIERIA|PELUQUERIA)\b/u', $u);
         };
 
-        // Listas para clasificar “desnudos”
         $agro = [
             'ARANDANO','CEREZA','FRAMBUESA','MANZANA','NUEZ','NOGAL','PAPA','TRUCHA','VIÑA','VIÑEDO','YERBA',
             'HIGO','PERA','DURAZNO','CEREAL','OLIVO','TAMBO','LECHUGA','TOMATE','AJO','CEBOLLA','ZANAHORIA'
         ];
+
         $materiales = [
             'TEJA','LADRILLO','CEMENTO','CERAMICO','PORCELANATO','MOSAICO','PUERTA','VENTANA','REVESTIMIENTO',
             'HERRAMIENTA','PINTURA','TABLON','ANDAMIO','PLANCHADA','MEZCLADORA','VIBRADOR','HIERRO','MADERA','LOZA'
         ];
 
-        $classify = function(string $u) use ($agro, $materiales, $stripAccents): ?string {
-            // $u ya viene MAYÚSCULAS y singular
-            if (preg_match('/\b[ -\/,]/u', $u)) return null; // tiene separadores: ya dice algo
+        $classify = function(string $u) use ($agro, $materiales, $stripAccents) {
+            if (preg_match('/\b[ -\/,]/u', $u)) return null; 
             if (in_array($u, array_map(fn($x)=>$stripAccents($x), array_map('mb_strtoupper',$agro)))) {
                 return 'PRODUCCION DE '.$u;
             }
@@ -67,13 +64,12 @@ class RubrosTableSeeder extends Seeder
             return null;
         };
 
-        $normalize = function(string $txt) use ($toUpper, $singularize): string {
+        $normalize = function(string $txt) use ($toUpper, $singularize) {
             $s = $toUpper(trim($txt));
             $s = preg_replace('/\s+/u', ' ', $s);
             $s = preg_replace('/\bS\/\s*/u', 'SIN ', $s);
             $s = preg_replace('/\bC\/\s*/u', 'CON ', $s);
             $s = $singularize($s);
-            // unificar separadores
             $s = preg_replace('/\s*\/\s*/u', ' / ', $s);
             $s = preg_replace('/\s*-\s*/u', ' - ', $s);
             $s = preg_replace('/\s*\,\s*/u', ', ', $s);
@@ -81,14 +77,14 @@ class RubrosTableSeeder extends Seeder
             return trim(preg_replace('/\s+/u', ' ', $s));
         };
 
-        $clarifyIfBare = function(string $name, callable $hasAction, callable $classify): string {
+        $clarifyIfBare = function(string $name, $hasAction, $classify) {
             $u = $name;
             if ($hasAction($u)) return $u;
             $forced = $classify($u);
             return $forced ?? $u;
         };
 
-        $compress = function(string $s) use ($MAX): string {
+        $compress = function(string $s) use ($MAX) {
             if (mb_strlen($s,'UTF-8') <= $MAX) return $s;
             $s = preg_replace('/\b(DEL|DE LA|DE LOS|DE LAS|DE|LA|EL|LOS|LAS|Y)\b/u', '', $s);
             $s = trim(preg_replace('/\s+/u', ' ', $s));
@@ -103,7 +99,37 @@ class RubrosTableSeeder extends Seeder
             return rtrim($cut).'…';
         };
 
-        // ===================== recolectar fuentes =====================
+        // =======================================================
+        //  NUEVO → función para clasificar rubro_general
+        // =======================================================
+        $generalClassifier = function(string $sub) {
+            $u = mb_strtoupper($sub);
+
+            if (preg_match('/(HOTEL|HOSTEL|HOSTERIA|CABAÑA|APART|HOSPEDA|ALOJAM)/', $u)) {
+                return 'ALOJAMIENTO';
+            }
+
+            if (preg_match('/(RESTAURANTE|ROTISERIA|PANADERIA|HELADERIA|PIZZERIA|GASTRON)/', $u)) {
+                return 'GASTRONOMIA';
+            }
+
+            if (preg_match('/(SERVICIO|TALLER|PELUQUER|CONSULTOR|MANTENIM|LAVADER)/', $u)) {
+                return 'SERVICIOS';
+            }
+
+            if (preg_match('/(VENTA|KIOSCO|TIENDA|INDUMENTARIA|LIMPIEZA|COMERCIO|ARTICULOS)/', $u)) {
+                return 'COMERCIO';
+            }
+
+            if (preg_match('/(PRODUCCION|ELABORACION|AGRIC|FRAMB|ARAND|CERVEZA)/', $u)) {
+                return 'AGRO / PRODUCCION';
+            }
+
+            return 'OTROS';
+        };
+        // =======================================================
+
+        // ===================== Recolectar fuentes =====================
         $candidatos = [
             database_path('data/Nomenclador_de_Actividades_CICI_2025.csv'),
             database_path('data/Nomenclador_de_Actividades_CICI_2025 (1).csv'),
@@ -119,9 +145,9 @@ class RubrosTableSeeder extends Seeder
                 if ($fh !== false) {
                     $first = fgets($fh);
                     if ($first === false) { fclose($fh); continue; }
-                    // Detectar delimitador
+
                     $delim = (substr_count($first, ';') > substr_count($first, ',')) ? ';' : ',';
-                    // Rewind y parsear
+
                     rewind($fh);
                     $headers = null;
                     while (($row = fgetcsv($fh, 0, $delim)) !== false) {
@@ -132,7 +158,6 @@ class RubrosTableSeeder extends Seeder
                         $line = array_map('trim', $row);
                         if (!count($line)) continue;
 
-                        // Buscar columna SUBRUBRO (o similar)
                         $idx = null;
                         foreach ($headers as $i => $h) {
                             if (preg_match('/SUB.*RUBRO/u', $h)) { $idx = $i; break; }
@@ -144,24 +169,24 @@ class RubrosTableSeeder extends Seeder
                         if ($val !== '') $fromCSV[] = $val;
                     }
                     fclose($fh);
-                    break; // usamos el primer CSV encontrado
+                    break;
                 }
             }
         }
 
-        // También recolecto lo que ya exista en la DB (para unificar todo)
         $fromDB = [];
         try {
             if (Schema::hasTable('rubros')) {
                 $fromDB = DB::table('rubros')->pluck('subrubro')->filter()->all();
             }
-        } catch (\Throwable $e) {
-            // si falla, seguimos con CSV/arrays
-        }
+        } catch (\Throwable) {}
 
-        // Si querés, podés sumar aquí una lista manual extra:
         $manual = [
-                'MERCERIA', 'TIENDA', 'MASAJE', 'SALA DE ELABORACION','KIOSCOS', 'TEJAS', 'FRAMBUESAS', 'VENTA DE HELADOS', 'ELABORACION DE PANIFICADOS', 'VIDIRIERIA', 'COTILLONERIA', 'PAPELERIA', 'EDERSA', 'OFICINA DE INFORMES Y RECAUDACIONES', 'HORMIGON (VENTA)', 'PANTALLA LED CON PUBLICIDAD', 'ARTICULOS DE LIMPIEZA (VENTA)'
+            'MERCERIA', 'TIENDA', 'MASAJE', 'SALA DE ELABORACION', 'KIOSCOS', 'TEJAS', 'FRAMBUESAS',
+            'VENTA DE HELADOS', 'ELABORACION DE PANIFICADOS', 'VIDIRIERIA', 'COTILLONERIA',
+            'PAPELERIA', 'EDERSA', 'OFICINA DE INFORMES Y RECAUDACIONES',
+            'HORMIGON (VENTA)', 'PANTALLA LED CON PUBLICIDAD',
+            'ARTICULOS DE LIMPIEZA (VENTA)'
         ];
 
         // ===================== normalizar + deduplicar =====================
@@ -173,9 +198,9 @@ class RubrosTableSeeder extends Seeder
             $raw = trim((string)$raw);
             if ($raw === '') continue;
 
-            $name = $normalize($raw);                     // MAYÚS + singular + limpieza
-            $name = $clarifyIfBare($name, $hasAction, $classify); // VENTA/PRODUCCION si hace falta
-            $name = $compress($name);                     // ≤100
+            $name = $normalize($raw);
+            $name = $clarifyIfBare($name, $hasAction, $classify);
+            $name = $compress($name);
 
             $key = mb_strtolower($name, 'UTF-8');
             if (isset($seen[$key])) continue;
@@ -184,12 +209,11 @@ class RubrosTableSeeder extends Seeder
             $final[] = $name;
         }
 
-        // ===================== limpiar tablas (manejo FK) =====================
+        // ===================== limpiar tablas =====================
         try { DB::statement('SET FOREIGN_KEY_CHECKS=0'); } catch (\Throwable $e) {}
 
         if (Schema::hasTable('ubicacion_rubro')) {
             try { DB::table('ubicacion_rubro')->truncate(); } catch (\Throwable $e) {
-                // fallback si TRUNCATE no se puede (por permisos/engine)
                 DB::table('ubicacion_rubro')->delete();
             }
         }
@@ -202,17 +226,18 @@ class RubrosTableSeeder extends Seeder
 
         try { DB::statement('SET FOREIGN_KEY_CHECKS=1'); } catch (\Throwable $e) {}
 
-        // ===================== insertar como "un solo rubro" =====================
+        // ===================== insertar =====================
         $mega  = 'CICI 2025';
         $madre = 'RUBRO UNICO';
         $rows = [];
         foreach ($final as $sub) {
             $rows[] = [
-                'mega_rubro'  => $mega,
-                'rubro_madre' => $madre,
-                'subrubro'    => $sub,
-                'created_at'  => $now,
-                'updated_at'  => $now,
+                'mega_rubro'     => $mega,
+                'rubro_madre'    => $madre,
+                'subrubro'       => $sub,
+                'rubro_general'  => $generalClassifier($sub),   // <<< NUEVO
+                'created_at'     => $now,
+                'updated_at'     => $now,
             ];
         }
 

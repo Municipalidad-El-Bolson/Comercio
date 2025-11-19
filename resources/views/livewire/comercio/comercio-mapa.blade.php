@@ -67,6 +67,19 @@
             {{-- Rubro (combo buscable) + Nomenclatura --}}
             <div class="mb-3">
               <div class="form-row">
+                <div class="form-group col-md-4 mb-2">
+                  <label class="mb-1">Rubro General</label>
+                  <select class="form-control form-control-sm" wire:model.live="rubroGeneral">
+                      <option value="">-- Todos --</option>
+                      <option value="ALOJAMIENTO">Alojamiento</option>
+                      <option value="GASTRONOMIA">Gastronomía</option>
+                      <option value="SERVICIOS">Servicios</option>
+                      <option value="COMERCIO">Comercio</option>
+                      <option value="AGRO / PRODUCCION">Agro / Producción</option>
+                      <option value="OTROS">Otros</option>
+                  </select>
+                </div>
+
                 <div class="form-group col-md-4 mb-2" wire:ignore>
                   <label class="mb-1">Rubro</label>
                   <select id="select-map-rubro" class="form-control form-control-sm">
