@@ -575,3 +575,122 @@
 
 </script>
 @endpush
+@push('styles')
+<style>
+
+  /* ---------- General ---------- */
+  .card {
+    border-radius: 0.7rem !important;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e2e2e2 !important;
+  }
+
+  .card-header {
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: #f7f9fb !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+  }
+
+  .card-body {
+    background: #ffffff;
+    padding-top: 1.15rem !important;
+  }
+
+  .titulo-comercio {
+    font-size: 1.9rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.5px;
+  }
+
+  /* ---------- Etiquetas / Categorías ---------- */
+  .badge {
+    padding: 0.45em 0.65em !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    border-radius: 0.35rem !important;
+  }
+
+  .badge-light { 
+    background: #f2f2f2 !important; 
+    color: #555 !important; 
+  }
+
+  .badge-success { background-color: #2ecc71 !important; }
+  .badge-info    { background-color: #3498db !important; }
+  .badge-warning { background-color: #f1c40f !important; color:#333 !important; }
+  .badge-danger  { background-color: #e74c3c !important; }
+
+  /* ---------- Títulos pequeños ---------- */
+  .text-muted.small {
+    font-size: 0.72rem !important;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .font-weight-bold {
+    font-size: 0.92rem;
+  }
+
+  /* ---------- Encabezado general ---------- */
+  .content-header {
+    border-bottom: 1px solid #e5e5e5;
+    background: linear-gradient(to right, #ffffff, #fafafa);
+    padding-bottom: 1rem;
+    padding-top: 0.5rem;
+  }
+
+  /* ---------- Botonera derecha ---------- */
+  .btn-group .btn {
+    border-radius: 0.4rem !important;
+    font-size: 0.78rem;
+  }
+
+  .btn-primary {
+    background: #4a6cf7 !important;
+    border-color: #4a6cf7 !important;
+  }
+
+  .btn-danger {
+    background: #e74c3c !important;
+    border-color: #e74c3c !important;
+  }
+
+  .btn-secondary {
+    background: #bdc3c7 !important;
+    border-color: #bdc3c7 !important;
+  }
+
+  /* ---------- Separadores ---------- */
+  hr.my-2 {
+    border-top: 1px solid #ddd !important;
+  }
+
+  /* ---------- Tablas ---------- */
+  table.table {
+    border-radius: 0.5rem !important;
+    overflow: hidden;
+  }
+
+  .table thead th {
+    background: #f7f9fb !important;
+    font-weight: 600 !important;
+  }
+
+  .table tbody tr td {
+    font-size: 0.82rem !important;
+  }
+
+  /* ---------- Badges de documentación ---------- */
+  .docs-box {
+    transition: 0.2s;
+  }
+
+  .docs-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+
+</style>
+@endpush

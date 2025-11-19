@@ -149,17 +149,20 @@ class UsersIndex extends Component
 
     public function render()
     {
+        $search = $this->search; // ← guardarlo antes
+
         $users = User::query()
-            ->when($this->search, fn($q) =>
-                $q->where(function($q){
-                    $q->where('name','like',"%{$this->search}%")
-                      ->orWhere('email','like',"%{$this->search}%")
-                      ->orWhere('role','like',"%{$this->search}%");
-                })
-            )
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('role', 'like', "%{$search}%");
+                });
+            })
             ->orderBy($this->sortField, $this->sortDir)
             ->paginate($this->perPage);
 
-        return view('livewire.admin.users-index', compact('users'))->layout('admin.layouts.app');;
+        return view('livewire.admin.users-index', compact('users'));
     }
+
 }

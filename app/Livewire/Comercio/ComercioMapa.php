@@ -455,6 +455,11 @@ class ComercioMapa extends AdminComponent
 
         return Ubicacion::with('rubro:id,mega_rubro,rubro_madre,subrubro')
             ->when($subId, fn($q)=> $q->where('rubro_id', $subId))
+            ->when($this->rubroGeneral !== '', function($q) {
+                $q->whereHas('rubro', fn($r) =>
+                    $r->where('rubro_general', $this->rubroGeneral)
+                );
+            })
             ->when($this->selectedBarrio !== '', fn($q)=> $q->where('barrio', $this->selectedBarrio))
             ->when($this->selectedEstado !== '', fn($q)=> $q->where('estado', $this->selectedEstado))
             ->when($this->solo_clausurados, fn($q)=> $q->where('situacion', 'clausurado'))
@@ -487,6 +492,12 @@ class ComercioMapa extends AdminComponent
                 ];
             })->values();
     }
+
+    public function updatedRubroGeneral() 
+    {
+        $this->emitUbicaciones();
+    }
+
 
     private function emitUbicaciones(): void
     {
@@ -971,11 +982,6 @@ class ComercioMapa extends AdminComponent
 
     public function render()
     {
-        if ($this->rubroGeneral !== '') {
-            $ubicaciones->whereHas('rubro', function ($q) {
-                $q->where('rubro_general', $this->rubroGeneral);
-            });
-        }
 
         return view('livewire.comercio.comercio-mapa', [
             'barrios'     => $this->barrios,

@@ -7,13 +7,29 @@
 
       {{-- Filtros --}}
       <div class="card card-outline card-secondary mb-3">
-        <div class="card-body">
+        <div class="card-body py-3">
 
-          {{-- Fila 1: Rubro / Estado / Cambio --}}
-          <div class="form-row">
-            <div class="form-group col-md-4" wire:ignore>
-              <label class="mb-1">Rubro</label>
-              <select id="select-rubro-filtro" class="form-control form-control-sm">
+          <div class="d-flex flex-column flex-md-row flex-wrap align-items-md-center gap-4">
+
+            {{-- 🌟 Rubro General --}}
+            <div class="d-flex flex-column" style="min-width:220px;">
+              <label class="text-muted small mb-1">Rubro general</label>
+              <select class="form-control form-control-sm shadow-sm"
+                      wire:model.live="rubroGeneral">
+                  <option value="">-- Todos los rubros --</option>
+                  <option value="ALOJAMIENTO">Alojamiento</option>
+                  <option value="GASTRONOMIA">Gastronomía</option>
+                  <option value="SERVICIOS">Servicios</option>
+                  <option value="COMERCIO">Comercio</option>
+                  <option value="AGRO / PRODUCCION">Agro / Producción</option>
+                  <option value="OTROS">Otros</option>
+              </select>
+            </div>
+
+            {{-- Rubro específico con TomSelect --}}
+            <div class="d-flex flex-column" style="min-width:250px;" wire:ignore>
+              <label class="text-muted small mb-1">Rubro (específico)</label>
+              <select id="select-rubro-filtro" class="form-control form-control-sm shadow-sm">
                 <option value="">-- Todos --</option>
                 @foreach($rubroOpts as $op)
                   <option value="{{ $op['id'] }}">{{ $op['subrubro'] }}</option>
@@ -21,35 +37,36 @@
               </select>
             </div>
 
-            <div class="form-group col-md-4">
-              <label class="mb-1">Estado</label>
-              <select class="form-control form-control-sm" wire:model.live="estado">
+            {{-- Estado --}}
+            <div class="d-flex flex-column" style="min-width:180px;">
+              <label class="text-muted small mb-1">Estado</label>
+              <select class="form-control form-control-sm shadow-sm" wire:model.live="estado">
                 <option value="">-- Todos --</option>
                 <option value="entramite">021/90</option>
                 <option value="irregular">032/01</option>
-                <option value="040">040/25</option> 
+                <option value="040">040/25</option>
                 <option value="baja">Baja</option>
                 <option value="baja_oficio">Baja de oficio</option>
                 <option value="sin_efecto">Expediente sin efecto</option>
               </select>
             </div>
-          </div>
 
-          {{-- Fila 2: Desde / Hasta / Próx. a vencer / Clausurados --}}
-          <div class="form-row">
-            <div class="form-group col-md-3">
-              <label class="mb-1">Desde</label>
-              <input type="date" class="form-control form-control-sm" wire:model.live="desde">
+            {{-- Desde --}}
+            <div class="d-flex flex-column" style="min-width:160px;">
+              <label class="text-muted small mb-1">Desde</label>
+              <input type="date" class="form-control form-control-sm shadow-sm" wire:model.live="desde">
             </div>
 
-            <div class="form-group col-md-3">
-              <label class="mb-1">Hasta</label>
-              <input type="date" class="form-control form-control-sm" wire:model.live="hasta">
+            {{-- Hasta --}}
+            <div class="d-flex flex-column" style="min-width:160px;">
+              <label class="text-muted small mb-1">Hasta</label>
+              <input type="date" class="form-control form-control-sm shadow-sm" wire:model.live="hasta">
             </div>
 
-            <div class="form-group col-md-3">
-              <label class="mb-1">Próx. a vencer (días)</label>
-              <select class="form-control form-control-sm" wire:model.live="proximos_vtos">
+            {{-- Próximos a vencer --}}
+            <div class="d-flex flex-column" style="min-width:180px;">
+              <label class="text-muted small mb-1">Próx. a vencer (días)</label>
+              <select class="form-control form-control-sm shadow-sm" wire:model.live="proximos_vtos">
                 <option value="">-- Todos --</option>
                 <option value="30">30</option>
                 <option value="60">60</option>
@@ -57,19 +74,26 @@
               </select>
             </div>
 
-            <div class="form-group col-md-3 d-flex align-items-end">
+            {{-- Solo clausurados --}}
+            <div class="d-flex flex-column" style="min-width:160px;">
+              <label class="text-muted small mb-1 invisible">-</label>
               <div class="form-check">
                 <input id="chk-claus" type="checkbox" class="form-check-input" wire:model.live="solo_clausurados">
                 <label for="chk-claus" class="form-check-label">Sólo clausurados</label>
               </div>
             </div>
-          </div>
 
-          <button class="btn btn-outline-danger btn-sm" wire:click="exportarPdf">
+          </div>
+        </br>
+          <hr>
+          </br>
+          <button class="btn btn-outline-danger btn-sm shadow-sm" wire:click="exportarPdf">
             <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
           </button>
+
         </div>
       </div>
+
 
 
       {{-- FILA: dos tarjetas minimizadas por defecto (comparten estado) --}}
@@ -288,7 +312,121 @@
 @endpush
 @push('styles')
 <style>
-  .card-footer nav { overflow-x: auto; }
-  .card-footer .pagination { flex-wrap: nowrap; gap: .25rem; }
+
+  /* ---------- General ---------- */
+  .card {
+    border-radius: 0.7rem !important;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e2e2e2 !important;
+  }
+
+  .card-header {
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: #f7f9fb !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+  }
+
+  .card-body {
+    background: #ffffff;
+    padding-top: 1.15rem !important;
+  }
+
+  .titulo-comercio {
+    font-size: 1.9rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.5px;
+  }
+
+  /* ---------- Etiquetas / Categorías ---------- */
+  .badge {
+    padding: 0.45em 0.65em !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    border-radius: 0.35rem !important;
+  }
+
+  .badge-light { 
+    background: #f2f2f2 !important; 
+    color: #555 !important; 
+  }
+
+  .badge-success { background-color: #2ecc71 !important; }
+  .badge-info    { background-color: #3498db !important; }
+  .badge-warning { background-color: #f1c40f !important; color:#333 !important; }
+  .badge-danger  { background-color: #e74c3c !important; }
+
+  /* ---------- Títulos pequeños ---------- */
+  .text-muted.small {
+    font-size: 0.72rem !important;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .font-weight-bold {
+    font-size: 0.92rem;
+  }
+
+  /* ---------- Encabezado general ---------- */
+  .content-header {
+    border-bottom: 1px solid #e5e5e5;
+    background: linear-gradient(to right, #ffffff, #fafafa);
+    padding-bottom: 1rem;
+    padding-top: 0.5rem;
+  }
+
+  /* ---------- Botonera derecha ---------- */
+  .btn-group .btn {
+    border-radius: 0.4rem !important;
+    font-size: 0.78rem;
+  }
+
+  .btn-primary {
+    background: #4a6cf7 !important;
+    border-color: #4a6cf7 !important;
+  }
+
+  .btn-danger {
+    background: #e74c3c !important;
+    border-color: #e74c3c !important;
+  }
+
+  .btn-secondary {
+    background: #bdc3c7 !important;
+    border-color: #bdc3c7 !important;
+  }
+
+  /* ---------- Separadores ---------- */
+  hr.my-2 {
+    border-top: 1px solid #ddd !important;
+  }
+
+  /* ---------- Tablas ---------- */
+  table.table {
+    border-radius: 0.5rem !important;
+    overflow: hidden;
+  }
+
+  .table thead th {
+    background: #f7f9fb !important;
+    font-weight: 600 !important;
+  }
+
+  .table tbody tr td {
+    font-size: 0.82rem !important;
+  }
+
+  /* ---------- Badges de documentación ---------- */
+  .docs-box {
+    transition: 0.2s;
+  }
+
+  .docs-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+
 </style>
 @endpush
+

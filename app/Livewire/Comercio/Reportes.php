@@ -16,7 +16,8 @@ class Reportes extends Component
     use WithPagination;
 
     public bool $solo_clausurados = false;
-    public ?int $rubro_id = null;        // Subrubro (id)
+    public ?int $rubro_id = null;        
+    public ?string $rubroGeneral = null;
     public ?string $estado = null;
     public ?string $desde = null;
     public ?string $hasta = null;
@@ -43,7 +44,8 @@ class Reportes extends Component
         return Ubicacion::query()
         ->when($this->rubro_id, fn($q) => $q->where('rubro_id', $this->rubro_id))
         ->when($this->estado,   fn($q) => $q->where('estado', $this->estado))
-        ->when($this->solo_clausurados, fn($q) => $q->where('situacion', 'clausurado'));
+        ->when($this->solo_clausurados, fn($q) => $q->where('situacion', 'clausurado'))
+        ->when($this->rubroGeneral, fn($q) => $q->whereHas('rubro', fn($r) => $r->where('rubro_general', $this->rubroGeneral)));
     }
 
     // ---------- EXPORTAR PDF ----------

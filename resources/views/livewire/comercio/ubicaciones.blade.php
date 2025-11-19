@@ -16,47 +16,55 @@
 
     <div class="container-fluid px-0">
         <div class="card">
-                <div class="form-group me-2" style="min-width:220px;">
-                    <select class="form-control form-control-sm"
-                            wire:model.live="rubroGeneral">
-                        <option value="">-- Rubro general (todos) --</option>
-                        <option value="ALOJAMIENTO">Alojamiento</option>
-                        <option value="GASTRONOMIA">Gastronomía</option>
-                        <option value="SERVICIOS">Servicios</option>
-                        <option value="COMERCIO">Comercio</option>
-                        <option value="AGRO / PRODUCCION">Agro / Producción</option>
-                        <option value="OTROS">Otros</option>
-                    </select>
+            <div class="card mb-3">
+                <div class="card-body py-3">
+
+                    <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+
+                        {{-- Select de Rubro --}}
+                        <div class="d-flex flex-column" style="min-width:250px;">
+                            <label class="text-muted small mb-1">Rubro general</label>
+                            <select class="form-control form-control-sm shadow-sm"
+                                    wire:model.live="rubroGeneral">
+                                <option value="">-- Todos los rubros --</option>
+                                <option value="ALOJAMIENTO">Alojamiento</option>
+                                <option value="GASTRONOMIA">Gastronomía</option>
+                                <option value="SERVICIOS">Servicios</option>
+                                <option value="COMERCIO">Comercio</option>
+                                <option value="AGRO / PRODUCCION">Agro / Producción</option>
+                                <option value="OTROS">Otros</option>
+                            </select>
+                        </div>
+
+                        {{-- Buscador --}}
+                        <div class="flex-grow-1">
+                            <label class="text-muted small mb-1">Buscar comercio</label>
+                            <div class="input-group input-group-sm shadow-sm">
+                                <span class="input-group-text bg-white">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text"
+                                    wire:model.live="searchTerm"
+                                    class="form-control"
+                                    autocomplete="off"
+                                    placeholder="Nombre comercial, Nº Hab., Titular, DNI/CUIT, Rubro o Domicilio.">
+                            </div>
+                        </div>
+
+                        {{-- Botón Nuevo comercio --}}
+                        <div class="pt-1 pt-md-0 text-md-end">
+                            <label class="invisible small">.</label> {{-- Alinea el botón con los labels --}}
+                            <button
+                                class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2 shadow-sm w-100 w-md-auto"
+                                wire:click="nuevoComercio">
+                                <i class="fas fa-user-plus"></i> Nuevo comercio
+                            </button>
+                        </div>
+
+                    </div>
+
                 </div>
-            <div class="d-flex flex-column flex-md-row align-items-center justify-content-center justify-content-md-between gap-2 mb-3 p-2 rounded-3 bg-light shadow-sm">
-
-                <div class="input-group input-group-sm w-100">
-                    <span class="input-group-text bg-white">
-                        <i class="fas fa-search text-muted"></i>
-                    </span>
-
-                    <input
-                        type="text"
-                        wire:model.live="searchTerm"
-                        class="form-control"
-                        style="z-index:0 !important"
-                        autocomplete="off"
-                        placeholder="Buscar comercio por Nombre comercial, Nº Hab., Razón social, Titular, DNI/CUIT, Rubro o Domicilio.">
-                </div>
-
-                {{-- Botón nuevo comercio --}}
-                <div class="text-center text-md-end mt-2 mt-md-0">
-                    <button
-                    class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2 shadow-sm"
-                    wire:click="nuevoComercio">
-                    <i class="fas fa-user-plus"></i>
-                    <span>Nuevo comercio</span>
-                    </button>
-                </div>
-
             </div>
-
-
 
             <div class="card-body">
                 <div class="table-responsive">
@@ -242,9 +250,123 @@
 @endpush
 @push('styles')
 <style>
-  .table td, .table th { vertical-align: middle; }
-  .text-truncate { max-width: 100%; }
+
+  /* ---------- General ---------- */
+  .card {
+    border-radius: 0.7rem !important;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e2e2e2 !important;
+  }
+
+  .card-header {
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: #f7f9fb !important;
+    border-bottom: 1px solid #e5e5e5 !important;
+  }
+
+  .card-body {
+    background: #ffffff;
+    padding-top: 1.15rem !important;
+  }
+
+  .titulo-comercio {
+    font-size: 1.9rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.5px;
+  }
+
+  /* ---------- Etiquetas / Categorías ---------- */
+  .badge {
+    padding: 0.45em 0.65em !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    border-radius: 0.35rem !important;
+  }
+
+  .badge-light { 
+    background: #f2f2f2 !important; 
+    color: #555 !important; 
+  }
+
+  .badge-success { background-color: #2ecc71 !important; }
+  .badge-info    { background-color: #3498db !important; }
+  .badge-warning { background-color: #f1c40f !important; color:#333 !important; }
+  .badge-danger  { background-color: #e74c3c !important; }
+
+  /* ---------- Títulos pequeños ---------- */
+  .text-muted.small {
+    font-size: 0.72rem !important;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .font-weight-bold {
+    font-size: 0.92rem;
+  }
+
+  /* ---------- Encabezado general ---------- */
+  .content-header {
+    border-bottom: 1px solid #e5e5e5;
+    background: linear-gradient(to right, #ffffff, #fafafa);
+    padding-bottom: 1rem;
+    padding-top: 0.5rem;
+  }
+
+  /* ---------- Botonera derecha ---------- */
+  .btn-group .btn {
+    border-radius: 0.4rem !important;
+    font-size: 0.78rem;
+  }
+
+  .btn-primary {
+    background: #4a6cf7 !important;
+    border-color: #4a6cf7 !important;
+  }
+
+  .btn-danger {
+    background: #e74c3c !important;
+    border-color: #e74c3c !important;
+  }
+
+  .btn-secondary {
+    background: #bdc3c7 !important;
+    border-color: #bdc3c7 !important;
+  }
+
+  /* ---------- Separadores ---------- */
+  hr.my-2 {
+    border-top: 1px solid #ddd !important;
+  }
+
+  /* ---------- Tablas ---------- */
+  table.table {
+    border-radius: 0.5rem !important;
+    overflow: hidden;
+  }
+
+  .table thead th {
+    background: #f7f9fb !important;
+    font-weight: 600 !important;
+  }
+
+  .table tbody tr td {
+    font-size: 0.82rem !important;
+  }
+
+  /* ---------- Badges de documentación ---------- */
+  .docs-box {
+    transition: 0.2s;
+  }
+
+  .docs-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+
 </style>
 @endpush
+
 
 
