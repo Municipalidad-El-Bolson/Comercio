@@ -17,11 +17,21 @@
               <select class="form-control form-control-sm shadow-sm"
                       wire:model.live="rubroGeneral">
                   <option value="">-- Todos los rubros --</option>
-                  <option value="ALOJAMIENTO">Alojamiento</option>
+                  <option value="ALOJAMIENTO DE ALQUILER TURISTICO">Alojamiento de alquiler turistico</option>
                   <option value="GASTRONOMIA">Gastronomía</option>
+                  <option value="CENTRO DE ESTETICA Y SPA">Centro de esterica y spa</option>
+                  <option value="LAVADEROS DE AUTOS">Lavaderos de autos</option>
+                  <option value="LUBRICENTROS">Lubricentros</option>
+                  <option value="TALLER DEL AUTOMOTOR">Taller del automotor</option>
+                  <option value="SALUD">Salud</option>
+                  <option value="GIMNASIOS">Gimnasios</option>
+                  <option value="ALQUILER DE CANCHAS">Alquiler de canchas</option>
+                  <option value="VENTA DE ARTESANIAS Y PRODUCTOS REGIONALES">Venta de artesanias y productos regionales</option>
+                  <option value="SALA DE ELABORACION">Sala de elaboracion</option>
+                  <option value="COCINA DOMICILIARIA">Cocina domiciliaria</option>
                   <option value="SERVICIOS">Servicios</option>
                   <option value="COMERCIO">Comercio</option>
-                  <option value="AGRO / PRODUCCION">Agro / Producción</option>
+                  <option value="AGRO / PRODUCCION">Agro/Produccion</option>
                   <option value="OTROS">Otros</option>
               </select>
             </div>

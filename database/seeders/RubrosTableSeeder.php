@@ -103,30 +103,87 @@ class RubrosTableSeeder extends Seeder
         //  NUEVO → función para clasificar rubro_general
         // =======================================================
         $generalClassifier = function(string $sub) {
-            $u = mb_strtoupper($sub);
+        $u = mb_strtoupper($sub);
 
-            if (preg_match('/(HOTEL|HOSTEL|HOSTERIA|CABAÑA|APART|HOSPEDA|ALOJAM)/', $u)) {
-                return 'ALOJAMIENTO';
-            }
+        // === 1) ALOJAMIENTO DE ALQUILER TURÍSTICO ===
+        if (preg_match('/(HOTEL|HOSTEL|HOSTERIA|HOSPEDA|ALOJAM|CABAÑA|CABAÑAS|APART|APARTAMENT|DEPARTAMENTO|DPTO|CAMPING)/', $u)) {
+            return 'ALOJAMIENTO DE ALQUILER TURISTICO';
+        }
 
-            if (preg_match('/(RESTAURANTE|ROTISERIA|PANADERIA|HELADERIA|PIZZERIA|GASTRON)/', $u)) {
-                return 'GASTRONOMIA';
-            }
+        // === 2) GASTRONOMÍA ===
+        if (preg_match('/(RESTAURANTE|ROTISERIA|PANADERIA|HELADERIA|PIZZERIA|GASTRON|CONFITERIA|CAFETERIA|PARRILLA|CASA DE TE|TE HOUSE|COMIDAS? AL PASO|SANDWICH|FAST FOOD)/', $u)) {
+            return 'GASTRONOMIA';
+        }
 
-            if (preg_match('/(SERVICIO|TALLER|PELUQUER|CONSULTOR|MANTENIM|LAVADER)/', $u)) {
-                return 'SERVICIOS';
-            }
+        // === 3) CENTRO DE ESTÉTICA Y SPA ===
+        if (preg_match('/(ESTETICA|SPA|MASAJE|KINESIO|DEPILACION|COSMETO|PELUQUERIA|BARBERIA|UÑAS|MANICUR|PEDICUR)/', $u)) {
+            return 'CENTRO DE ESTETICA Y SPA';
+        }
 
-            if (preg_match('/(VENTA|KIOSCO|TIENDA|INDUMENTARIA|LIMPIEZA|COMERCIO|ARTICULOS)/', $u)) {
-                return 'COMERCIO';
-            }
+        // === 4) LAVADEROS DE AUTOS ===
+        if (preg_match('/(LAVADERO|LAVA AUTO|LAVADO DE AUTOS|CAR WASH)/', $u)) {
+            return 'LAVADEROS DE AUTOS';
+        }
 
-            if (preg_match('/(PRODUCCION|ELABORACION|AGRIC|FRAMB|ARAND|CERVEZA)/', $u)) {
-                return 'AGRO / PRODUCCION';
-            }
+        // === 5) LUBRICENTROS ===
+        if (preg_match('/(LUBRICENTRO|LUBRICACION|CAMBIO DE ACEITE)/', $u)) {
+            return 'LUBRICENTROS';
+        }
 
-            return 'OTROS';
-        };
+        // === 6) TALLER AUTOMOTOR ===
+        if (preg_match('/(TALLER MECANICO|TALLER|MECANICO|CHAPA Y PINTURA|GOMERIA|ALINEACION|BALANCEO|AMORTIGUACION|ELECTRICIDAD AUTOMOTOR)/', $u)) {
+            return 'TALLER DEL AUTOMOTOR';
+        }
+
+        // === 7) SALUD ===
+        if (preg_match('/(CLINICA|SALUD|HOSPITAL|ENFERMER|MEDIC|KINESIO|FISIOTER|ODONTO|TERAPIA|PSICO|LABORATORIO)/', $u)) {
+            return 'SALUD';
+        }
+
+        // === 8) GIMNASIOS ===
+        if (preg_match('/(GYM|GIMNASIO|CROSSFIT|FITNESS|ENTRENAMIENTO|ZUMBA|PILATES)/', $u)) {
+            return 'GIMNASIOS';
+        }
+
+        // === 9) ALQUILER DE CANCHAS ===
+        if (preg_match('/(CANCHA|PADEL|PÁDEL|TENIS|FUTBOL|VOLEY|BASQUET|ALQUILER DE CANCHA)/', $u)) {
+            return 'ALQUILER DE CANCHAS';
+        }
+
+        // === 10) VENTA DE ARTESANÍAS Y PRODUCTOS REGIONALES ===
+        if (preg_match('/(ARTESANIA|ARTESANIAS|REGIONAL|PRODUCTOS REGIONAL|SOUVENIR|ARTESANAL)/', $u)) {
+            return 'VENTA DE ARTESANIAS Y PRODUCTOS REGIONALES';
+        }
+
+        // === 11) SALA DE ELABORACIÓN ===
+        if (preg_match('/(SALA DE ELABORACION|ELABORACION|FÁBRICA|PRODUCCION DE ALIMENT|PRODUCCION ARTESANAL)/', $u)) {
+            return 'SALA DE ELABORACION';
+        }
+
+        // === 12) COCINAS DOMICILIARIAS — PERMISO HABILITANTE ===
+        if (preg_match('/(COCINA DOMICILIARIA|COCINA EN CASA|COCINA CASERA|COCINA FAMILIAR|ELABORACION DOMICILIARIA)/', $u)) {
+            return 'COCINA DOMICILIARIA';
+        }
+
+        // === 13) SERVICIOS GENERALES ===
+        if (preg_match('/(SERVICIO|CONSULTOR|MANTENIM|ASESOR|LAVANDERIA|LAVARROPA|REPARACION|INSTALACION)/', $u)) {
+            return 'SERVICIOS';
+        }
+
+        // === 14) COMERCIO GENERAL ===
+        if (preg_match('/(VENTA|KIOSCO|QUIOSCO|TIENDA|INDUMENTARIA|LIMPIEZA|COMERCIO|ARTICULOS|BAZAR|REGALOS)/', $u)) {
+            return 'COMERCIO';
+        }
+
+        // === 15) AGRO / PRODUCCIÓN ===
+        if (preg_match('/(PRODUCCION|ELABORACION|AGRIC|FRUTIC|ARANDANO|FRAMBUESA|CERVEZA ARTESANAL)/', $u)) {
+            return 'AGRO / PRODUCCION';
+        }
+
+        // === Otros ===
+        return 'OTROS';
+    };
+
         // =======================================================
 
         // ===================== Recolectar fuentes =====================
@@ -182,12 +239,78 @@ class RubrosTableSeeder extends Seeder
         } catch (\Throwable) {}
 
         $manual = [
-            'MERCERIA', 'TIENDA', 'MASAJE', 'SALA DE ELABORACION', 'KIOSCOS', 'TEJAS', 'FRAMBUESAS',
-            'VENTA DE HELADOS', 'ELABORACION DE PANIFICADOS', 'VIDIRIERIA', 'COTILLONERIA',
-            'PAPELERIA', 'EDERSA', 'OFICINA DE INFORMES Y RECAUDACIONES',
-            'HORMIGON (VENTA)', 'PANTALLA LED CON PUBLICIDAD',
-            'ARTICULOS DE LIMPIEZA (VENTA)'
+            'MERCERIA',
+            'TIENDA',
+            'MASAJE',
+            'SALA DE ELABORACION',
+            'KIOSCOS',
+            'TEJAS',
+            'FRAMBUESAS',
+            'VENTA DE HELADOS',
+            'ELABORACION DE PANIFICADOS',
+            'VIDIRIERIA',
+            'COTILLONERIA',
+            'PAPELERIA',
+            'EDERSA',
+            'HOTEL',
+            'HOSTERIA',
+            'HOSTEL',
+            'HOSPEDAJE',
+            'ALOJAMIENTO TURÍSTICO',
+            'CABAÑAS',
+            'APARTAMENTOS TURÍSTICOS',
+            'DEPARTAMENTOS TURÍSTICOS',
+            'CAMPING',
+            'OFICINA DE INFORMES Y RECAUDACIONES',
+            'HORMIGON (VENTA)',
+            'PANTALLA LED CON PUBLICIDAD',
+            'ARTICULOS DE LIMPIEZA (VENTA)',
+            'VENTA DE CELULARES, ACCESORIOS Y REPARACIÓN',
+            'OFICINA DE OBRA SOCIAL',
+            'VIDRIERÍA',
+            'DEPÓSITO',
+            'VENTA DE MERCADERÍA POR MAYOR Y MENOR',
+            'COTILLÓN',
+            'PAPELERA',
+            'OFICINA DE INFORMES Y RECAUDACIONES',
+            'VENTA DE HORMIGÓN',
+            'PANTALLA LED CON PUBLICIDAD',
+            'VENTA DE ARTÍCULOS DE LIMPIEZA',
+            'ÓPTICA',
+            'VENTA DE ARTESANÍAS Y PRODUCTOS REGIONALES',
+            'EXCURSIONES VEHÍCULOS CON ORUGA',
+            'DEPOSITO',
+            'VENTA MAYORISTA',
+            'VENTA DE ARTESANÍAS Y PRODUCTOS REGIONALES',
+            'BODEGA CON DEGUSTACIÓN',
+            'DEPÓSITO Y VENTA DE MERCADERÍAS',
+            'DISTRIBUIDORA / ES',
+            'VETERINARIA',
+            'TAROT',
+            'COOPERATIVA DE TRABAJO',
+            'LENCERÍA',
+            'VENTA DE INDUMENTARIA',
+            'VENTA DE SANITARIOS',
+            'ESCUELA COREOGRAFÍA',
+            'OFICINA DE OBRA SOCIAL',
+            'DEPÓSITO DE CARGAS',
+            'VENTA DE HERRAMIENTAS ELÉCTRICAS',
+            'ESTABLECIMIENTO AGRÍCOLA',
+            'ELABORACIÓN DE DULCES',
+            'ELABORACIÓN DE JUGOS NATURALES',
+            'CONSERVAS',
+            'SALA DE CONSUMO Y DEGUSTACIÓN',
+            'ELABORACIÓN Y VENTA DE CHOCOLATES ARTESANALES',
+            'SECADERO DE FRUTAS',
+            'CONFITURAS',
+            'MARMOLERÍA',
+            'VENTA DE BACHAS PARA COCINAS',
+            'VENTA DE INODOROS',
+            'VENTA DE CARBÓN Y LEÑA',
+            'VENTA DE LEÑA EN BOLSA',
+            'SALA DE FRACCIONAMIENTO DE MIEL',
         ];
+
 
         // ===================== normalizar + deduplicar =====================
         $pool = array_merge($fromCSV, $fromDB, $manual);
@@ -202,12 +325,17 @@ class RubrosTableSeeder extends Seeder
             $name = $clarifyIfBare($name, $hasAction, $classify);
             $name = $compress($name);
 
-            $key = mb_strtolower($name, 'UTF-8');
-            if (isset($seen[$key])) continue;
-            $seen[$key] = true;
 
-            $final[] = $name;
+            $key = mb_strtolower($stripAccents($name), 'UTF-8');
+
+            if (isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $final[] = $name;   // 👈 acá mantenés la versión linda, con acentos
         }
+
 
         // ===================== limpiar tablas =====================
         try { DB::statement('SET FOREIGN_KEY_CHECKS=0'); } catch (\Throwable $e) {}

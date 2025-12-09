@@ -343,6 +343,10 @@ class Ubicaciones extends AdminComponent
 
             'alojamiento_unidades' => null,
             'alojamiento_plazas'   => null,
+
+            'camping_fogones'       => null,
+            'camping_dormis'        => null,
+            'camping_otros_servicios'=> null,
         ];
 
         $this->formKey = (string) Str::uuid();
@@ -468,8 +472,14 @@ class Ubicaciones extends AdminComponent
             'numero_habilitacion'  => (string) optional($this->ubicacion->habilitaciones->sortByDesc(fn($h)=>$fmt($h->fecha) ?: $h->created_at)->first())->numero ?: '',
 
             'es_clausurado'        => ($this->ubicacion->situacion === 'clausurado'),
+
             'alojamiento_unidades' => $this->ubicacion->alojamiento_unidades,
             'alojamiento_plazas'   => $this->ubicacion->alojamiento_plazas,
+
+            'camping_fogones'        => $this->ubicacion->camping_fogones,
+            'camping_dormis'        => $this->ubicacion->camping_dormis,
+            'camping_otros_servicios'   => $this->ubicacion->camping_otros_servicios,
+
         ]);
 
         // principal + anexos
@@ -800,6 +810,10 @@ class Ubicaciones extends AdminComponent
         $data['alojamiento_unidades'] = $this->state['alojamiento_unidades'] ?? null;
         $data['alojamiento_plazas'] = $this->state['alojamiento_plazas'] ?? null;
 
+        $data['camping_fogones'] = $this->state['camping_fogones'] ?? null;
+        $data['camping_dormis'] = $this->state['camping_dormis'] ?? null;
+        $data['camping_otros_servicios'] = $this->state['camping_otros_servicios'] ?? null;
+
         // --- 5) Filtrar a columnas reales antes de persistir ---
         $colsUbic = Schema::getColumnListing('ubicaciones');
         $data     = array_intersect_key($data, array_flip($colsUbic));
@@ -933,9 +947,13 @@ class Ubicaciones extends AdminComponent
             // 👇 VALIDACIÓN CAMPOS DE ALOJAMIENTO
             'state.alojamiento_unidades' => ['nullable', 'integer', 'min:0'],
             'state.alojamiento_plazas'   => ['nullable', 'integer', 'min:0'],
+
+            'state.camping_fogones'      => ['nullable', 'integer', 'min:0'],
+            'state.camping_dormis'       => ['nullable', 'integer', 'min:0'],
+            'state.camping_otros_servicios' => ['nullable', 'string', 'max:255'],
+
         ];
 
-        // ❌ Quitamos reglasFechasPorEstado porque NO existe en este componente
         // $rules = array_merge($rules, $this->reglasFechasPorEstado($estadoBase));
 
         \Validator::make($this->state, $rules)->validate();
@@ -969,6 +987,10 @@ class Ubicaciones extends AdminComponent
         // 👇 CAMPOS DE ALOJAMIENTO
         $validated['alojamiento_unidades'] = $this->state['alojamiento_unidades'] ?? null;
         $validated['alojamiento_plazas']   = $this->state['alojamiento_plazas'] ?? null;
+
+        $validated['camping_fogones']   = $this->state['camping_fogones'] ?? null;
+        $validated['camping_dormis']   = $this->state['camping_dormis'] ?? null;
+        $validated['camping_otros_servicios']   = $this->state['camping_otros_servicios'] ?? null;
 
         unset($validated['documentos'], $validated['domicilio_responsable'], $validated['nomenclatura'], $validated['es_clausurado']);
 

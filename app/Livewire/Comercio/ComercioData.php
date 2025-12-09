@@ -393,6 +393,10 @@ class ComercioData extends Component
         $this->state['alojamiento_unidades'] = $this->ubicacion->alojamiento_unidades ?? null;
         $this->state['alojamiento_plazas'] = $this->ubicacion->alojamiento_plazas ?? null;
 
+        $this->state['camping_fogones'] = $this->ubicacion->camping_fogones ?? null;
+        $this->state['camping_dormis'] = $this->ubicacion->camping_dormis ?? null;
+        $this->state['camping_otros_servicios'] = $this->ubicacion->camping_otros_servicios ?? null;
+
 
         // State base desde el modelo
         $this->state = $this->ubicacion->toArray();
@@ -552,6 +556,10 @@ class ComercioData extends Component
         $validated['alojamiento_unidades'] = $this->state['alojamiento_unidades'] ?? null;
         $validated['alojamiento_plazas']   = $this->state['alojamiento_plazas'] ?? null;
 
+        $validated['camping_fogones']   = $this->state['camping_fogones'] ?? null;
+        $validated['camping_dormis']   = $this->state['camping_dormis'] ?? null;
+        $validated['camping_otros_servicios']   = $this->state['camping_otros_servicios'] ?? null;
+
         // ---- 4) Reglas específicas ----
         $rules = [
             'persona_tipo'          => 'required|in:fisica,juridica',
@@ -584,9 +592,12 @@ class ComercioData extends Component
             'habilitaciones.*.numero' => 'nullable|string|max:60',
             'habilitaciones.*.fecha'  => 'nullable|date',
 
-            // ⬇⬇⬇ CORREGIDO (sin "state.")
             'alojamiento_unidades' => ['nullable', 'integer', 'min:0'],
             'alojamiento_plazas'   => ['nullable', 'integer', 'min:0'],
+
+            'state.camping_fogones'      => ['nullable', 'integer', 'min:0'],
+            'state.camping_dormis'       => ['nullable', 'integer', 'min:0'],
+            'state.camping_otros_servicios' => ['nullable', 'string', 'max:255'],
         ];
 
         // Tipo de persona
@@ -905,6 +916,9 @@ class ComercioData extends Component
             'rubros_anexos'      => [],
             'alojamiento_unidades' => null,
             'alojamiento_plazas'   => null,
+            'camping_fogones'       => null,
+            'camping_dormis'        => null,
+            'camping_otros_servicios'=> null,
             'disposiciones'      => [['numero'=>'','fecha'=>null]],
             'habilitaciones'     => [['numero'=>'','fecha'=>null]],
             'documentos'         => $this->docDefaults ?? [],

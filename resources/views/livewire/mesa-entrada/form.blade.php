@@ -57,7 +57,7 @@
                               type="checkbox"
                               id="doc-{{ $op->id }}"
                               value="{{ $op->id }}"
-                              wire:model.live="documentacion_ids"> {{-- 👈 aquí el cambio --}}
+                              wire:model.live="documentacion_ids">
                         <label class="form-check-label" for="doc-{{ $op->id }}">
                           {{ $op->nombre }}
                         </label>
@@ -116,21 +116,21 @@ document.addEventListener('livewire:init', () => {
     const form = document.querySelector('form');
     if (!form) return;
 
-    // 🧹 Limpiar todos los campos visualmente
+    // Limpiar todos los campos visualmente
     form.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], textarea').forEach(el => {
       el.value = '';
     });
 
-    // 🧹 Destildar todos los checkboxes
+    // Destildar todos los checkboxes
     form.querySelectorAll('input[type="checkbox"]').forEach(chk => {
       chk.checked = false;
     });
 
-    // 🧹 Borrar chips visualmente
+    // Borrar chips visualmente
     const chipsContainer = form.querySelector('.d-flex.flex-wrap.gap-2');
     if (chipsContainer) chipsContainer.innerHTML = '';
 
-    // 🎨 Feedback en el botón
+    // Feedback en el botón
     const btn = form.querySelector('button[type="submit"]');
     if (btn) {
       btn.disabled = true;

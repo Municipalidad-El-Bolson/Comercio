@@ -130,28 +130,60 @@
         @enderror
 
         {{-- CAMPOS DINÁMICOS --}}
-        @if(
-            !empty($state['rubro_id'] ?? null) &&
-            optional(\App\Models\Rubro::find($state['rubro_id'] ?? null))->rubro_general === 'ALOJAMIENTO'
-          )
-            <div class="row mt-3">
-                <div class="col-md-6 mb-2">
-                    <label class="mb-1">Cantidad de Unidades</label>
-                    <input type="number"
-                          class="form-control form-control-sm"
-                          wire:model="state.alojamiento_unidades">
-                </div>
+        @php
+          $rubro   = optional(\App\Models\Rubro::find($state['rubro_id'] ?? null));
+          $general = mb_strtoupper($rubro->rubro_general ?? '');
+          $sub     = mb_strtoupper($rubro->subrubro ?? '');
+        @endphp
 
-                <div class="col-md-6 mb-2">
-                    <label class="mb-1">Cantidad de Plazas</label>
-                    <input type="number"
-                          class="form-control form-control-sm"
-                          wire:model="state.alojamiento_plazas">
-                </div>
+        @if($general === 'ALOJAMIENTO DE ALQUILER TURISTICO' && mb_strpos($sub, 'CAMPING') === false)
+          <div class="row mt-3">
+            <div class="col-md-6 mb-2">
+              <label class="mb-1">Cantidad de Unidades</label>
+              <input type="number"
+                    class="form-control form-control-sm"
+                    wire:model="state.alojamiento_unidades">
             </div>
+
+            <div class="col-md-6 mb-2">
+              <label class="mb-1">Cantidad de Plazas</label>
+              <input type="number"
+                    class="form-control form-control-sm"
+                    wire:model="state.alojamiento_plazas">
+            </div>
+          </div>
         @endif
 
-    </div>
+        @if($general === 'ALOJAMIENTO DE ALQUILER TURISTICO' && mb_strpos($sub, 'CAMPING') !== false)
+          <div class="row mt-3">
+
+            <div class="col-md-4 mb-2">
+              <label class="mb-1">Cantidad de Fogones</label>
+              <input type="number"
+                    class="form-control form-control-sm"
+                    wire:model="state.camping_fogones">
+            </div>
+
+            <div class="col-md-4 mb-2">
+              <label class="mb-1">Cantidad de Dormis</label>
+              <input type="number"
+                    class="form-control form-control-sm"
+                    wire:model="state.camping_dormis">
+            </div>
+
+            <div class="col-md-4 mb-2">
+              <label class="mb-1">Otros Servicios</label>
+              <input type="text"
+                    class="form-control form-control-sm"
+                    wire:model="state.camping_otros_servicios"
+                    placeholder="Quinchos, piscina, etc.">
+            </div>
+
+          </div>
+        @endif
+
+
+      </div>
 
 
         {{-- ================= RUBROS ANEXOS (CON wire:ignore) ================= --}}
