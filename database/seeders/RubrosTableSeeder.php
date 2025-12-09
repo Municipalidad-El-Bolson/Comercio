@@ -248,7 +248,6 @@ class RubrosTableSeeder extends Seeder
             'FRAMBUESAS',
             'VENTA DE HELADOS',
             'ELABORACION DE PANIFICADOS',
-            'VIDIRIERIA',
             'COTILLONERIA',
             'PAPELERIA',
             'EDERSA',

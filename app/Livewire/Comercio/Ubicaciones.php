@@ -1177,21 +1177,21 @@ class Ubicaciones extends AdminComponent
         switch ($base) {
             case '021':
                 // Ahora 021 requiere ALTA + VTO
-                $reglas['state.fecha_alta'] = 'required|date';
+                $reglas['state.fecha_alta'] = 'nullable|date';
                 $reglas['state.fecha_vto']  = 'nullable|date|after_or_equal:state.fecha_alta';
                 $reglas['state.fecha_baja'] = 'nullable';
                 break;
 
             case '032':
                 // 032 requiere ALTA; VTO opcional (pero coherente si se carga)
-                $reglas['state.fecha_alta'] = 'required|date';
+                $reglas['state.fecha_alta'] = 'nullable|date';
                 $reglas['state.fecha_vto']  = 'nullable|date|after_or_equal:state.fecha_alta';
                 $reglas['state.fecha_baja'] = 'nullable';
                 break;
 
             case '040':
                 // 040 requiere ALTA; VTO opcional (si querés obligatorio, cambiá a required)
-                $reglas['state.fecha_alta'] = 'required|date';
+                $reglas['state.fecha_alta'] = 'nullable|date';
                 $reglas['state.fecha_vto']  = 'nullable|date|after_or_equal:state.fecha_alta';
                 $reglas['state.fecha_baja'] = 'nullable';
                 break;
@@ -1202,11 +1202,8 @@ class Ubicaciones extends AdminComponent
                 // Requiere ALTA y BAJA. BAJA >= ALTA y ambas no futuras.
                 $tieneAltaAntes = !empty($this->ubicacion?->fecha_alta) || !empty($this->state['fecha_alta']);
 
-                // Alta requerida (si no estaba previamente)
-                $reglas['state.fecha_alta'] = ($tieneAltaAntes ? 'nullable' : 'required') . '|date|before_or_equal:today';
-
                 // Baja requerida, posterior/igual a alta y no futura
-                $reglas['state.fecha_baja'] = 'required|date'
+                $reglas['state.fecha_baja'] = 'nullable|date'
                     . ($tieneAltaAntes ? '|after_or_equal:state.fecha_alta' : '')
                     . '|before_or_equal:today';
 

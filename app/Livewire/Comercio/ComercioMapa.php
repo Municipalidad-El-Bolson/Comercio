@@ -651,24 +651,24 @@ class ComercioMapa extends AdminComponent
         ];
         switch ($nuevo) {
             case 'vigente':
-                if ($esCreate) $reglas['state.fecha_alta'] = 'required|date';
+                if ($esCreate) $reglas['state.fecha_alta'] = 'nullable|date';
                 break;
             case 'irregular':
-                $reglas['state.fecha_alta'] = 'required|date';
+                $reglas['state.fecha_alta'] = 'nullable|date';
                 break;
             case '040': 
-                $reglas['state.fecha_alta'] = 'required|date';
+                $reglas['state.fecha_alta'] = 'nullable|date';
                 $reglas['state.fecha_vto']  = 'nullable|date|after_or_equal:state.fecha_alta';
                 break;
             case 'baja':
             case 'baja_oficio':
             case 'sin_efecto':
                 $tieneAltaAntes = !empty($this->state['fecha_alta']);
-                $reglas['state.fecha_baja'] = 'required|date'
+                $reglas['state.fecha_baja'] = 'nullable|date'
                     . ($tieneAltaAntes ? '|after_or_equal:state.fecha_alta' : '')
                     . '|before_or_equal:today';
                 if (empty($this->state['fecha_alta'])) {
-                    $reglas['state.fecha_alta'] = 'required|date|before_or_equal:today';
+                    $reglas['state.fecha_alta'] = 'nullable|date|before_or_equal:today';
                 }
                 $reglas['state.fecha_vto'] = 'nullable';
                 break;

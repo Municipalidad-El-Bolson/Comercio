@@ -298,7 +298,10 @@
               'cambio_domicilio' => 'Cambio de Domicilio',
               'adicion_anexo'    => 'Adición de Rubro Anexo',
               'cambio_razon'     => 'Cambio de Razón Social',
-              'resolucion_482'   => 'Resolución 482/22'
+              'resolucion_482'   => 'Resolución 482/22',
+              'permiso_habilitante' => 'Permiso Habilitante',
+              'sala_de_elaboracion' => 'Sala de Elaboración',
+              'cambio_fantasia'  => 'Cambio de Nombre de Fantasia',
             ],
             '032' => [
               '' => 'Ninguno',
@@ -307,6 +310,8 @@
               'cambio_fantasia'  => 'Cambio de Nombre de Fantasía',
               'baja_alojamiento' => 'Baja de Unidad de Alojamiento',
               'cambio_razon'     => 'Cambio de Razón Social',
+              'permiso_habilitante' => 'Permiso Habilitante',
+              'sala_de_elaboracion' => 'Sala de Elaboración',
             ],
             default => [],
           };
