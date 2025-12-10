@@ -38,17 +38,26 @@ class Ubicacion extends Model
         'nomenclatura',
         'lat','lng','barrio','cpu_cod','cpu_nombre',
         'observaciones',
+
         'estado_base',
         'estado_label',
         'estado',         
         'situacion',     
         'tipo_hab',      
+
         'fecha_alta',
         'fecha_baja',
         'fecha_vto',
         'monto_pagar',
+
         'alojamiento_unidades',
         'alojamiento_plazas',
+
+        'numero_disposicion',
+        'numero_habilitacion',
+        'camping_fogones',
+        'camping_dormis',
+        'camping_otros_servicios',
     ];
 
     protected $casts = [
@@ -58,11 +67,19 @@ class Ubicacion extends Model
         'lat'         => 'float',
         'lng'         => 'float',
         'monto_pagar' => 'decimal:2',
+
         'estado'       => 'string',
         'estado_base'  => 'string',
         'estado_label' => 'string',
+
         'alojamiento_unidades' => 'integer',
         'alojamiento_plazas'   => 'integer',
+
+        'camping_fogones'         => 'integer',
+        'camping_dormis'          => 'integer',
+        'camping_otros_servicios' => 'string',
+        'numero_disposicion'      => 'string',
+        'numero_habilitacion'     => 'string',
     ];
 
     // ─── Scopes ─────────────────────────────────────────────────────────────────

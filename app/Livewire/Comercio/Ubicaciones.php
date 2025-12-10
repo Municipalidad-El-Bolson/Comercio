@@ -910,11 +910,12 @@ class Ubicaciones extends AdminComponent
         $this->dispatch('toast', mensaje: 'Movimiento eliminado correctamente', tipo: 'success');
     }
 
-
     public function updateComercio()
     {
         // ---- 0) Mapear estado (form -> base -> canónico) ANTES de validar ----
         $rawEstado   = $this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite';
+
+        // Normalizo: código base (021/032/040/baja...) + canónico (entramite/irregular/040/baja...)
         $estadoBase  = $this->estadoBaseNormalize($rawEstado);
         $estadoCanon = $this->mapBaseToCanon($estadoBase);
         $cambioKey   = trim((string)($this->state['cambio_tipo'] ?? ''));
@@ -928,15 +929,15 @@ class Ubicaciones extends AdminComponent
 
         $estadoLabel = $this->buildEstadoLabel($estadoBase, $cambioKey);
 
-        // Para validar, usamos estado canónico
-        $tmpState = $this->state;
-        $tmpState['estado'] = $estadoCanon;
+        // ⚠️ Importante: reflejar la normalización en el state ANTES de validar
+        $this->state['estado']       = $estadoCanon;   // entermite/irregular/040/...
+        $this->state['estado_base']  = $estadoBase;    // 021/032/040/baja/...
+        $this->state['estado_label'] = $estadoLabel;
 
-        // ---- 1) Validación ----
+        // ---- 1) Validación (USANDO $this->validate y keys state.* ) ----
         $rules = [
             'state.estado'     => ['required', Rule::in([
-                'entramite','irregular','baja','baja_oficio','sin_efecto','040',
-                '021','032','040','exp_sin_efecto',
+                'entramite','irregular','baja','baja_oficio','sin_efecto','040'
             ])],
             'state.tipo_hab'   => ['nullable', Rule::in(['definitiva','prev'])],
             'state.fecha_alta' => ['nullable','date'],
@@ -944,23 +945,27 @@ class Ubicaciones extends AdminComponent
             'state.fecha_vto'  => ['nullable','date'],
             'state.observaciones' => ['nullable','string','max:500'],
 
-            // 👇 VALIDACIÓN CAMPOS DE ALOJAMIENTO
+            // Alojamiento
             'state.alojamiento_unidades' => ['nullable', 'integer', 'min:0'],
             'state.alojamiento_plazas'   => ['nullable', 'integer', 'min:0'],
 
-            'state.camping_fogones'      => ['nullable', 'integer', 'min:0'],
-            'state.camping_dormis'       => ['nullable', 'integer', 'min:0'],
+            // Camping
+            'state.camping_fogones'         => ['nullable', 'integer', 'min:0'],
+            'state.camping_dormis'          => ['nullable', 'integer', 'min:0'],
             'state.camping_otros_servicios' => ['nullable', 'string', 'max:255'],
 
+            // Disposición / habilitación
+            'state.numero_disposicion'  => ['nullable', 'string', 'max:100'],
+            'state.numero_habilitacion' => ['nullable', 'string', 'max:100'],
         ];
 
+        // Si querés reactivar reglas específicas por estado:
         // $rules = array_merge($rules, $this->reglasFechasPorEstado($estadoBase));
 
-        \Validator::make($this->state, $rules)->validate();
+        $validatedAll = $this->validate($rules);
+        $validated    = $validatedAll['state'];   // 👈 acá ya tenés TODO lo que viene del form
 
-        // ---- 2) Normalizaciones ----
-        $validated = $this->state;
-
+        // ---- 2) Normalizaciones de texto / DNI / monto ----
         foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
             if (!empty($validated[$c] ?? null)) {
                 $validated[$c] = \Illuminate\Support\Str::title($validated[$c]);
@@ -978,60 +983,142 @@ class Ubicaciones extends AdminComponent
             $validated['monto_pagar'] = $this->normalizeDecimal($validated['monto_pagar']);
         }
 
-        // ---- 3) Estado + situación ----
+        // ---- 3) Estado + situación (ya venían inyectados, pero aseguramos) ----
         $validated['estado']       = $estadoCanon;
         $validated['estado_base']  = $estadoBase;
         $validated['estado_label'] = $estadoLabel;
         $validated['situacion']    = $this->calcularSituacion($estadoCanon, (bool)($this->state['es_clausurado'] ?? false));
 
-        // 👇 CAMPOS DE ALOJAMIENTO
-        $validated['alojamiento_unidades'] = $this->state['alojamiento_unidades'] ?? null;
-        $validated['alojamiento_plazas']   = $this->state['alojamiento_plazas'] ?? null;
+        // Alojamiento + camping (ya vienen, pero lo dejamos explícito)
+        $validated['alojamiento_unidades']   = $validated['alojamiento_unidades']   ?? null;
+        $validated['alojamiento_plazas']     = $validated['alojamiento_plazas']     ?? null;
+        $validated['camping_fogones']        = $validated['camping_fogones']        ?? null;
+        $validated['camping_dormis']         = $validated['camping_dormis']         ?? null;
+        $validated['camping_otros_servicios']= $validated['camping_otros_servicios']?? null;
 
-        $validated['camping_fogones']   = $this->state['camping_fogones'] ?? null;
-        $validated['camping_dormis']   = $this->state['camping_dormis'] ?? null;
-        $validated['camping_otros_servicios']   = $this->state['camping_otros_servicios'] ?? null;
+        // Disposición / habilitación
+        $validated['numero_disposicion']  = $validated['numero_disposicion']  ?? null;
+        $validated['numero_habilitacion'] = $validated['numero_habilitacion'] ?? null;
 
-        unset($validated['documentos'], $validated['domicilio_responsable'], $validated['nomenclatura'], $validated['es_clausurado']);
+        unset(
+            $validated['documentos'],
+            $validated['domicilio_responsable'],
+            $validated['nomenclatura'],
+            $validated['es_clausurado'],
+            $validated['cambio_tipo'],       // solo para label
+            $validated['rubros_anexos']      // esto va al pivot, no a ubicaciones
+        );
 
         // ---- 4) Enriquecer si cambió la dirección ----
         $dirVieja = trim((string)$this->ubicacion->getOriginal('domicilio_comercio'));
         $dirNueva = trim((string)($validated['domicilio_comercio'] ?? ''));
+
         if ($dirNueva !== '' && $dirNueva !== $dirVieja) {
             $enricher = app(\App\Services\UbicacionGeoEnricher::class);
             $validated = $enricher->enrich($validated);
         }
 
-        // ---- 🔥 FIX PRINCIPAL 🔥 ----
+        // ---- 5) Limpiar fechas según estado base (tu helper) ----
         $this->limpiarFechasSegunEstadoBase($validated, $estadoBase);
 
-        // ---- 5) A ubicaciones solamente columnas reales ----
+        // ---- 6) A ubicaciones solamente columnas reales ----
         $colsUbic = Schema::getColumnListing('ubicaciones');
         $dataUbic = array_intersect_key($validated, array_flip($colsUbic));
 
-        // ---- 6) Auxiliares ----
+        // ---- 7) Auxiliares ----
         $docsFromUI = $this->state['documentos'] ?? [];
+
         $principal  = (int)($this->state['rubro_id'] ?? 0);
         $anexos     = collect($this->state['rubros_anexos'] ?? [])
-                        ->map(fn($v)=>(int)$v)->filter()->reject(fn($id)=>$id === $principal)->unique()->values()->all();
+                        ->map(fn($v)=>(int)$v)
+                        ->filter()
+                        ->reject(fn($id)=>$id === $principal)
+                        ->unique()
+                        ->values()
+                        ->all();
 
         $tels = collect($this->state['telefonos'] ?? [])
-                    ->map(fn($t)=>trim((string)$t))->filter(fn($t)=>$t!=='')->unique()->values();
+                    ->map(fn($t)=>trim((string)$t))
+                    ->filter(fn($t)=>$t!=='')
+                    ->unique()
+                    ->values();
 
-        // ---- 7) TX guardar ----
+        // ---- 8) TX guardar ----
         DB::transaction(function () use ($dataUbic, $docsFromUI, $principal, $anexos, $tels, $estadoBase, $estadoLabel) {
 
+            // 1) actualizar ubicaciones (incluye estado, estado_base, rubro_id, etc.)
             $this->ubicacion->update($dataUbic);
 
-            // Resto de tu código sin cambios...
-            // (Documentos, teléfonos, rubros, disposiciones, habilitaciones, historial)
+            // 2) teléfonos
+            $this->ubicacion->telefonos()->delete();
+            foreach ($tels as $t) {
+                $this->ubicacion->telefonos()->create(['telefono' => $t]);
+            }
+
+            // 3) rubro principal + anexos (pivot)
+            $sync = [];
+            $orden = 1;
+
+            if ($principal > 0) {
+                $sync[$principal] = ['orden' => $orden++];
+            }
+
+            foreach ($anexos as $rid) {
+                $sync[$rid] = ['orden' => $orden++];
+            }
+
+            // aunque no haya principal, esto igual limpia/ajusta anexos
+            $this->ubicacion->rubros()->sync($sync);
+
+            // 4) documentación
+            $docRecord = $this->ubicacion->documentos;
+            if (!$docRecord) {
+                $this->ubicacion->documentos()->create([
+                    'data' => json_encode($docsFromUI),
+                ]);
+            } else {
+                $docRecord->update([
+                    'data' => json_encode($docsFromUI),
+                ]);
+            }
+
+            // 5) disposición (histórico simple)
+            if (!empty($dataUbic['numero_disposicion'])) {
+                $this->ubicacion->disposiciones()->create([
+                    'numero'     => $dataUbic['numero_disposicion'],
+                    'fecha'      => now(),
+                    'created_at' => now(),
+                ]);
+            }
+
+            // 6) habilitación (histórico simple)
+            if (!empty($dataUbic['numero_habilitacion'])) {
+                $this->ubicacion->habilitaciones()->create([
+                    'numero'     => $dataUbic['numero_habilitacion'],
+                    'fecha'      => now(),
+                    'created_at' => now(),
+                ]);
+            }
+
+            // 7) historial de estado
+            $ultimo = $this->ubicacion->estadosHistorial()->first();
+            $nuevoEstado = $estadoBase;   // 021 / 032 / 040 / baja...
+
+            if (!$ultimo || $ultimo->estado_base !== $nuevoEstado) {
+                $this->ubicacion->estadosHistorial()->create([
+                    'estado_base'  => $nuevoEstado,
+                    'estado_label' => $estadoLabel,
+                    'created_at'   => now(),
+                ]);
+            }
         });
 
-        // ---- 8) UI ----
+        // ---- 9) UI ----
         $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
         $this->resetPage();
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
     }
+
 
 
     private function registrarHistorialEstado(
