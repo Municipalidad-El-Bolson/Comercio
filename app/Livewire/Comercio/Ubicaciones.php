@@ -912,6 +912,7 @@ class Ubicaciones extends AdminComponent
 
     public function updateComercio()
     {
+
         // ---- 0) Mapear estado (form -> base -> canónico) ANTES de validar ----
         $rawEstado   = $this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite';
 

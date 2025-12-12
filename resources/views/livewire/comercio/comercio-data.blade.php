@@ -202,24 +202,61 @@
                 <div class="text-muted small">Rubro (principal)</div>
                 <div class="font-weight-bold">{{ optional($ubicacion->rubro)->subrubro ?: '—' }}</div>
               </div>
-              {{-- Mostrar datos de alojamiento si existen --}}
-@if(!is_null($ubicacion->alojamiento_unidades) || !is_null($ubicacion->alojamiento_plazas))
-    <hr>
-    <div class="row">
-        <div class="col-md-6 mb-2">
-            <div class="text-muted small">Unidades de Alojamiento</div>
-            <div class="font-weight-bold">
-                {{ $ubicacion->alojamiento_unidades ?? '—' }}
-            </div>
-        </div>
-        <div class="col-md-6 mb-2">
-          <div class="text-muted small">Plazas Totales</div>
-            <div class="font-weight-bold">
-              {{ $ubicacion->alojamiento_plazas ?? '—' }}
-            </div>
-          </div>
-        </div>
-        @endif
+              @php
+                use Illuminate\Support\Str;
+
+                // Tomo rubro_general desde ubicacion o desde la relación rubro (por si ahí está)
+                $rg = (string) ($ubicacion->rubro_general ?? optional($ubicacion->rubro)->rubro_general ?? '');
+                $rgN = Str::of($rg)->lower()->trim()->ascii()->toString();
+
+                // Tomo el nombre del rubro desde la relación (subrubro/nombre) y normalizo
+                $rubroTxt = (string) (optional($ubicacion->rubro)->subrubro ?? optional($ubicacion->rubro)->nombre ?? '');
+                $rubroN = Str::of($rubroTxt)->lower()->trim()->ascii()->toString();
+
+                $esAlojTur = $rgN === 'alojamiento de alquiler turistico';
+                $esCamping = Str::contains($rubroN, 'camping'); // por si viene "Camping ..." o similar
+              @endphp
+
+              {{-- Alojamiento turístico --}}
+              @if($esAlojTur)
+
+                {{-- Caso CAMPING --}}
+                @if($esCamping)
+                  <hr>
+                  <div class="row">
+                    <div class="col-md-4 mb-2">
+                      <div class="text-muted small">Fogones</div>
+                      <div class="font-weight-bold">{{ $ubicacion->camping_fogones ?? '—' }}</div>
+                    </div>
+
+                    <div class="col-md-4 mb-2">
+                      <div class="text-muted small">Dormis</div>
+                      <div class="font-weight-bold">{{ $ubicacion->camping_dormis ?? '—' }}</div>
+                    </div>
+
+                    <div class="col-md-4 mb-2">
+                      <div class="text-muted small">Otros Servicios</div>
+                      <div class="font-weight-bold">{{ $ubicacion->camping_otros_servicios ?? '—' }}</div>
+                    </div>
+                  </div>
+
+                {{-- Caso NO camping --}}
+                @else
+                  <hr>
+                  <div class="row">
+                    <div class="col-md-6 mb-2">
+                      <div class="text-muted small">Unidades de Alojamiento</div>
+                      <div class="font-weight-bold">{{ $ubicacion->alojamiento_unidades ?? '—' }}</div>
+                    </div>
+
+                    <div class="col-md-6 mb-2">
+                      <div class="text-muted small">Plazas Totales</div>
+                      <div class="font-weight-bold">{{ $ubicacion->alojamiento_plazas ?? '—' }}</div>
+                    </div>
+                  </div>
+                @endif
+
+              @endif
 
         <div class="col-md-6 mb-2">
           <div class="text-muted small">Rubros anexos</div>

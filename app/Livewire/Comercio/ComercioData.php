@@ -595,9 +595,9 @@ class ComercioData extends Component
             'alojamiento_unidades' => ['nullable', 'integer', 'min:0'],
             'alojamiento_plazas'   => ['nullable', 'integer', 'min:0'],
 
-            'state.camping_fogones'      => ['nullable', 'integer', 'min:0'],
-            'state.camping_dormis'       => ['nullable', 'integer', 'min:0'],
-            'state.camping_otros_servicios' => ['nullable', 'string', 'max:255'],
+            'camping_fogones'      => ['nullable', 'integer', 'min:0'],
+            'camping_dormis'       => ['nullable', 'integer', 'min:0'],
+            'camping_otros_servicios' => ['nullable', 'string', 'max:255'],
         ];
 
         // Tipo de persona
@@ -608,8 +608,49 @@ class ComercioData extends Component
             $rules['razon_social'] = 'required|string|min:2|max:120';
         }
 
+        $prevCanon      = $this->normalizarEstado($this->ubicacion->getOriginal('estado') ?? $this->ubicacion->estado ?? 'entramite');
+        $yaTeniaAlta    = !empty($this->ubicacion?->fecha_alta);
+        $vieneAltaAhora = !empty($this->state['fecha_alta']);
+
+        switch ($estadoCanon) {
+            case 'entramite':
+                break;
+            case 'irregular':
+                $rules['fecha_alta'] = 'nullable|date';
+                break;
+            case 'baja':
+            case 'baja_oficio':
+            case 'sin_efecto':
+                $tieneAltaAntes = $yaTeniaAlta || $vieneAltaAhora;
+                $rules['fecha_baja'] = 'nullable|date' . ($tieneAltaAntes ? '|after_or_equal:fecha_alta' : '') . '|before_or_equal:today';
+                if (!$tieneAltaAntes) {
+                    $rules['fecha_alta'] = 'nullable|date|before_or_equal:today';
+                }
+                break;
+        }
+
         // ---- 5) Validación final ----
         $validated = \Validator::make($validated, $rules)->validate();
+
+         // Normalizar strings
+        foreach (['razon_social','apellido','nombres','domicilio_responsable','nombre_comercial','domicilio_comercio'] as $c) {
+            if (!empty($validated[$c] ?? null)) $validated[$c] = Str::title($validated[$c]);
+        }
+        $validated['dni_cuit'] = preg_replace('/\D/','', $validated['dni_cuit'] ?? '');
+
+        // Situación final
+        if (in_array('situacion', Schema::getColumnListing('ubicaciones'), true)) {
+            $validated['situacion'] = $this->calcularSituacion($estadoCanon, (bool)($this->state['es_clausurado'] ?? false));
+        }
+
+        // Estados correctos
+        $validated['estado']       = $estadoCanon;
+        $validated['estado_base']  = $estadoBase;
+        $validated['estado_label'] = $estadoLabel;
+
+        unset($validated['domicilio_responsable'], $validated['es_clausurado']);
+
+        // Re-geocodificar si cambió la dirección
 
         // ---- 6) Geocoding si cambió la dirección ----
         $dirVieja = trim((string)$this->ubicacion->getOriginal('domicilio_comercio'));
@@ -668,6 +709,33 @@ class ComercioData extends Component
             $payload = array_merge($actual, $nuevo);
             $this->ubicacion->documentos()->updateOrCreate(['ubicacion_id' => $this->ubicacion->id], $payload);
 
+            // Rubros
+            $principal = (int)($this->state['rubro_id'] ?? 0);
+            $anexos = collect($this->state['rubros_anexos'] ?? [])->map(fn($v)=>(int)$v)->filter()
+                        ->reject(fn($id)=>$id === $principal)->unique()->values()->all();
+            $this->ubicacion->rubros()->sync(array_values(array_unique(array_merge([$principal], $anexos))));
+            $this->ubicacion->rubro_id = $principal ?: null;
+            $this->ubicacion->save();
+
+            // Teléfonos
+            $this->ubicacion->telefonos()->delete();
+            $telSan = collect($this->state['telefonos'] ?? [])->map(fn($t)=>trim((string)$t))->filter()->unique()->values();
+            foreach ($telSan as $t) $this->ubicacion->telefonos()->create(['telefono'=>$t]);
+
+            // Disposiciones
+            $this->ubicacion->disposiciones()->delete();
+            foreach (($this->state['disposiciones'] ?? []) as $d) {
+                $num = trim((string)($d['numero'] ?? '')); if ($num==='') continue;
+                $this->ubicacion->disposiciones()->create(['numero'=>$num,'fecha'=>!empty($d['fecha'])?$d['fecha']:null]);
+            }
+
+            // Habilitaciones
+            $this->ubicacion->habilitaciones()->delete();
+            foreach (($this->state['habilitaciones'] ?? []) as $h) {
+                $num = trim((string)($h['numero'] ?? '')); if ($num==='') continue;
+                $this->ubicacion->habilitaciones()->create(['numero'=>$num,'fecha'=>!empty($h['fecha'])?$h['fecha']:null]);
+            }
+
             // Historial
             $this->registrarHistorialEstado(
                 $this->ubicacion,
@@ -682,6 +750,10 @@ class ComercioData extends Component
         // ---- 9) UI ----
         $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
+        $this->ubicacion->refresh()->load('documentos','rubros','telefonos','disposiciones','habilitaciones');
+        $this->state['persona_tipo'] = $this->ubicacion->persona_tipo ?? 'fisica';
+        $this->state['estado']       = $this->normalizarEstado($this->ubicacion->estado ?? 'entramite');
+
     }
 
     public function eliminarMovimiento($id)
