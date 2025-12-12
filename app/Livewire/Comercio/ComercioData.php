@@ -219,7 +219,6 @@ class ComercioData extends Component
 
         $cambio = null;
         if (preg_match('/^\s*(021|032)\s*-\s*(.+)$/ui', $label, $m)) {
-            $base   = $m[1] === '021' ? '021' : '032';
             $cambio = trim($m[2]);
         }
 
@@ -750,9 +749,15 @@ class ComercioData extends Component
         // ---- 9) UI ----
         $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
-        $this->ubicacion->refresh()->load('documentos','rubros','telefonos','disposiciones','habilitaciones');
+
+      
+        $this->ubicacion = Ubicacion::with([
+            'rubro','rubros','telefonos','documentos','movimientos','disposiciones','habilitaciones'
+        ])->findOrFail($this->ubicacion->id);
+
+        // Recalcular state mínimo para que el form y chips queden alineados
         $this->state['persona_tipo'] = $this->ubicacion->persona_tipo ?? 'fisica';
-        $this->state['estado']       = $this->normalizarEstado($this->ubicacion->estado ?? 'entramite');
+        $this->state['estado']       = $this->normalizarEstado($this->ubicacion->estado_base ?? $this->ubicacion->estado ?? 'entramite');
 
     }
 
@@ -862,16 +867,22 @@ class ComercioData extends Component
     }
 
     #[On('ubicacion-actualizada')]
-    public function refrescarDatos($id = null): void
-    {
-        if (!$id || (int)$id === (int)$this->ubicacion->id) {
-            $this->ubicacion->refresh()->load(
-                'rubro','rubros','telefonos','documentos','movimientos','disposiciones','habilitaciones'
-            );
-            $this->state['persona_tipo'] = $this->ubicacion->persona_tipo ?? 'fisica';
-            $this->state['estado']       = $this->normalizarEstado($this->ubicacion->estado ?? 'entramite');
-        }
+public function refrescarDatos($id = null): void
+{
+    if (!$id || (int)$id === (int)$this->ubicacion->id) {
+        $this->ubicacion = Ubicacion::query()
+            ->with([
+                'rubro','rubros','telefonos','documentos',
+                'movimientos','disposiciones','habilitaciones',
+                'estadosHistorial',
+            ])
+            ->findOrFail($this->ubicacion->id);
+
+        $this->state['persona_tipo'] = $this->ubicacion->persona_tipo ?? 'fisica';
+        $this->state['estado']       = $this->normalizarEstado($this->ubicacion->estado ?? 'entramite');
     }
+}
+
 
     /** ====== Búsqueda de rubros ====== */
     public function updatedRubroQuery(string $q): void
@@ -1100,6 +1111,9 @@ class ComercioData extends Component
 
     public function render()
     {
+        $this->ubicacion = \App\Models\Ubicacion::query()
+            ->with(['rubro','rubros','telefonos','documentos','movimientos','disposiciones','habilitaciones','estadosHistorial'])
+            ->findOrFail($this->ubicacion->id);
         $chips = $this->chipsFor($this->ubicacion);
         $this->ubicacion->loadMissing('rubros','telefonos');
         $historial = $this->ubicacion->movimientos()

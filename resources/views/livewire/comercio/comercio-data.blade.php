@@ -1,80 +1,89 @@
 <div class="container">
-  {{-- HEADER / HERO --}}
-  @php
-    $esJuridica   = ($ubicacion->persona_tipo ?? 'fisica') === 'juridica';
-    $titularBase  = trim(($ubicacion->apellido ?? '').' '.($ubicacion->nombres ?? ''));
-    $titular      = $ubicacion->razon_social ?: ($titularBase !== '' ? $titularBase : '—');
+{{-- HEADER / HERO --}}
+@php
+  $esJuridica  = ($ubicacion->getRawOriginal('persona_tipo') ?? $ubicacion->persona_tipo ?? 'fisica') === 'juridica';
 
-    // === Estado / Cambio (usa estado_base + estado_label) ===
-    $estadoBase  = $ubicacion->estado_base ?: null;               // '021','032','baja','baja_oficio','sin_efecto'...
-    $estadoLabel = trim((string)($ubicacion->estado_label ?? '')); // ej: "021- Cambio de domicilio"
+  $apellido    = (string)($ubicacion->getRawOriginal('apellido') ?? $ubicacion->apellido ?? '');
+  $nombres     = (string)($ubicacion->getRawOriginal('nombres') ?? $ubicacion->nombres ?? '');
+  $razonSocial = (string)($ubicacion->getRawOriginal('razon_social') ?? $ubicacion->razon_social ?? '');
 
-    // Fallbacks si no hay migrado aún
-    if (!$estadoBase) {
-      $raw = strtolower((string)($ubicacion->estado ?? ''));
-      $estadoBase = match ($raw) {
-        'entramite','en trámite','en tramite','021','alta','vigente' => '021',
-        'irregular','032'                                            => '032',
-        '040'                                                        => '040',
-        'baja'                                                       => 'baja',
-        'baja_oficio','baja de oficio'                               => 'baja_oficio',
-        'sin_efecto','expediente sin efecto'                         => 'sin_efecto',
-        default                                                      => '021',
-      };
-    }
-    if ($estadoLabel === '') {
-      $estadoLabel = match ($estadoBase) {
-        '021'         => '021',
-        '032'         => '032',
-        '040'         => '040',
-        'baja'        => 'Baja',
-        'baja_oficio' => 'Baja de Oficio',
-        'sin_efecto'  => 'Expediente sin Efecto',
-        default       => strtoupper($estadoBase),
-      };
-    }
+  $titularBase = trim($apellido.' '.$nombres);
+  $titular     = $razonSocial !== '' ? $razonSocial : ($titularBase !== '' ? $titularBase : '—');
 
-    // Parseo "BASE - Cambio"
-    $cambioTxt = 'Ninguno';
-    if (preg_match('/^\s*(021|032)\s*-\s*(.+)$/ui', $estadoLabel, $m)) {
-      $estadoLabel = trim($m[1]);    
-      $cambioTxt   = trim($m[2]);    
-    }
+  // ====== ESTADO CRUDO DESDE BD (sin accessors) ======
+  $estadoBaseRaw  = $ubicacion->getRawOriginal('estado_base');
+  $estadoLabelRaw = $ubicacion->getRawOriginal('estado_label');
+  $estadoRaw      = $ubicacion->getRawOriginal('estado');
 
-    // Clases de badges
-    $estadoClass = match ($estadoBase) {
-      '021'                    => 'badge-success',
-      '032'                    => 'badge-warning',
-      '040'                    => 'badge-info',
-      'baja','baja_oficio'     => 'badge-danger',
-      'sin_efecto'             => 'badge-dark',
-      default                  => 'badge-light',
+  $estadoBase  = $estadoBaseRaw ? trim((string)$estadoBaseRaw) : null;
+  $estadoLabel = trim((string)($estadoLabelRaw ?? ''));
+
+  // Fallback si no hay estado_base migrado
+  if (!$estadoBase) {
+    $raw = \Illuminate\Support\Str::of((string)$estadoRaw)->lower()->trim()->toString();
+    $estadoBase = match ($raw) {
+      'entramite','en trámite','en tramite','021','alta','vigente' => '021',
+      'irregular','032'                                            => '032',
+      '040','040/25'                                               => '040',
+      'baja'                                                       => 'baja',
+      'baja_oficio','baja de oficio'                               => 'baja_oficio',
+      'sin_efecto','expediente sin efecto','exp_sin_efecto'         => 'sin_efecto',
+      default                                                      => '021',
     };
-    $cambioClass = ($cambioTxt !== 'Ninguno') ? 'badge-info' : 'badge-light';
+  }
 
-    // Disp/Hab
-    $disp = optional($ubicacion->disposiciones->sortByDesc(fn($d) => $d->fecha ?? $d->created_at)->first());
-    $hab  = optional($ubicacion->habilitaciones->sortByDesc(fn($h) => $h->fecha ?? $h->created_at)->first());
-    $nroDisp = trim((string)($disp->numero ?? ''));
-    $nroHab  = trim((string)($hab->numero  ?? ''));
-
-    // Teléfonos / anexos
-    $tels   = $ubicacion->telefonos->pluck('telefono')->filter()->implode(' / ');
-    $anexos = $ubicacion->rubros
-                ->when($ubicacion->rubro_id, fn($c) => $c->where('id', '!=', $ubicacion->rubro_id))
-                ->pluck('subrubro')->filter()->values()->all();
-
-    // Vencimiento
-    $vto      = $ubicacion->fecha_vto ? \Illuminate\Support\Carbon::parse($ubicacion->fecha_vto) : null;
-    $vtoBadge = $vto ? ($vto->isPast() ? 'danger' : ($vto->diffInDays(now()) <= 30 ? 'warning' : 'success')) : null;
-
-    $estadoVisual = match ($estadoBase) {
-        '021' => '021/90',
-        '032' => '032/01',
-        '040' => '040/25',
-        default => $estadoLabel, // Baja, Baja de Oficio, etc.
+  if ($estadoLabel === '') {
+    $estadoLabel = match ($estadoBase) {
+      '021'         => '021',
+      '032'         => '032',
+      '040'         => '040',
+      'baja'        => 'Baja',
+      'baja_oficio' => 'Baja de Oficio',
+      'sin_efecto'  => 'Expediente sin Efecto',
+      default       => strtoupper((string)$estadoBase),
     };
-  @endphp
+  }
+
+  // Parseo "BASE - Cambio" (solo texto)
+  $cambioTxt = 'Ninguno';
+  if (preg_match('/^\s*(021|032|040)\s*-\s*(.+)$/ui', $estadoLabel, $m)) {
+    $estadoLabel = trim($m[1]);
+    $cambioTxt   = trim($m[2]);
+  }
+
+  $estadoClass = match ($estadoBase) {
+    '021'                => 'badge-success',
+    '032'                => 'badge-warning',
+    '040'                => 'badge-info',
+    'baja','baja_oficio' => 'badge-danger',
+    'sin_efecto'         => 'badge-dark',
+    default              => 'badge-light',
+  };
+
+  $cambioClass = ($cambioTxt !== 'Ninguno') ? 'badge-info' : 'badge-light';
+
+  // VTO (solo visual, NO toca estado)
+  $fechaVtoRaw = $ubicacion->getRawOriginal('fecha_vto');
+  $vto         = $fechaVtoRaw ? \Illuminate\Support\Carbon::parse($fechaVtoRaw) : null;
+  $vtoBadge    = $vto ? ($vto->isPast() ? 'danger' : ($vto->diffInDays(now()) <= 30 ? 'warning' : 'success')) : null;
+
+  $estadoVisual = match ($estadoBase) {
+    '021' => '021/90',
+    '032' => '032/01',
+    '040' => '040/25',
+    default => $estadoLabel,
+  };
+  $tels = $ubicacion->telefonos?->pluck('telefono')->filter()->implode(' / ') ?? '';
+  $disp = $ubicacion->disposiciones?->sortByDesc(fn($d) => $d->fecha ?? $d->created_at)->first();
+
+  $hab = $ubicacion->habilitaciones?->sortByDesc(fn($h) => $h->fecha ?? $h->created_at)->first();
+
+  $nroDisp = trim((string)($disp->numero ?? ''));
+  $nroHab  = trim((string)($hab->numero  ?? ''));
+
+  $anexos = $ubicacion->rubros?->when($ubicacion->rubro_id, fn($c) => $c->where('id','!=',$ubicacion->rubro_id))->pluck('subrubro')->filter()->values()->all() ?? [];
+@endphp
+
 
   <div class="container-fluid mt-3">
   <div class="card mb-4 border-secondary">

@@ -222,13 +222,6 @@ class Ubicacion extends Model
                     break;
             }
 
-            // Si la fecha de vto ya pasó, forzar 032 (pero esto NO cambia clausura)
-            if (!empty($m->fecha_vto) && \Carbon\Carbon::parse($m->fecha_vto)->isPast()) {
-                if (!in_array($m->estado_base, ['032', 'baja', 'baja_oficio', 'exp_sin_efecto'], true)) {
-                    $m->estado_base = '032';
-                    $m->estado = 'irregular';
-                }
-            }
         });
 
         static::updated(function (Ubicacion $u) {

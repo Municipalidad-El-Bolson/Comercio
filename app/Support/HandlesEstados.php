@@ -30,15 +30,21 @@ trait HandlesEstados
 
     protected function estadoBaseNormalizeFromRaw(?string $raw): string {
         $s = trim(mb_strtolower((string)$raw));
+
         if (preg_match('/^\s*0?21\b/', $s)) return '021';
         if (preg_match('/^\s*0?32\b/', $s)) return '032';
+        if (preg_match('/^\s*0?40\b/', $s)) return '040'; // <-- FALTABA
+
         if (in_array($s, ['entramite','en tramite','en trámite','en_tramite','en-tramite','alta','vigente'], true)) return '021';
         if ($s==='irregular') return '032';
+
         if ($s==='baja') return 'baja';
         if (str_contains($s, 'baja de oficio') || str_contains($s,'oficio')) return 'baja_oficio';
         if (str_contains($s, 'expediente sin efecto') || $s==='sin_efecto' || $s==='exp_sin_efecto') return 'exp_sin_efecto';
+
         return '021';
     }
+
 
     protected function mapBaseToCanon(string $base): string
     {
