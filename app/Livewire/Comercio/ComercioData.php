@@ -47,6 +47,12 @@ class ComercioData extends Component
         'doc_cocap_rhi'                   => 'Certificado CO.CA.P.RHI',
         'doc_nota_carteleria_obras'       => 'Nota a Obras por cartelería',
         'doc_libro_actas_100'             => 'Libro de actas (100 hojas)',
+        'doc_final_obra'                  => 'Final de obra',
+        'doc_solicitud_cambio_domicilio'  => 'Solicitud de cambio de domicilio',
+        'doc_solicitud_cambio_nombre_fantasia' => 'Solicitud de cambio de nombre fantasia',
+        'doc_solicitud_cambio_rubro'      => 'Solicitud de cambio de rubro',
+        'doc_solicitud_cambio_baja_rubro' => 'Solicitud de cambio de baja de rubro',
+        'doc_nota_baja_comercial'         => 'Nota de baja comercial',
     ];
 
     public array $labelsJuridicas = [
@@ -69,6 +75,12 @@ class ComercioData extends Component
         'doc_cocap_rhi'                   => false,
         'doc_nota_carteleria_obras'       => false,
         'doc_libro_actas_100'             => false,
+        'doc_final_obra'                  => false,
+        'doc_solicitud_cambio_domicilio'  => false,
+        'doc_solicitud_cambio_nombre_fantasia' => false,
+        'doc_solicitud_cambio_rubro'      => false,
+        'doc_solicitud_cambio_baja_rubro' => false,
+        'doc_nota_baja_comercial'         => false,
         // Jurídicas:
         'doc_acta_constitucion'           => false,
         'doc_contrato_societario'         => false,
@@ -91,6 +103,12 @@ class ComercioData extends Component
         'doc_cocap_rhi'             => 'Certificado de CO.CA.P.R.HI',
         'doc_nota_carteleria_obras' => 'Nota a Obras Públicas declarando cartelería',
         'doc_libro_actas_100'       => 'Libro de actas de 100 hojas',
+        'doc_final_obra'            => 'Final de obra',
+        'doc_solicitud_cambio_domicilio' => 'Solicitud de cambio de domicilio',
+        'doc_solicitud_cambio_nombre_fantasia' => 'Solicitud de cambio de nombre fantasia',
+        'doc_solicitud_cambio_rubro' => 'Solicitud de cambio de rubro',
+        'doc_solicitud_cambio_baja_rubro' => 'Solicitud de cambio de baja de rubro',
+        'doc_nota_baja_comercial'   => 'Nota de baja comercial',
         // Jurídica
         'doc_acta_constitucion'     => 'Acta de constitución',
         'doc_contrato_societario'   => 'Contrato societario',
@@ -134,6 +152,12 @@ class ComercioData extends Component
             'doc_cocap_rhi',
             'doc_nota_carteleria_obras',
             'doc_libro_actas_100',
+            'doc_final_obra',
+            'doc_solicitud_cambio_domicilio',
+            'doc_solicitud_cambio_nombre_fantasia',
+            'doc_solicitud_cambio_rubro',
+            'doc_solicitud_cambio_baja_rubro',
+            'doc_nota_baja_comercial',
         ];
         $juridica = $esJuridica
             ? ['doc_acta_constitucion','doc_contrato_societario','doc_docs_representantes']
@@ -150,8 +174,9 @@ class ComercioData extends Component
             'irregular','032' => [
                 'doc_cert_electricidad','doc_cert_gasista','doc_inf_seg_hig','doc_protocolo_mput','doc_carga_fuego',
                 'doc_inf_ascensores','doc_poliza_seguro','doc_cert_cocapri','doc_inf_splif','doc_control_plagas',
-                'doc_cert_caldera','doc_cert_zavecom','doc_cert_salud_prov',
-                'doc_comprobante_uso_inmueble',
+                'doc_cert_caldera','doc_cert_zavecom','doc_cert_salud_prov','doc_comprobante_uso_inmueble','doc_final_obra',
+                'doc_solicitud_cambio_domicilio','doc_solicitud_cambio_nombre_fantasia','doc_solicitud_cambio_rubro',
+                'doc_solicitud_cambio_baja_rubro','doc_nota_baja_comercial',
             ],
             '040' => [],
             default => $baseGeneral

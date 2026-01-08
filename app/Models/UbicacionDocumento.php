@@ -25,6 +25,12 @@ class UbicacionDocumento extends Model
         'doc_cocap_rhi',
         'doc_nota_carteleria_obras',
         'doc_libro_actas_100',
+        'doc_final_obra',
+        'doc_solicitud_cambio_domicilio',
+        'doc_solicitud_cambio_nombre_fantasia',
+        'doc_solicitud_cambio_rubro',
+        'doc_solicitud_cambio_baja_rubro',
+        'doc_nota_baja_comercial',
 
         // Jurídicas
         'doc_afip_constancia_fisica',
@@ -77,6 +83,12 @@ class UbicacionDocumento extends Model
         'doc_cocap_rhi'                    => 'bool',
         'doc_nota_carteleria_obras'        => 'bool',
         'doc_libro_actas_100'              => 'bool',
+        'doc_final_obra'                   => 'bool',
+        'doc_solicitud_cambio_domicilio'   => 'bool',
+        'doc_solicitud_cambio_nombre_fantasia' => 'bool',
+        'doc_solicitud_cambio_rubro'       => 'bool',
+        'doc_solicitud_cambio_baja_rubro'  => 'bool',
+        'doc_nota_baja_comercial'          => 'bool',
 
         // Jurídicas
         'doc_afip_constancia_fisica'       => 'bool',

@@ -111,7 +111,7 @@ class RubrosTableSeeder extends Seeder
         }
 
         // === 2) GASTRONOMÍA ===
-        if (preg_match('/(RESTAURANTE|ROTISERIA|PANADERIA|HELADERIA|PIZZERIA|GASTRON|CONFITERIA|CAFETERIA|PARRILLA|CASA DE TE|TE HOUSE|COMIDAS? AL PASO|SANDWICH|FAST FOOD)/', $u)) {
+        if (preg_match('/(RESTAURANTE|ROTISERIA|PANADERIA|HELADERIA|PIZZERIA|GASTRON|CONFITERIA|CAFETERIA|PARRILLA|CASA DE TE|TE HOUSE|COMIDAS AL PASO|SANDWICH|FAST FOOD)/', $u)) {
             return 'GASTRONOMIA';
         }
 
@@ -314,6 +314,110 @@ class RubrosTableSeeder extends Seeder
             'VENTA DE CARBÓN Y LEÑA',
             'VENTA DE LEÑA EN BOLSA',
             'SALA DE FRACCIONAMIENTO DE MIEL',
+            'BULONERIA',
+            'VENTA DE CAÑOS',
+            'ARTÍCULOS DE GAS',
+            'ARTÍCULOS DE FONTANERÍA',
+            'PROVEDURIA',
+            'PERFUMERIA',
+            'COSMETICA',
+            'BIJOUTERIE',
+            'ACCESORIOS',
+            'BEBIDAS ALCOHÓLICAS',
+            'SALA DE ELABORACIÓN DE PASTAS SIN GLUTEN',
+            'SALA DE ELABORACIÓN DE PANIFICADOS SIN GLUTEN',
+            'PASTELERÍA SIN GLUTEN',
+            'RESTAURANTE',
+            'ELABORACIÓN DE CERVEZAS ARTESANALES',
+            'ELABORACIÓN DE MALTA',
+            'PUNTO DE VENTA',
+            'FABRICA DED HIELO',
+            'VENTA DE HIELO',
+            'CONFITERIA',
+            'CAFETERIA',
+            
+            // RUBROS GASTRONÓMICOS ─────────
+            'RESTAURANTE',
+            'PARRILLA',
+            'CASA DE TÉ',
+            'COMIDAS AL PASO',
+            'SANDWICHERÍA',
+            'FAST FOOD',
+
+            // ESTÉTICA Y SALUD PERSONAL ─────────
+            'CENTRO DE ESTÉTICA',
+            'SPA',
+            'KINESIOLOGÍA',
+            'DEPILACIÓN',
+            'COSMETOLOGÍA',
+            'BARBERÍA',
+            'MANICURÍA',
+            'PEDICURÍA',
+
+            // SERVICIOS AUTOMOTORES ─────────
+            'LAVADERO DE AUTOS',
+            'LUBRICENTRO',
+            'TALLER MECÁNICO',
+            'CHAPA Y PINTURA',
+            'GOMERÍA',
+            'ALINEACIÓN Y BALANCEO',
+            'AMORTIGUACIÓN',
+            'ELECTRICIDAD AUTOMOTOR',
+
+            // SALUD ─────────
+            'CLÍNICA',
+            'HOSPITAL',
+            'CONSULTORIO MÉDICO',
+            'ENFERMERÍA',
+            'FISIOTERAPIA',
+            'ODONTOLOGÍA',
+            'PSICOLOGÍA',
+            'LABORATORIO DE ANÁLISIS',
+
+            // DEPORTE ─────────
+            'GIMNASIO',
+            'CROSSFIT',
+            'CENTRO DE FITNESS',
+            'PILATES',
+            'ESCUELA DE ZUMBA',
+
+            // CANCHAS DEPORTIVAS ─────────
+            'CANCHA DE PÁDEL',
+            'CANCHA DE TENIS',
+            'CANCHA DE FÚTBOL',
+            'CANCHA DE VÓLEY',
+            'CANCHA DE BÁSQUET',
+            'ALQUILER DE CANCHAS',
+
+            // PRODUCCIÓN ─────────
+            'FÁBRICA',
+            'PRODUCCIÓN DE ALIMENTOS',
+            'PRODUCCIÓN ARTESANAL',
+
+            // ELABORACIÓN DOMICILIARIA ─────────
+            'COCINA DOMICILIARIA',
+            'ELABORACIÓN CASERA DE ALIMENTOS',
+
+            // SERVICIOS GENERALES ─────────
+            'SERVICIOS DE MANTENIMIENTO',
+            'CONSULTORÍA',
+            'ASESORAMIENTO PROFESIONAL',
+            'LAVANDERÍA',
+            'REPARACIONES',
+            'SERVICIOS DE INSTALACIÓN',
+
+            // COMERCIO GENERAL ─────────
+            'COMERCIO MINORISTA',
+            'BAZAR',
+            'REGALERÍA',
+
+            // ACTIVIDAD AGROPECUARIA ─────────
+            'ACTIVIDAD AGRÍCOLA',
+            'FRUTICULTURA',
+            'PRODUCCIÓN DE ARÁNDANOS',
+            'PRODUCCIÓN DE FRAMBUESAS',
+            'VENDA DE CERVEZA ARTESANAL',
+
         ];
 
 

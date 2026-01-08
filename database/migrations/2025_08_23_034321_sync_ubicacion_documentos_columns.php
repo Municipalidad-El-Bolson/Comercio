@@ -21,6 +21,12 @@ return new class extends Migration
         'doc_cocap_rhi',
         'doc_nota_carteleria_obras',
         'doc_libro_actas_100',
+        'doc_final_obra',
+        'doc_solicitud_cambio_domicilio',
+        'doc_solicitud_cambio_nombre_fantasia',
+        'doc_solicitud_cambio_rubro',
+        'doc_solicitud_cambio_baja_rubro',
+        'doc_nota_baja_comercial',
 
         // Jurídicas
         'doc_acta_constitucion',
