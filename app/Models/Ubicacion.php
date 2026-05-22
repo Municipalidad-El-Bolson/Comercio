@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use App\Models\ComercioEstado;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class Ubicacion extends Model
 {
@@ -55,11 +57,12 @@ class Ubicacion extends Model
 
             // ---- VIGENTE ----
             if ($nuevo === 'vigente') {
+                $m->situacion = 'alta';
                 if ($esCreate) {
                     // Carga inicial de un comercio ya vigente -> exigir fecha_alta desde el form
                     // (si viene vacía, no la inventamos)
                     if ($m->fecha_alta) {
-                        $m->fecha_vto = Carbon::parse($m->fecha_alta)->addYearNoOverflow();
+                        $m->fecha_vto = self::calcularFechaVencimiento($m->fecha_alta, $m->tipo_habilitacion);
                     }
                 } else {
                     // Transición a vigente
@@ -68,7 +71,7 @@ class Ubicacion extends Model
                         $m->fecha_alta = $hoy;
                     }
                     if ($m->fecha_alta) {
-                        $m->fecha_vto = Carbon::parse($m->fecha_alta)->addYearNoOverflow();
+                        $m->fecha_vto = self::calcularFechaVencimiento($m->fecha_alta, $m->tipo_habilitacion);
                     }
                 }
                 $m->fecha_baja = null;
@@ -76,9 +79,10 @@ class Ubicacion extends Model
 
             // ---- IRREGULAR ----
             if ($nuevo === 'irregular') {
+                $m->situacion = 'alta';
                 // Siempre requiere fecha_alta; si no vino y no tenía, no inventamos (lo exige la UI/validación)
                 if ($m->fecha_alta) {
-                    $m->fecha_vto = Carbon::parse($m->fecha_alta)->addYearNoOverflow();
+                    $m->fecha_vto = self::calcularFechaVencimiento($m->fecha_alta, $m->tipo_habilitacion);
                 } else {
                     $m->fecha_vto = null;
                 }
@@ -87,6 +91,7 @@ class Ubicacion extends Model
 
             // ---- BAJA ----
             if ($nuevo === 'baja') {
+                $m->situacion = 'baja';
                 if (empty($m->fecha_alta)) {
                     // si no tenía alta, la pedimos en la UI; como fallback, setear hoy para no dejar inconsistente:
                     $m->fecha_alta = $m->fecha_alta ?: $hoy;
@@ -142,8 +147,18 @@ class Ubicacion extends Model
         return $dir . $suffix;
     }
 
+    public static function calcularFechaVencimiento($fechaAlta, ?string $tipoHabilitacion = null): Carbon
+    {
+        $fecha = Carbon::parse($fechaAlta);
+
+        return $tipoHabilitacion === 'provisoria'
+            ? $fecha->addMonthsNoOverflow(6)
+            : $fecha->addYearNoOverflow();
+    }
+
 
     protected $fillable = [
+        'hc',
         'persona_tipo',
         'apellido',
         'nombres',
@@ -158,10 +173,71 @@ class Ubicacion extends Model
         'nomenclatura',
         'observaciones',
         'estado',           // vigente | irregular | entramite
+        'tipo_habilitacion', // provisoria | definitiva
         'situacion',        // alta | baja
         'fecha_alta',
         'fecha_baja',
+        'fecha_vto',
     ];
+
+    protected $casts = [
+        'fecha_alta' => 'date',
+        'fecha_baja' => 'date',
+        'fecha_vto' => 'date',
+    ];
+
+    public function scopeProximasAVencer(Builder $query, int $dias = 30): Builder
+    {
+        return $query
+            ->whereIn('estado', ['vigente', 'irregular'])
+            ->where('situacion', 'alta')
+            ->whereNotNull('fecha_vto')
+            ->whereDate('fecha_vto', '>=', Carbon::today())
+            ->whereDate('fecha_vto', '<=', Carbon::today()->addDays($dias));
+    }
+
+    public function getFechaVencimientoCalculadaAttribute(): ?Carbon
+    {
+        if (!in_array($this->estado, ['vigente', 'irregular'], true)) {
+            return null;
+        }
+
+        if ($this->fecha_vto) {
+            return $this->fecha_vto->copy();
+        }
+
+        return $this->fecha_alta
+            ? self::calcularFechaVencimiento($this->fecha_alta, $this->tipo_habilitacion)
+            : null;
+    }
+
+    public static function obtenerProximasAVencer(int $dias = 30, array $with = []): Collection
+    {
+        $desde = Carbon::today();
+        $hasta = $desde->copy()->addDays($dias);
+
+        return static::with($with)
+            ->whereIn('estado', ['vigente', 'irregular'])
+            ->where('situacion', 'alta')
+            ->where(function (Builder $query) {
+                $query->whereNotNull('fecha_vto')
+                    ->orWhereNotNull('fecha_alta');
+            })
+            ->get()
+            ->filter(function (Ubicacion $ubicacion) use ($desde, $hasta) {
+                $vencimiento = $ubicacion->fecha_vencimiento_calculada;
+
+                return $vencimiento
+                    && $vencimiento->greaterThanOrEqualTo($desde)
+                    && $vencimiento->lessThanOrEqualTo($hasta);
+            })
+            ->sortBy(fn (Ubicacion $ubicacion) => sprintf(
+                '%s|%s',
+                $ubicacion->fecha_vencimiento_calculada?->format('Y-m-d') ?? '',
+                $ubicacion->razon_social ?? ''
+            ))
+            ->values();
+    }
 
     // Si deseas deshabilitar los timestamps en el modelo
     public $timestamps = false;

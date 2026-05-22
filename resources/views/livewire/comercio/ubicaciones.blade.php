@@ -35,6 +35,7 @@
                     <table class="table table-sm table-hover table-bordered mb-0">
                         <thead>
                             <tr class="text-center">
+                                <th class="text-sm">N° HC</th>
                                 <th class="text-sm">Persona</th>
                                 <th class="text-sm">Razón Social</th>
                                 <th class="text-sm">Apellido</th>
@@ -52,6 +53,7 @@
                             @forelse ($ubicaciones as $ubicacion)
                                 <tr onclick="window.location='{{ route('comercio.data', $ubicacion) }}'"
                                     style="cursor:pointer;">
+                                    <td class="text-sm text-center">{{ $ubicacion->hc }}</td>
                                     <td class="text-sm text-center">{{ ucfirst($ubicacion->persona_tipo) }}</td>
                                     <td class="text-sm">{{ $ubicacion->razon_social }}</td>
                                     <td class="text-sm">{{ $ubicacion->apellido }}</td>
@@ -88,7 +90,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="11" class="text-center text-muted">No hay registros</td>
+                                    <td colspan="12" class="text-center text-muted">No hay registros</td>
                                 </tr>
                             @endforelse
                         </tbody>

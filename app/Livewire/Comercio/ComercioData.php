@@ -64,6 +64,7 @@ class ComercioData extends Component
 
         // Pasar modelo a array y fusionar docs con defaults
         $this->state = $this->ubicacion->toArray();
+        $this->state['tipo_habilitacion'] = $this->state['tipo_habilitacion'] ?? 'definitiva';
         $docs = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
         $soloDocs = array_intersect_key($docs, $this->docDefaults);
         $this->state['documentos'] = array_merge($this->docDefaults, $soloDocs);
@@ -75,6 +76,7 @@ class ComercioData extends Component
     {
         $rules = [
             'persona_tipo'          => 'required|in:fisica,juridica',
+            'hc'                    => 'nullable|string|max:255',
             'apellido'              => 'nullable|string',
             'nombres'               => 'nullable|string',
             'razon_social'          => 'nullable|string',
@@ -88,6 +90,7 @@ class ComercioData extends Component
             'nomenclatura'          => 'nullable|string',
             'observaciones'         => 'nullable|string',
             'estado'                => 'required|in:vigente,irregular,entramite',
+            'tipo_habilitacion'     => 'required|in:provisoria,definitiva',
             'situacion'             => 'required|in:alta,baja',
             'fecha_alta'            => 'nullable|date',
             'fecha_baja'            => 'nullable|date',

@@ -78,10 +78,14 @@ class Ubicaciones extends AdminComponent
     {
         $ubicaciones = Ubicacion::with(['rubro','estadoModel'])
             ->where(function($q){
-                $t = '%'.$this->searchTerm.'%';
+                $term = trim($this->searchTerm);
+                $t = '%'.$term.'%';
                 $q->where('razon_social','like',$t)
+                  ->orWhere('hc','like',$t)
                   ->orWhere('apellido','like',$t)
-                  ->orWhere('nombres','like',$t);
+                  ->orWhere('nombres','like',$t)
+                  ->orWhere('dni_cuit','like',$t)
+                  ->orWhere('nombre_comercial','like',$t);
             })
             ->orderBy('razon_social')->paginate(10);
 
@@ -99,8 +103,10 @@ class Ubicaciones extends AdminComponent
         $this->reset('state', 'ubicacion', 'selectedMega', 'selectedMadre', 'madres', 'subs');
 
         $this->state = [
+            'hc'            => null,
             'persona_tipo'  => 'fisica',
             'estado'        => 'entramite',
+            'tipo_habilitacion' => 'definitiva',
             'fecha_alta'    => null,
             'fecha_baja'    => null,
             'fecha_vto'     => null,
@@ -118,6 +124,7 @@ class Ubicaciones extends AdminComponent
         $this->ubicacion = $ubicacion->loadMissing('documentos', 'rubro');
 
         $this->state = $this->ubicacion->toArray();
+        $this->state['tipo_habilitacion'] = $this->state['tipo_habilitacion'] ?? 'definitiva';
         $docs = $this->ubicacion->documentos ? $this->ubicacion->documentos->toArray() : [];
         $this->state['documentos'] = array_merge($this->docDefaults, array_intersect_key($docs, $this->docDefaults));
 
@@ -180,6 +187,7 @@ class Ubicaciones extends AdminComponent
     {
         $rulesBase = [
             'persona_tipo'          => 'required|in:fisica,juridica',
+            'hc'                    => 'nullable|string|max:255',
             'apellido'              => 'nullable|string',
             'nombres'               => 'nullable|string',
             'razon_social'          => 'nullable|string',
@@ -194,7 +202,8 @@ class Ubicaciones extends AdminComponent
             'nomenclatura'          => 'nullable|string',
             'observaciones'         => 'nullable|string',
 
-            'estado'                => 'required|in:entramite,vigente,baja',
+            'estado'                => 'required|in:entramite,vigente,irregular,baja',
+            'tipo_habilitacion'     => 'required|in:provisoria,definitiva',
             'fecha_alta'            => 'nullable|date',
             'fecha_baja'            => 'nullable|date',
             'fecha_vto'             => 'nullable|date',
@@ -283,6 +292,7 @@ class Ubicaciones extends AdminComponent
     {
         $rulesBase  = [
             'persona_tipo'          => 'required|in:fisica,juridica',
+            'hc'                    => 'nullable|string|max:255',
             'apellido'              => 'nullable|string',
             'nombres'               => 'nullable|string',
             'razon_social'          => 'nullable|string',
@@ -297,7 +307,8 @@ class Ubicaciones extends AdminComponent
             'nomenclatura'          => 'nullable|string',
             'observaciones'         => 'nullable|string',
 
-            'estado'                => 'required|in:entramite,vigente,baja',
+            'estado'                => 'required|in:entramite,vigente,irregular,baja',
+            'tipo_habilitacion'     => 'required|in:provisoria,definitiva',
             'fecha_alta'            => 'nullable|date',
             'fecha_baja'            => 'nullable|date',
             'fecha_vto'             => 'nullable|date',

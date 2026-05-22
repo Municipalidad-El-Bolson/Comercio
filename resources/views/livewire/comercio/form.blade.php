@@ -12,6 +12,16 @@
                 {{-- Tipo de Persona + DNI/CUIT + Fantasía --}}
                 <div class="form-row">
                     <div class="form-group col-md-4 mb-2">
+                        <label class="mb-1" for="hc">N° HC</label>
+                        <input type="text" id="hc" wire:model.defer="state.hc"
+                            class="form-control form-control-sm @error('state.hc') is-invalid @enderror"
+                            placeholder="N° habilitacion">
+                        @error('state.hc')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="form-group col-md-4 mb-2">
                         <label class="mb-1" for="persona_tipo">Tipo de Persona</label>
                         <select id="persona_tipo" wire:model.defer="state.persona_tipo"
                             class="form-control form-control-sm @error('state.persona_tipo') is-invalid @enderror">
@@ -195,6 +205,16 @@
                         <option value="baja">Baja</option>
                         </select>
                         @error('state.estado') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="form-group col-md-4 mb-2 {{ in_array($estado, ['vigente','irregular']) ? '' : 'd-none' }}" id="grp-tipo-habilitacion">
+                        <label class="mb-1" for="tipo_habilitacion">Tipo de habilitacion</label>
+                        <select id="tipo_habilitacion" wire:model.defer="state.tipo_habilitacion"
+                            class="form-control form-control-sm @error('state.tipo_habilitacion') is-invalid @enderror">
+                            <option value="definitiva">Definitiva</option>
+                            <option value="provisoria">Provisoria</option>
+                        </select>
+                        @error('state.tipo_habilitacion') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
                     {{-- Fecha de alta (Vigente e Irregular y Baja) --}}
@@ -381,12 +401,13 @@
     function aplicarModoEstado() {
         const estado = document.getElementById('estado')?.value || 'entramite';
         const gAlta = document.getElementById('grp-fecha-alta');
+        const gTipo = document.getElementById('grp-tipo-habilitacion');
         const gVto  = document.getElementById('grp-fecha-vto');
         const gBaja = document.getElementById('grp-fecha-baja');
         const ayuda = document.getElementById('ayuda-vigente-desde-tramite');
 
         // reset
-        [gAlta,gVto,gBaja].forEach(e => e && e.classList.add('d-none'));
+        [gAlta,gTipo,gVto,gBaja].forEach(e => e && e.classList.add('d-none'));
         if (ayuda) ayuda.classList.add('d-none');
 
         if (estado === 'entramite') {
@@ -394,6 +415,7 @@
         }
         if (estado === 'vigente') {
             if (gAlta) gAlta.classList.remove('d-none');
+            if (gTipo) gTipo.classList.remove('d-none');
             if (gVto)  gVto.classList.remove('d-none');
             if (@json($showEditModal ? true : false)) {
             // sólo muestro el hint en edición
@@ -402,6 +424,7 @@
         }
         if (estado === 'irregular') {
             if (gAlta) gAlta.classList.remove('d-none');
+            if (gTipo) gTipo.classList.remove('d-none');
             if (gVto)  gVto.classList.remove('d-none');
         }
         if (estado === 'baja') {
@@ -412,10 +435,15 @@
         // cálculo cliente de vto (solo vigente/irregular)
         if ((estado === 'vigente' || estado === 'irregular')) {
             const alta = document.getElementById('fecha_alta')?.value;
+            const tipo = document.getElementById('tipo_habilitacion')?.value || 'definitiva';
             const vto  = document.getElementById('fecha_vto');
             if (alta && vto) {
             const d = new Date(alta);
-            d.setFullYear(d.getFullYear() + 1);
+            if (tipo === 'provisoria') {
+                d.setMonth(d.getMonth() + 6);
+            } else {
+                d.setFullYear(d.getFullYear() + 1);
+            }
             vto.value = d.toISOString().slice(0,10);
             }
         }
@@ -424,8 +452,10 @@
         document.addEventListener('DOMContentLoaded', () => {
         const selEstado = document.getElementById('estado');
         const alta = document.getElementById('fecha_alta');
+        const tipoHabilitacion = document.getElementById('tipo_habilitacion');
         if (selEstado) selEstado.addEventListener('change', aplicarModoEstado);
         if (alta) alta.addEventListener('change', aplicarModoEstado);
+        if (tipoHabilitacion) tipoHabilitacion.addEventListener('change', aplicarModoEstado);
         aplicarModoEstado();
         });
 
