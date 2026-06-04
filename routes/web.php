@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Comercio\ReportesPdfController;
 
 use App\Livewire\Comercio\Ubicaciones;
 use App\Livewire\Comercio\ComercioMapa;
@@ -59,6 +60,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::get('/historial', Historial::class)->name('historial');
         Route::get('/reportes', Reportes::class)->name('reportes');
+        Route::get('/reportes/pdf', ReportesPdfController::class)->name('reportes.pdf');
         Route::get('/register-user', RegisterUser::class)->name('register-user');
         Route::get('/usuarios', UsersIndex::class)->name('users.index');
     });

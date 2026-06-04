@@ -97,9 +97,18 @@
         </br>
           <hr>
           </br>
-          <button class="btn btn-outline-danger btn-sm shadow-sm" wire:click="exportarPdf">
+          <a class="btn btn-outline-danger btn-sm shadow-sm"
+             href="{{ route('reportes.pdf', [
+                'rubro_id' => $rubro_id,
+                'rubroGeneral' => $rubroGeneral,
+                'estado' => $estado,
+                'desde' => $desde,
+                'hasta' => $hasta,
+                'proximos_vtos' => $proximos_vtos,
+                'solo_clausurados' => $solo_clausurados ? 1 : 0,
+             ]) }}">
             <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
-          </button>
+          </a>
 
         </div>
       </div>
@@ -439,4 +448,3 @@
 
 </style>
 @endpush
-
