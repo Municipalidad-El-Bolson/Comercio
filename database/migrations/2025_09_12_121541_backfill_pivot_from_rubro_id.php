@@ -6,10 +6,14 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration {
     public function up(): void
     {
+        $nowSql = DB::connection()->getDriverName() === 'sqlite'
+            ? "CURRENT_TIMESTAMP"
+            : "NOW()";
+
         // Inserta en pivot la dupla (ubicacion_id, rubro_id) si falta.
         DB::statement("
             INSERT INTO ubicacion_rubro (ubicacion_id, rubro_id, created_at, updated_at)
-            SELECT u.id, u.rubro_id, NOW(), NOW()
+            SELECT u.id, u.rubro_id, {$nowSql}, {$nowSql}
             FROM ubicaciones u
             WHERE u.rubro_id IS NOT NULL
               AND NOT EXISTS (
@@ -24,4 +28,3 @@ return new class extends Migration {
         // No hacemos rollback (no sabemos cuáles estaban antes).
     }
 };
-

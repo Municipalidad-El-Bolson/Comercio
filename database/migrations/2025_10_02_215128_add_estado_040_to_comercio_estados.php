@@ -6,20 +6,26 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration {
     public function up(): void
     {
-        // Inserta o actualiza el estado 040
-        DB::table('comercio_estados')->updateOrInsert(
-            ['codigo' => '040'],
-            [
-                'nombre'               => '040/25',   // o '040' si preferís
-                'aplica_fecha_alta'    => 1,
-                'aplica_fecha_baja'    => 0,
-                'aplica_fecha_vto'     => 1,          // aplica (tu regla puede hacerlo opcional)
-                'habilita_seguimiento' => 1,
-                'orden'                => 5,
-                'updated_at'           => now(),
-                'created_at'           => DB::raw('COALESCE(created_at, NOW())'),
-            ]
-        );
+        $values = [
+            'nombre' => '040/25',
+            'aplica_fecha_alta' => 1,
+            'aplica_fecha_baja' => 0,
+            'aplica_fecha_vto' => 1,
+            'habilita_seguimiento' => 1,
+            'orden' => 5,
+            'updated_at' => now(),
+        ];
+
+        if (DB::table('comercio_estados')->where('codigo', '040')->exists()) {
+            DB::table('comercio_estados')->where('codigo', '040')->update($values);
+
+            return;
+        }
+
+        DB::table('comercio_estados')->insert($values + [
+            'codigo' => '040',
+            'created_at' => now(),
+        ]);
     }
 
     public function down(): void
@@ -27,4 +33,3 @@ return new class extends Migration {
         DB::table('comercio_estados')->where('codigo', '040')->delete();
     }
 };
-

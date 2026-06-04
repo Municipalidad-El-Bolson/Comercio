@@ -6,6 +6,10 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration {
     public function up(): void
     {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         $dbName = DB::getDatabaseName();
 
         // Traer todos los índices de la tabla
@@ -89,6 +93,10 @@ return new class extends Migration {
 
     public function down(): void
     {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Bajar los índices normales (si existen)
         foreach (['ubicaciones_dni_cuit_index','ubicaciones_razon_social_index','ubicaciones_apellido_nombres_index'] as $idx) {
             try { DB::statement("ALTER TABLE `ubicaciones` DROP INDEX `{$idx}`"); } catch (\Throwable $e) {}

@@ -9,8 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+
         // 1) Soltar la FK en ubicaciones.rubro_id (si existe, cualquiera sea su nombre)
-        if (Schema::hasTable('ubicaciones') && Schema::hasColumn('ubicaciones', 'rubro_id')) {
+        if (!$isSqlite && Schema::hasTable('ubicaciones') && Schema::hasColumn('ubicaciones', 'rubro_id')) {
             $fk = DB::selectOne("
                 SELECT CONSTRAINT_NAME
                 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
@@ -50,8 +52,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+
         // Intentar soltar FK si estuviera
-        if (Schema::hasTable('ubicaciones') && Schema::hasColumn('ubicaciones', 'rubro_id')) {
+        if (!$isSqlite && Schema::hasTable('ubicaciones') && Schema::hasColumn('ubicaciones', 'rubro_id')) {
             $fk = DB::selectOne("
                 SELECT CONSTRAINT_NAME
                 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE

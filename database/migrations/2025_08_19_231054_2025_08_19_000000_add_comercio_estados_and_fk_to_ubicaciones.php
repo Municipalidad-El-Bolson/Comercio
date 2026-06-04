@@ -9,6 +9,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+
         // 1) Tabla de estados
         if (!Schema::hasTable('comercio_estados')) {
             Schema::create('comercio_estados', function (Blueprint $table) {
@@ -54,7 +56,9 @@ return new class extends Migration
 
         // 3) Asegurar columnas en ubicaciones (sin doctrine/dbal)
         if (Schema::hasColumn('ubicaciones', 'estado')) {
-            DB::statement("ALTER TABLE `ubicaciones` MODIFY `estado` VARCHAR(50) NOT NULL DEFAULT 'entramite'");
+            if (!$isSqlite) {
+                DB::statement("ALTER TABLE `ubicaciones` MODIFY `estado` VARCHAR(50) NOT NULL DEFAULT 'entramite'");
+            }
         } else {
             Schema::table('ubicaciones', function (Blueprint $table) {
                 $table->string('estado', 50)->default('entramite')->after('id');
@@ -72,14 +76,26 @@ return new class extends Migration
         DB::statement("UPDATE `ubicaciones` SET `estado` = 'entramite' WHERE `estado` IS NULL OR `estado` = ''");
 
         // - cualquier valor NO incluido en comercio_estados -> 'entramite' (ej: 'irregular', etc.)
-        DB::statement("
-            UPDATE `ubicaciones` u
-            LEFT JOIN `comercio_estados` ce ON ce.codigo = u.estado
-            SET u.estado = 'entramite'
-            WHERE ce.codigo IS NULL
-        ");
+        if ($isSqlite) {
+            DB::statement("
+                UPDATE `ubicaciones`
+                SET `estado` = 'entramite'
+                WHERE `estado` NOT IN (SELECT `codigo` FROM `comercio_estados`)
+            ");
+        } else {
+            DB::statement("
+                UPDATE `ubicaciones` u
+                LEFT JOIN `comercio_estados` ce ON ce.codigo = u.estado
+                SET u.estado = 'entramite'
+                WHERE ce.codigo IS NULL
+            ");
+        }
 
         // 5) FK idempotente
+        if ($isSqlite) {
+            return;
+        }
+
         $fkName = 'ubicaciones_estado_fk';
 
         $fkExists = DB::selectOne("
@@ -118,6 +134,12 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            Schema::dropIfExists('comercio_estados');
+
+            return;
+        }
+
         $fkName = 'ubicaciones_estado_fk';
         $fkExists = DB::selectOne("
             SELECT CONSTRAINT_NAME
@@ -136,4 +158,3 @@ return new class extends Migration
         // No elimino fecha_vto para no romper otras migrations/uso.
     }
 };
-

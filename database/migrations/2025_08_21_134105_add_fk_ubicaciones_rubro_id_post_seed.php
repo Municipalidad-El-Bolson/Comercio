@@ -9,6 +9,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+
         // Asegurar que la columna admita NULL por si hay huérfanos
         try {
             Schema::table('ubicaciones', function (Blueprint $table) {
@@ -19,6 +21,17 @@ return new class extends Migration
         }
 
         // Nullificar referencias a rubros inexistentes
+        if ($isSqlite) {
+            DB::statement("
+                UPDATE ubicaciones
+                SET rubro_id = NULL
+                WHERE rubro_id IS NOT NULL
+                  AND rubro_id NOT IN (SELECT id FROM rubros)
+            ");
+
+            return;
+        }
+
         DB::statement("
             UPDATE ubicaciones u
             LEFT JOIN rubros r ON r.id = u.rubro_id
