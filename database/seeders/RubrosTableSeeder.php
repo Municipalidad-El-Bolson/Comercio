@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Carbon;
 
 class RubrosTableSeeder extends Seeder
@@ -11,253 +12,474 @@ class RubrosTableSeeder extends Seeder
     public function run(): void
     {
         $now = Carbon::now();
+        $MAX = 100;
 
-        // ================================
-        // 1) Armar dataset con tus datos
-        // ================================
-        $dataset = [];
+        // ===================== utilidades =====================
+        $toUpper = fn(string $s) => mb_strtoupper($s, 'UTF-8');
 
-        // Helper para agregar grupos de subrubros
-        $add = function (string $mega, string $madre, array $items) use (&$dataset, $now) {
-            $mega  = trim($mega);
-            $madre = trim($madre);
-
-            foreach ($items as $it) {
-                $sub = trim($it);
-                if ($sub === '') { continue; }
-
-                $dataset[] = [
-                    'mega_rubro'  => $mega,
-                    'rubro_madre' => $madre,
-                    'subrubro'    => $sub,
-                    'created_at'  => $now,
-                    'updated_at'  => $now,
-                ];
-            }
+        $stripAccents = function (string $s): string {
+            $tr = [
+                'Á'=>'A','É'=>'E','Í'=>'I','Ó'=>'O','Ú'=>'U','Ñ'=>'N',
+                'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ñ'=>'n'
+            ];
+            return strtr($s, $tr);
         };
 
-        // ================================
-        // ====== TUS DEFINICIONES ========
-        // (copiadas y organizadas del seeder que pasaste)
-        // ================================
+        $noSingular = ['ANALISIS','PAIS','BUS','TORAX','POLIRRUBRO','KIOSCO','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES'];
 
-        // 1) Comercio y Ventas
-        $mega = 'Comercio y Ventas';
-        $add($mega, 'Almacenes y Tiendas', [
-            'Almacenes naturistas',
-            'Supermercados',
-            'Despensas',
-            'Autoservicios',
-        ]);
-        $add($mega, 'Artículos para el Hogar', [
-            'Artículos de bazar y menaje',
-            'Artículos de electricidad e iluminación',
-            'Artículos sanitarios',
-            'Artículos de riego',
-            'Artículos para el hogar',
-            'Venta de telas, cortinas, artículos de blanco, mantelería, tapicería',
-            'Venta de revestimientos (interior y exterior)',
-            'Venta de hierro, chapas, maderas y materiales de construcción en seco',
-            'Venta de muebles y colchonerías',
-        ]);
-        $add($mega, 'Tecnología, Comunicación y Fotografía', [
-            'Artículos de comunicación, informática, electrónica y reparación',
-            'Venta de aparatos fotográficos, revelados y laboratorios fotográficos',
-            'Alquiler de videos y locutorios',
-        ]);
-        $add($mega, 'Alimentos y Bebidas (comercio minorista/mayorista)', [
-            'Venta de comidas preparadas, rotiserías, fábricas de pastas',
-            'Venta de repostería casera (tortas, sándwiches, jugos)',
-            'Venta y/o fábricas de comestibles regionales (quesos, truchas, etc.)',
-            'Venta mayorista de frutas y verduras',
-            'Venta de bebidas y recargas de cerveza (growlers)',
-        ]);
-        $add($mega, 'Rubro Animal y Agro', [
-            'Venta de alimentos y accesorios de mascotas (según superficie)',
-            'Agroveterinarias',
-        ]);
-        $add($mega, 'Otros', [
-            'Artículos de cuero y artesanías',
-            'Casa de artículos deportivos',
-            'Librerías y jugueterías',
-            'Venta de instrumentos musicales',
-            'Venta de máquinas y herramientas de jardín',
-            'Venta de neumáticos',
-            'Venta de lanas',
-            'Venta de leña, carbón y gas envasados',
-            'Venta de libros, diarios y revistas',
-            'Venta de matafuegos y oxígeno',
-        ]);
+        $singularWord = function(string $w) use ($noSingular, $toUpper): string {
+            $u = $toUpper($w);
+            if (in_array($u, $noSingular, true)) return $u;
+            if (preg_match('/CES$/u', $u)) return preg_replace('/CES$/u', 'Z', $u);
+            if (preg_match('/[B-DF-HJ-NP-TV-Z]ES$/u', $u)) return preg_replace('/ES$/u', '', $u);
+            if (preg_match('/[AEIOUÁÉÍÓÚ]S$/u', $u)) return preg_replace('/S$/u', '', $u);
+            return $u;
+        };
 
-        // 2) Construcción y Hogar
-        $mega = 'Construcción y Hogar';
-        $add($mega, 'Ferreterías y Pinturerías', [
-            'Ferreterías',
-            'Pinturerías',
-        ]);
-        $add($mega, 'Materiales y Servicios', [
-            'Corralones de materiales',
-            'Servicios de aserrío móvil',
-        ]);
+        $singularize = fn(string $s) =>
+            preg_replace_callback('/\p{L}{3,}/u', fn($m) => $singularWord($m[0]), $s);
 
-        // 3) Educación y Capacitación
-        $mega = 'Educación y Capacitación';
-        $add($mega, 'Instituciones y Formación', [
-            'Academias e institutos de enseñanza particulares',
-            'Jardines de infantes y guarderías',
-            'Escuelas de esquí',
-            'Establecimientos escolares privados',
-        ]);
+        $hasAction = function(string $u): bool {
+            return (bool) preg_match('/\b(ALQUILER|VENTA|SERVICIO|SERV\.|ELABORACION|ELAB\.|FABRICACION|FAB\.|PRODUCCION|COLOCACION|MANTENIMIENTO|REPARACION|DISTRIBUIDORA|TALLER|CONSULTOR|CONSULTORIA|CURSO|CLASE|HOSTEL|HOTEL|HOSTERIA|SUPERMERCADO|RESTAURANTE|PANADERIA|PIZZERIA|HELADERIA|KIOSCO|FERRETERIA|VIDRIERIA|PELUQUERIA)\b/u', $u);
+        };
 
-        // 4) Gastronomía
-        $mega = 'Gastronomía';
-        $add($mega, 'Gastronomía General', [
-            'Restaurantes, parrillas, pizzerías, confiterías sin actividades anexas',
-            'Café concerts, pubs, confiterías bailables, snack bar',
-            'Cafeterías (hasta 10 mesas / más de 10 mesas)',
-            'Fabricación de bebidas con/sin alcohol – fábrica de cerveza con restaurante/pizzería',
-            'Food trucks',
-            'Pancherías',
-            'Fiambrerías',
-            'Panaderías y panificados',
-            'Pescaderías',
-            'Pollerías',
-            'Carnicerías',
-            'Verdulerías y fruterías',
-            'Vinotecas',
-            'Regalerías',
-        ]);
+        $agro = [
+            'ARANDANO','CEREZA','FRAMBUESA','MANZANA','NUEZ','NOGAL','PAPA','TRUCHA','VIÑA','VIÑEDO','YERBA',
+            'HIGO','PERA','DURAZNO','CEREAL','OLIVO','TAMBO','LECHUGA','TOMATE','AJO','CEBOLLA','ZANAHORIA'
+        ];
 
-        // 5) Ocio y Entretenimiento
-        $mega = 'Ocio y Entretenimiento';
-        $add($mega, 'Entretenimiento', [
-            'Videojuegos',
-            'Casinos',
-            'Televisión por cable y satélite',
-            'Peloteros e inflables infantiles',
-        ]);
+        $materiales = [
+            'TEJA','LADRILLO','CEMENTO','CERAMICO','PORCELANATO','MOSAICO','PUERTA','VENTANA','REVESTIMIENTO',
+            'HERRAMIENTA','PINTURA','TABLON','ANDAMIO','PLANCHADA','MEZCLADORA','VIBRADOR','HIERRO','MADERA','LOZA'
+        ];
 
-        // 6) Servicios Generales
-        $mega = 'Servicios Generales';
-        $add($mega, 'Servicios Personales', [
-            'Peluquerías',
-            'Salones de estética y pedicuras',
-            'Terapias alternativas',
-        ]);
-        $add($mega, 'Servicios Técnicos', [
-            'Talleres mecánicos de autos',
-            'Talleres de motos y motosierras',
-            'Talleres de bicicletas y gomerías',
-            'Talleres de chapa y pintura',
-            'Talleres de reparación de calzados y costura',
-            'Talleres de alineación y balanceo',
-        ]);
-        $add($mega, 'Servicios Comerciales y Empresariales', [
-            'Estudios contables',
-            'Estudios jurídicos',
-            'Estudios de agrimensura, arquitectura e ingeniería',
-            'Gestorías',
-            'Inmobiliarias',
-            'Casas de crédito y financieras',
-            'Administración de tarjetas de crédito y compras',
-            'Locales de cobro de servicios (hasta 2 cajas / más de 2 cajas)',
-        ]);
-        $add($mega, 'Servicios Varios', [
-            'Cerrajerías',
-            'Lavaderos de automóviles',
-            'Soderías',
-            'Imprentas y fotocopias',
-            'Distribuidores mayoristas de bebidas',
-            'Servicio de grúa',
-            'Lavanderías y tintorerías',
-            'Servicios de seguridad',
-            'Servicios fúnebres',
-            'Servidores de internet y cable/fibra',
-            'Empresas de correo y mensajería',
-            'Energías renovables',
-        ]);
+        $classify = function(string $u) use ($agro, $materiales, $stripAccents) {
+            if (preg_match('/\b[ -\/,]/u', $u)) return null; 
+            if (in_array($u, array_map(fn($x)=>$stripAccents($x), array_map('mb_strtoupper',$agro)))) {
+                return 'PRODUCCION DE '.$u;
+            }
+            if (in_array($u, array_map(fn($x)=>$stripAccents($x), array_map('mb_strtoupper',$materiales)))) {
+                return 'VENTA DE '.$u;
+            }
+            return null;
+        };
 
-        // 7) Salud y Bienestar
-        $mega = 'Salud y Bienestar';
-        $add($mega, 'Salud', [
-            'Clínicas y sanatorios médicos en general',
-            'Laboratorios de análisis',
-            'Farmacias y perfumerías',
-            'Geriátricos',
-            'Gimnasios',
-        ]);
+        $normalize = function(string $txt) use ($toUpper, $singularize) {
+            $s = $toUpper(trim($txt));
+            $s = preg_replace('/\s+/u', ' ', $s);
+            $s = preg_replace('/\bS\/\s*/u', 'SIN ', $s);
+            $s = preg_replace('/\bC\/\s*/u', 'CON ', $s);
+            $s = $singularize($s);
+            $s = preg_replace('/\s*\/\s*/u', ' / ', $s);
+            $s = preg_replace('/\s*-\s*/u', ' - ', $s);
+            $s = preg_replace('/\s*\,\s*/u', ', ', $s);
+            $s = preg_replace('/\s+(\.|\)|,)/u', '$1', $s);
+            return trim(preg_replace('/\s+/u', ' ', $s));
+        };
 
-        // 8) Tecnología y Comunicación
-        $mega = 'Tecnología y Comunicación';
-        $add($mega, 'Comunicaciones', [
-            'Telefonía celular',
-            'Empresas de radiollamadas y telecomunicaciones',
-        ]);
+        $clarifyIfBare = function(string $name, $hasAction, $classify) {
+            $u = $name;
+            if ($hasAction($u)) return $u;
+            $forced = $classify($u);
+            return $forced ?? $u;
+        };
 
-        // 9) Transporte y Turismo
-        $mega = 'Transporte y Turismo';
-        $add($mega, 'Transporte de Pasajeros', [
-            'Transporte urbano de pasajeros',
-            'Compañías de media y larga distancia',
-            'Transporte escolar',
-            'Remises, taxis, taxi-fletes',
-            'Agencias de remises',
-            'Venta de pasajes larga distancia',
-        ]);
-        $add($mega, 'Transporte de Cargas', [
-            'Transporte de áridos',
-            'Transporte de cargas, mudanzas y similares',
-            'Transporte de sustancias alimenticias',
-        ]);
-        $add($mega, 'Servicios y Comercio Automotor', [
-            'Alquiler de automotores',
-            'Repuestos de automotores',
-            'Venta de automotores y motos (nuevos y usados)',
-            'Venta de combustibles (estaciones de servicio con o sin anexos)',
-            'Lubricentros (cambio de aceites, filtros y servicios básicos de mantenimiento)',
-        ]);
-        $add($mega, 'Turismo', [
-            'Agencias de viajes y turismo',
-            'Turismo activo (rafting, parapente, vuelos, mountain bike, trekking, etc.)',
-            'Cabalgatas',
-            'Campings, balnearios y recreos',
-            'Bungalows y cabañas',
-            'Hoteles',
-            'Hostels, hosterías y moteles',
-            'Refugios de montaña',
-            'Residenciales',
-            'Puestos en feria regional',
-            'Venta de pasajes turísticos',
-        ]);
+        $compress = function(string $s) use ($MAX) {
+            if (mb_strlen($s,'UTF-8') <= $MAX) return $s;
+            $s = preg_replace('/\b(DEL|DE LA|DE LOS|DE LAS|DE|LA|EL|LOS|LAS|Y)\b/u', '', $s);
+            $s = trim(preg_replace('/\s+/u', ' ', $s));
+            if (mb_strlen($s,'UTF-8') <= $MAX) return $s;
+            $s = preg_replace('/\s*\/\s*/u', '/', $s);
+            $s = preg_replace('/\s*-\s*/u', '-', $s);
+            $s = trim(preg_replace('/\s+/u', ' ', $s));
+            if (mb_strlen($s,'UTF-8') <= $MAX) return $s;
+            $cut = mb_substr($s, 0, $MAX, 'UTF-8');
+            $space = mb_strrpos($cut, ' ', 0, 'UTF-8');
+            if ($space !== false && $space >= 10) $cut = mb_substr($cut, 0, $space, 'UTF-8');
+            return rtrim($cut).'…';
+        };
 
-        // =======================================
-        // 2) Deduplicar por clave compuesta
-        // =======================================
-        $unique = [];
-        $rows = [];
-        foreach ($dataset as $r) {
-            // Clave case-insensitive para evitar duplicados sutiles
-            $key = mb_strtolower($r['mega_rubro'].'|'.$r['rubro_madre'].'|'.$r['subrubro']);
-            if (isset($unique[$key])) { continue; }
-            $unique[$key] = true;
+        // =======================================================
+        //  NUEVO → función para clasificar rubro_general
+        // =======================================================
+        $generalClassifier = function(string $sub) {
+        $u = mb_strtoupper($sub);
 
-            // Normalizar espaciado
-            $r['mega_rubro']  = preg_replace('/\s+/u', ' ', trim($r['mega_rubro']));
-            $r['rubro_madre'] = preg_replace('/\s+/u', ' ', trim($r['rubro_madre']));
-            $r['subrubro']    = preg_replace('/\s+/u', ' ', trim($r['subrubro']));
-
-            $rows[] = $r;
+        // === 1) ALOJAMIENTO DE ALQUILER TURÍSTICO ===
+        if (preg_match('/(HOTEL|HOSTEL|HOSTERIA|HOSPEDA|ALOJAM|CABAÑA|CABAÑAS|APART|APARTAMENT|DEPARTAMENTO|DPTO|CAMPING)/', $u)) {
+            return 'ALOJAMIENTO DE ALQUILER TURISTICO';
         }
 
-        // =======================================
-        // 3) UPSERT por chunks (idempotente)
-        // =======================================
+        // === 2) GASTRONOMÍA ===
+        if (preg_match('/(RESTAURANTE|ROTISERIA|PANADERIA|HELADERIA|PIZZERIA|GASTRON|CONFITERIA|CAFETERIA|PARRILLA|CASA DE TE|TE HOUSE|COMIDAS AL PASO|SANDWICH|FAST FOOD)/', $u)) {
+            return 'GASTRONOMIA';
+        }
+
+        // === 3) CENTRO DE ESTÉTICA Y SPA ===
+        if (preg_match('/(ESTETICA|SPA|MASAJE|KINESIO|DEPILACION|COSMETO|PELUQUERIA|BARBERIA|UÑAS|MANICUR|PEDICUR)/', $u)) {
+            return 'CENTRO DE ESTETICA Y SPA';
+        }
+
+        // === 4) LAVADEROS DE AUTOS ===
+        if (preg_match('/(LAVADERO|LAVA AUTO|LAVADO DE AUTOS|CAR WASH)/', $u)) {
+            return 'LAVADEROS DE AUTOS';
+        }
+
+        // === 5) LUBRICENTROS ===
+        if (preg_match('/(LUBRICENTRO|LUBRICACION|CAMBIO DE ACEITE)/', $u)) {
+            return 'LUBRICENTROS';
+        }
+
+        // === 6) TALLER AUTOMOTOR ===
+        if (preg_match('/(TALLER MECANICO|TALLER|MECANICO|CHAPA Y PINTURA|GOMERIA|ALINEACION|BALANCEO|AMORTIGUACION|ELECTRICIDAD AUTOMOTOR)/', $u)) {
+            return 'TALLER DEL AUTOMOTOR';
+        }
+
+        // === 7) SALUD ===
+        if (preg_match('/(CLINICA|SALUD|HOSPITAL|ENFERMER|MEDIC|KINESIO|FISIOTER|ODONTO|TERAPIA|PSICO|LABORATORIO)/', $u)) {
+            return 'SALUD';
+        }
+
+        // === 8) GIMNASIOS ===
+        if (preg_match('/(GYM|GIMNASIO|CROSSFIT|FITNESS|ENTRENAMIENTO|ZUMBA|PILATES)/', $u)) {
+            return 'GIMNASIOS';
+        }
+
+        // === 9) ALQUILER DE CANCHAS ===
+        if (preg_match('/(CANCHA|PADEL|PÁDEL|TENIS|FUTBOL|VOLEY|BASQUET|ALQUILER DE CANCHA)/', $u)) {
+            return 'ALQUILER DE CANCHAS';
+        }
+
+        // === 10) VENTA DE ARTESANÍAS Y PRODUCTOS REGIONALES ===
+        if (preg_match('/(ARTESANIA|ARTESANIAS|REGIONAL|PRODUCTOS REGIONAL|SOUVENIR|ARTESANAL)/', $u)) {
+            return 'VENTA DE ARTESANIAS Y PRODUCTOS REGIONALES';
+        }
+
+        // === 11) SALA DE ELABORACIÓN ===
+        if (preg_match('/(SALA DE ELABORACION|ELABORACION|FÁBRICA|PRODUCCION DE ALIMENT|PRODUCCION ARTESANAL)/', $u)) {
+            return 'SALA DE ELABORACION';
+        }
+
+        // === 12) COCINAS DOMICILIARIAS — PERMISO HABILITANTE ===
+        if (preg_match('/(COCINA DOMICILIARIA|COCINA EN CASA|COCINA CASERA|COCINA FAMILIAR|ELABORACION DOMICILIARIA)/', $u)) {
+            return 'COCINA DOMICILIARIA';
+        }
+
+        // === 13) SERVICIOS GENERALES ===
+        if (preg_match('/(SERVICIO|CONSULTOR|MANTENIM|ASESOR|LAVANDERIA|LAVARROPA|REPARACION|INSTALACION)/', $u)) {
+            return 'SERVICIOS';
+        }
+
+        // === 14) COMERCIO GENERAL ===
+        if (preg_match('/(VENTA|KIOSCO|QUIOSCO|TIENDA|INDUMENTARIA|LIMPIEZA|COMERCIO|ARTICULOS|BAZAR|REGALOS)/', $u)) {
+            return 'COMERCIO';
+        }
+
+        // === 15) AGRO / PRODUCCIÓN ===
+        if (preg_match('/(PRODUCCION|ELABORACION|AGRIC|FRUTIC|ARANDANO|FRAMBUESA|CERVEZA ARTESANAL)/', $u)) {
+            return 'AGRO / PRODUCCION';
+        }
+
+        // === Otros ===
+        return 'OTROS';
+    };
+
+        // =======================================================
+
+        // ===================== Recolectar fuentes =====================
+        $candidatos = [
+            database_path('data/Nomenclador_de_Actividades_CICI_2025.csv'),
+            database_path('data/Nomenclador_de_Actividades_CICI_2025 (1).csv'),
+            database_path('Nomenclador_de_Actividades_CICI_2025.csv'),
+            base_path('Nomenclador_de_Actividades_CICI_2025.csv'),
+            storage_path('app/Nomenclador_de_Actividades_CICI_2025.csv'),
+        ];
+
+        $fromCSV = [];
+        foreach ($candidatos as $ruta) {
+            if (is_readable($ruta)) {
+                $fh = fopen($ruta, 'r');
+                if ($fh !== false) {
+                    $first = fgets($fh);
+                    if ($first === false) { fclose($fh); continue; }
+
+                    $delim = (substr_count($first, ';') > substr_count($first, ',')) ? ';' : ',';
+
+                    rewind($fh);
+                    $headers = null;
+                    while (($row = fgetcsv($fh, 0, $delim)) !== false) {
+                        if ($headers === null) {
+                            $headers = array_map(fn($h)=>mb_strtoupper(trim((string)$h),'UTF-8'), $row);
+                            continue;
+                        }
+                        $line = array_map('trim', $row);
+                        if (!count($line)) continue;
+
+                        $idx = null;
+                        foreach ($headers as $i => $h) {
+                            if (preg_match('/SUB.*RUBRO/u', $h)) { $idx = $i; break; }
+                            if (preg_match('/NOMBRE|DESCRIP/u', $h)) { $idx = $idx ?? $i; }
+                        }
+                        if ($idx === null || !isset($line[$idx])) continue;
+
+                        $val = (string)$line[$idx];
+                        if ($val !== '') $fromCSV[] = $val;
+                    }
+                    fclose($fh);
+                    break;
+                }
+            }
+        }
+
+        $fromDB = [];
+        try {
+            if (Schema::hasTable('rubros')) {
+                $fromDB = DB::table('rubros')->pluck('subrubro')->filter()->all();
+            }
+        } catch (\Throwable) {}
+
+        $manual = [
+            'MERCERIA',
+            'TIENDA',
+            'MASAJE',
+            'SALA DE ELABORACION',
+            'KIOSCOS',
+            'TEJAS',
+            'FRAMBUESAS',
+            'VENTA DE HELADOS',
+            'ELABORACION DE PANIFICADOS',
+            'COTILLONERIA',
+            'PAPELERIA',
+            'EDERSA',
+            'HOTEL',
+            'ALMACEN',
+            'ROTISERIA',
+            'PANADERIA',
+            'HELADERIA',
+            'PIZZERIA',
+            'GIMNASIO',
+            'HOSTERIA',
+            'HOSTEL',
+            'HOSPEDAJE',
+            'ALOJAMIENTO TURÍSTICO',
+            'CABAÑAS',
+            'APARTAMENTOS TURÍSTICOS',
+            'DEPARTAMENTOS TURÍSTICOS',
+            'CAMPING',
+            'OFICINA DE INFORMES Y RECAUDACIONES',
+            'HORMIGON (VENTA)',
+            'PANTALLA LED CON PUBLICIDAD',
+            'ARTICULOS DE LIMPIEZA (VENTA)',
+            'VENTA DE CELULARES, ACCESORIOS Y REPARACIÓN',
+            'OFICINA DE OBRA SOCIAL',
+            'VIDRIERÍA',
+            'DEPÓSITO',
+            'VENTA DE MERCADERÍA POR MAYOR Y MENOR',
+            'COTILLÓN',
+            'PAPELERA',
+            'OFICINA DE INFORMES Y RECAUDACIONES',
+            'VENTA DE HORMIGÓN',
+            'PANTALLA LED CON PUBLICIDAD',
+            'VENTA DE ARTÍCULOS DE LIMPIEZA',
+            'ÓPTICA',
+            'VENTA DE ARTESANÍAS Y PRODUCTOS REGIONALES',
+            'EXCURSIONES VEHÍCULOS CON ORUGA',
+            'DEPOSITO',
+            'VENTA MAYORISTA',
+            'VENTA DE ARTESANÍAS Y PRODUCTOS REGIONALES',
+            'BODEGA CON DEGUSTACIÓN',
+            'DEPÓSITO Y VENTA DE MERCADERÍAS',
+            'DISTRIBUIDORA / ES',
+            'VETERINARIA',
+            'TAROT',
+            'COOPERATIVA DE TRABAJO',
+            'LENCERÍA',
+            'VENTA DE INDUMENTARIA',
+            'VENTA DE SANITARIOS',
+            'ESCUELA COREOGRAFÍA',
+            'OFICINA DE OBRA SOCIAL',
+            'DEPÓSITO DE CARGAS',
+            'VENTA DE HERRAMIENTAS ELÉCTRICAS',
+            'ESTABLECIMIENTO AGRÍCOLA',
+            'ELABORACIÓN DE DULCES',
+            'ELABORACIÓN DE JUGOS NATURALES',
+            'CONSERVAS',
+            'SALA DE CONSUMO Y DEGUSTACIÓN',
+            'ELABORACIÓN Y VENTA DE CHOCOLATES ARTESANALES',
+            'SECADERO DE FRUTAS',
+            'CONFITURAS',
+            'MARMOLERÍA',
+            'VENTA DE BACHAS PARA COCINAS',
+            'VENTA DE INODOROS',
+            'VENTA DE CARBÓN Y LEÑA',
+            'VENTA DE LEÑA EN BOLSA',
+            'SALA DE FRACCIONAMIENTO DE MIEL',
+            'BULONERIA',
+            'VENTA DE CAÑOS',
+            'ARTÍCULOS DE GAS',
+            'ARTÍCULOS DE FONTANERÍA',
+            'PROVEDURIA',
+            'PERFUMERIA',
+            'COSMETICA',
+            'BIJOUTERIE',
+            'ACCESORIOS',
+            'BEBIDAS ALCOHÓLICAS',
+            'SALA DE ELABORACIÓN DE PASTAS SIN GLUTEN',
+            'SALA DE ELABORACIÓN DE PANIFICADOS SIN GLUTEN',
+            'PASTELERÍA SIN GLUTEN',
+            'RESTAURANTE',
+            'ELABORACIÓN DE CERVEZAS ARTESANALES',
+            'ELABORACIÓN DE MALTA',
+            'PUNTO DE VENTA',
+            'FABRICA DED HIELO',
+            'VENTA DE HIELO',
+            'CONFITERIA',
+            'CAFETERIA',
+            
+            // RUBROS GASTRONÓMICOS ─────────
+            'RESTAURANTE',
+            'PARRILLA',
+            'CASA DE TÉ',
+            'COMIDAS AL PASO',
+            'SANDWICHERÍA',
+            'FAST FOOD',
+
+            // ESTÉTICA Y SALUD PERSONAL ─────────
+            'CENTRO DE ESTÉTICA',
+            'SPA',
+            'KINESIOLOGÍA',
+            'DEPILACIÓN',
+            'COSMETOLOGÍA',
+            'BARBERÍA',
+            'MANICURÍA',
+            'PEDICURÍA',
+
+            // SERVICIOS AUTOMOTORES ─────────
+            'LAVADERO DE AUTOS',
+            'LUBRICENTRO',
+            'TALLER MECÁNICO',
+            'CHAPA Y PINTURA',
+            'GOMERÍA',
+            'ALINEACIÓN Y BALANCEO',
+            'AMORTIGUACIÓN',
+            'ELECTRICIDAD AUTOMOTOR',
+
+            // SALUD ─────────
+            'CLÍNICA',
+            'HOSPITAL',
+            'CONSULTORIO MÉDICO',
+            'ENFERMERÍA',
+            'FISIOTERAPIA',
+            'ODONTOLOGÍA',
+            'PSICOLOGÍA',
+            'LABORATORIO DE ANÁLISIS',
+
+            // DEPORTE ─────────
+            'GIMNASIO',
+            'CROSSFIT',
+            'CENTRO DE FITNESS',
+            'PILATES',
+            'ESCUELA DE ZUMBA',
+
+            // CANCHAS DEPORTIVAS ─────────
+            'CANCHA DE PÁDEL',
+            'CANCHA DE TENIS',
+            'CANCHA DE FÚTBOL',
+            'CANCHA DE VÓLEY',
+            'CANCHA DE BÁSQUET',
+            'ALQUILER DE CANCHAS',
+
+            // PRODUCCIÓN ─────────
+            'FÁBRICA',
+            'PRODUCCIÓN DE ALIMENTOS',
+            'PRODUCCIÓN ARTESANAL',
+
+            // ELABORACIÓN DOMICILIARIA ─────────
+            'COCINA DOMICILIARIA',
+            'ELABORACIÓN CASERA DE ALIMENTOS',
+
+            // SERVICIOS GENERALES ─────────
+            'SERVICIOS DE MANTENIMIENTO',
+            'CONSULTORÍA',
+            'ASESORAMIENTO PROFESIONAL',
+            'LAVANDERÍA',
+            'REPARACIONES',
+            'SERVICIOS DE INSTALACIÓN',
+
+            // COMERCIO GENERAL ─────────
+            'COMERCIO MINORISTA',
+            'BAZAR',
+            'REGALERÍA',
+
+            // ACTIVIDAD AGROPECUARIA ─────────
+            'ACTIVIDAD AGRÍCOLA',
+            'FRUTICULTURA',
+            'PRODUCCIÓN DE ARÁNDANOS',
+            'PRODUCCIÓN DE FRAMBUESAS',
+            'VENDA DE CERVEZA ARTESANAL',
+
+        ];
+
+
+        // ===================== normalizar + deduplicar =====================
+        $pool = array_merge($fromCSV, $fromDB, $manual);
+        $seen = [];
+        $final = [];
+
+        foreach ($pool as $raw) {
+            $raw = trim((string)$raw);
+            if ($raw === '') continue;
+
+            $name = $normalize($raw);
+            $name = $clarifyIfBare($name, $hasAction, $classify);
+            $name = $compress($name);
+
+
+            $key = mb_strtolower($stripAccents($name), 'UTF-8');
+
+            if (isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $final[] = $name;   // 👈 acá mantenés la versión linda, con acentos
+        }
+
+
+        // ===================== limpiar tablas =====================
+        try { DB::statement('SET FOREIGN_KEY_CHECKS=0'); } catch (\Throwable $e) {}
+
+        if (Schema::hasTable('ubicacion_rubro')) {
+            try { DB::table('ubicacion_rubro')->truncate(); } catch (\Throwable $e) {
+                DB::table('ubicacion_rubro')->delete();
+            }
+        }
+
+        if (Schema::hasTable('rubros')) {
+            try { DB::table('rubros')->truncate(); } catch (\Throwable $e) {
+                DB::table('rubros')->delete();
+            }
+        }
+
+        try { DB::statement('SET FOREIGN_KEY_CHECKS=1'); } catch (\Throwable $e) {}
+
+        // ===================== insertar =====================
+        $mega  = 'CICI 2025';
+        $madre = 'RUBRO UNICO';
+        $rows = [];
+        foreach ($final as $sub) {
+            $rows[] = [
+                'mega_rubro'     => $mega,
+                'rubro_madre'    => $madre,
+                'subrubro'       => $sub,
+                'rubro_general'  => $generalClassifier($sub),   // <<< NUEVO
+                'created_at'     => $now,
+                'updated_at'     => $now,
+            ];
+        }
+
         foreach (array_chunk($rows, 1000) as $chunk) {
-            DB::table('rubros')->upsert(
-                $chunk,
-                ['mega_rubro', 'rubro_madre', 'subrubro'], // clave única compuesta
-                ['updated_at'] // si ya existe, solo actualiza updated_at
-            );
+            DB::table('rubros')->insert($chunk);
         }
     }
 }

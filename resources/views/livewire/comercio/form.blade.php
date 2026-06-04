@@ -1,533 +1,617 @@
-<!-- Modal -->
 <div class="modal fade" id="form" tabindex="-1" role="dialog" aria-hidden="true" wire:ignore.self>
-    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
-        <form autocomplete="off" wire:submit.prevent="{{ $showEditModal ? 'updateComercio' : 'createCliente' }}"
-            class="modal-content">
-            <div class="modal-header bg-primary text-white py-2">
-                <h6 class="modal-title mb-0">{{ $showEditModal ? 'Editar Comercio' : 'Nuevo Comercio' }}</h6>
-                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
+    <form autocomplete="off"
+          wire:submit.prevent="{{ $showEditModal ? 'updateComercio' : 'createCliente' }}"
+          class="modal-content"
+          wire:key="form-{{ $formKey ?? 'x' }}">
+
+      <div class="modal-header bg-primary text-white py-2">
+        <h6 class="modal-title mb-0">{{ $showEditModal ? 'Editar Comercio' : 'Nuevo Comercio' }}</h6>
+        <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+
+      @if ($errors->any())
+        <div class="alert alert-danger py-2 mb-0">
+          <ul class="mb-0">
+            @foreach ($errors->all() as $err)
+              <li>{{ $err }}</li>
+            @endforeach
+          </ul>
+        </div>
+      @endif
+
+      <div class="modal-body p-2">
+        {{-- Tipo de Persona + DNI/CUIT + Fantasía --}}
+        <div class="form-row">
+          <div class="form-group col-md-4 mb-2">
+            <label class="mb-1" for="persona_tipo">Tipo de Persona</label>
+            <select id="persona_tipo" wire:model.live="state.persona_tipo"
+              class="form-control form-control-sm @error('state.persona_tipo') is-invalid @enderror">
+              <option value="fisica">Física</option>
+              <option value="juridica">Jurídica</option>
+            </select>
+            @error('state.persona_tipo') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          </div>
+
+          <div class="form-group col-md-4 mb-2">
+            <label class="mb-1" for="dni_cuit">DNI / CUIT</label>
+            <input type="text" id="dni_cuit" wire:model.defer="state.dni_cuit"
+              class="form-control form-control-sm @error('state.dni_cuit') is-invalid @enderror"
+              placeholder="DNI o CUIT">
+            @error('state.dni_cuit') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          </div>
+
+          <div class="form-group col-md-4 mb-2">
+            <label class="mb-1" for="nombre_comercial">Nombre de Fantasía</label>
+            <input type="text" id="nombre_comercial" wire:model.defer="state.nombre_comercial"
+              class="form-control form-control-sm text-capitalize @error('state.nombre_comercial') is-invalid @enderror"
+              placeholder="Nombre comercial">
+            @error('state.nombre_comercial') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          </div>
+        </div>
+
+        {{-- Identificación (condicional sin JS) --}}
+        @if( data_get($state, 'persona_tipo', 'fisica') === 'fisica' )
+          <div class="form-row">
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="apellido">Apellido</label>
+              <input type="text" id="apellido" wire:model.defer="state.apellido"
+                class="form-control form-control-sm text-capitalize @error('state.apellido') is-invalid @enderror"
+                placeholder="Apellido">
+              @error('state.apellido') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
-            <div class="modal-body p-2">
-                {{-- Tipo de Persona + DNI/CUIT + Fantasía --}}
-                <div class="form-row">
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1" for="hc">N° HC</label>
-                        <input type="text" id="hc" wire:model.defer="state.hc"
-                            class="form-control form-control-sm @error('state.hc') is-invalid @enderror"
-                            placeholder="N° habilitacion">
-                        @error('state.hc')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="nombres">Nombres</label>
+              <input type="text" id="nombres" wire:model.defer="state.nombres"
+                class="form-control form-control-sm text-capitalize @error('state.nombres') is-invalid @enderror"
+                placeholder="Nombres">
+              @error('state.nombres') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
 
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1" for="persona_tipo">Tipo de Persona</label>
-                        <select id="persona_tipo" wire:model.defer="state.persona_tipo"
-                            class="form-control form-control-sm @error('state.persona_tipo') is-invalid @enderror">
-                            <option value="fisica">Física</option>
-                            <option value="juridica">Jurídica</option>
-                        </select>
-                        @error('state.persona_tipo')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="nomenclatura">Nomenclatura catastral</label>
+              <input type="text" id="nomenclatura"
+                wire:model.defer="state.nomenclatura"
+                class="form-control form-control-sm @error('state.nomenclatura') is-invalid @enderror"
+                placeholder="Ej: J749 052F000">
+              @error('state.nomenclatura') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+          </div>
+        @else
+          <div class="form-row">
+            <div class="form-group col-md-6 mb-2">
+              <label class="mb-1" for="razon_social">Razón Social</label>
+              <input type="text" id="razon_social" wire:model.defer="state.razon_social"
+                class="form-control form-control-sm text-capitalize @error('state.razon_social') is-invalid @enderror"
+                placeholder="Razón Social">
+              @error('state.razon_social') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
 
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1" for="dni_cuit">DNI / CUIT</label>
-                        <input type="text" id="dni_cuit" wire:model.defer="state.dni_cuit"
-                            class="form-control form-control-sm @error('state.dni_cuit') is-invalid @enderror"
-                            placeholder="DNI o CUIT">
-                        @error('state.dni_cuit')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+            <div class="form-group col-md-6 mb-2">
+              <label class="mb-1" for="nomenclatura">Nomenclatura catastral</label>
+              <input type="text" id="nomenclatura"
+                    wire:model.defer="state.nomenclatura"
+                    class="form-control form-control-sm @error('state.nomenclatura') is-invalid @enderror"
+                    placeholder="Ej: J749 052F000">
+              @error('state.nomenclatura') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+          </div>
+        @endif
 
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1" for="nombre_comercial">Nombre de Fantasía</label>
-                        <input type="text" id="nombre_comercial" wire:model.defer="state.nombre_comercial"
-                            class="form-control form-control-sm text-capitalize @error('state.nombre_comercial') is-invalid @enderror"
-                            placeholder="Nombre comercial">
-                        @error('state.nombre_comercial')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+        @php
+          $opsRubro = $rubroOpts ?? [];
+          $opsAnexo = $anexoOpts ?? [];
+        @endphp
+
+        {{-- ================= RUBRO PRINCIPAL (SIN wire:ignore) ================= --}}
+        <div class="form-group col-md-12 mb-1">
+        <label class="mb-1">Seleccioná el Rubro Principal</label>
+
+        {{-- SELECT CONTROLADO POR TOMSELECT --}}
+        <div wire:ignore>
+          <select id="select-rubro-principal"
+                  class="form-control form-control-sm @error('state.rubro_id') is-invalid @enderror">
+              <option value="">-- Seleccione Rubro --</option>
+              @foreach($opsRubro as $op)
+                  @php
+                      $id  = is_array($op) ? $op['id'] : $op->id;
+                      $txt = is_array($op) ? $op['subrubro'] : $op->subrubro;
+                  @endphp
+                  <option value="{{ $id }}">{{ $txt }}</option>
+              @endforeach
+          </select>
+        </div>
+        {{-- INPUT REAL CONTROLADO POR LIVEWIRE --}}
+        <input type="hidden" wire:model="state.rubro_id">
+
+        @error('state.rubro_id')
+            <div class="invalid-feedback d-block">{{ $message }}</div>
+        @enderror
+
+        {{-- CAMPOS DINÁMICOS --}}
+        @php
+          $rubro   = optional(\App\Models\Rubro::find($state['rubro_id'] ?? null));
+          $general = mb_strtoupper($rubro->rubro_general ?? '');
+          $sub     = mb_strtoupper($rubro->subrubro ?? '');
+        @endphp
+
+        @if($general === 'ALOJAMIENTO DE ALQUILER TURISTICO' && mb_strpos($sub, 'CAMPING') === false)
+          <div class="row mt-3">
+            <div class="col-md-6 mb-2">
+              <label class="mb-1">Cantidad de Unidades</label>
+              <input type="number"
+                    class="form-control form-control-sm"
+                    wire:model="state.alojamiento_unidades">
+            </div>
+
+            <div class="col-md-6 mb-2">
+              <label class="mb-1">Cantidad de Plazas</label>
+              <input type="number"
+                    class="form-control form-control-sm"
+                    wire:model="state.alojamiento_plazas">
+            </div>
+          </div>
+        @endif
+
+        @if($general === 'ALOJAMIENTO DE ALQUILER TURISTICO' && mb_strpos($sub, 'CAMPING') !== false)
+          <div class="row mt-3">
+
+            <div class="col-md-4 mb-2">
+              <label class="mb-1">Cantidad de Fogones</label>
+              <input type="number"
+                    class="form-control form-control-sm"
+                    wire:model="state.camping_fogones">
+            </div>
+
+            <div class="col-md-4 mb-2">
+              <label class="mb-1">Cantidad de Dormis</label>
+              <input type="number"
+                    class="form-control form-control-sm"
+                    wire:model="state.camping_dormis">
+            </div>
+
+            <div class="col-md-4 mb-2">
+              <label class="mb-1">Otros Servicios</label>
+              <input type="text"
+                    class="form-control form-control-sm"
+                    wire:model="state.camping_otros_servicios"
+                    placeholder="Quinchos, piscina, etc.">
+            </div>
+
+          </div>
+        @endif
+
+
+      </div>
+
+
+        {{-- ================= RUBROS ANEXOS (CON wire:ignore) ================= --}}
+        <div class="form-group col-md-12 mb-1" wire:ignore>
+            <label class="mb-1">Seleccioná Rubro Anexo</label>
+
+            <select multiple id="select-rubros-anexos"
+                    class="form-control form-control-sm @error('state.rubros_anexos') is-invalid @enderror"
+                    size="6">
+                <option value="">-- Seleccione Anexo --</option>
+                @foreach($opsAnexo as $op)
+                    @php
+                        $id  = is_array($op) ? $op['id'] : $op->id;
+                        $txt = is_array($op) ? $op['subrubro'] : $op->subrubro;
+                    @endphp
+                    <option value="{{ $id }}">{{ $txt }}</option>
+                @endforeach
+            </select>
+
+            @error('state.rubros_anexos')
+                <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
+        </div>
+
+
+        {{-- Domicilio / Correo / Teléfonos --}}
+        <div class="form-row">
+          <div class="form-group col-md-4 mb-2">
+            <label class="mb-1" for="domicilio_comercio">Domicilio del Comercio</label>
+            <input type="text" id="domicilio_comercio" wire:model.defer="state.domicilio_comercio"
+              class="form-control form-control-sm text-capitalize @error('state.domicilio_comercio') is-invalid @enderror"
+              placeholder="Domicilio del comercio">
+            @error('state.domicilio_comercio') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          </div>
+
+          <div class="form-group col-md-4 mb-2">
+            <label class="mb-1" for="correo">Correo electrónico</label>
+            <input type="email" id="correo" wire:model.defer="state.correo"
+              class="form-control form-control-sm @error('state.correo') is-invalid @enderror"
+              placeholder="correo@ejemplo.com">
+            @error('state.correo') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          </div>
+
+          <div class="form-group col-md-4 mb-2">
+            <label class="mb-1 d-flex align-items-center justify-content-between">
+              <span>Teléfonos</span>
+              <button type="button" class="btn btn-sm btn-outline-primary" wire:click="addTelefono">
+                <i class="fa fa-plus"></i>
+              </button>
+            </label>
+            @foreach(($state['telefonos'] ?? ['']) as $i => $tel)
+              <div class="input-group input-group-sm mb-1" wire:key="tel-{{ $i }}">
+                <input type="text"
+                       class="form-control @error('state.telefonos.'.$i) is-invalid @enderror"
+                       placeholder="Teléfono"
+                       wire:model.defer="state.telefonos.{{ $i }}">
+                <div class="input-group-append">
+                  <button type="button" class="btn btn-outline-danger"
+                          wire:click="removeTelefono({{ $i }})"
+                          @disabled($i===0 && count($state['telefonos'] ?? [])<=1)>
+                    <i class="fa fa-trash"></i>
+                  </button>
                 </div>
+                @error('state.telefonos.'.$i) <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+              </div>
+            @endforeach
+          </div>
+        </div>
 
-                {{-- Identificación (Ambos sets visibles; JS habilita/oculta) --}}
-                <div class="form-row">
-                    <div class="form-group col-md-6 mb-2" id="bloque-fisica-apellido">
-                        <label class="mb-1" for="apellido">Apellido</label>
-                        <input type="text" id="apellido" wire:model.defer="state.apellido"
-                            class="form-control form-control-sm text-capitalize @error('state.apellido') is-invalid @enderror"
-                            placeholder="Apellido">
-                        @error('state.apellido')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+        {{-- ÚNICOS: N° de disposición y N° de habilitación (sin fecha, sin múltiples) --}}
+        <div class="form-row">
+          <div class="form-group col-md-6 mb-2">
+            <label class="mb-1" for="numero_disposicion">N° de disposición</label>
+            <input type="text" id="numero_disposicion"
+                   wire:model.defer="state.numero_disposicion"
+                   class="form-control form-control-sm @error('state.numero_disposicion') is-invalid @enderror"
+                   placeholder="Ej: 1234/2025">
+            @error('state.numero_disposicion') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          </div>
 
-                    <div class="form-group col-md-6 mb-2" id="bloque-fisica-nombres">
-                        <label class="mb-1" for="nombres">Nombres</label>
-                        <input type="text" id="nombres" wire:model.defer="state.nombres"
-                            class="form-control form-control-sm text-capitalize @error('state.nombres') is-invalid @enderror"
-                            placeholder="Nombres">
-                        @error('state.nombres')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+          <div class="form-group col-md-6 mb-2">
+            <label class="mb-1" for="numero_habilitacion">N° de habilitación comercial</label>
+            <input type="text" id="numero_habilitacion"
+                   wire:model.defer="state.numero_habilitacion"
+                   class="form-control form-control-sm @error('state.numero_habilitacion') is-invalid @enderror"
+                   placeholder="Ej: HC-000123">
+            @error('state.numero_habilitacion') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          </div>
+        </div>
 
-                    <div class="form-group col-md-12 mb-2 d-none" id="bloque-juridica-razon">
-                        <label class="mb-1" for="razon_social">Razón Social</label>
-                        <input type="text" id="razon_social" wire:model.defer="state.razon_social"
-                            class="form-control form-control-sm text-capitalize @error('state.razon_social') is-invalid @enderror"
-                            placeholder="Razón Social">
-                        @error('state.razon_social')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+        @php
+          // Estado BASE seguro desde el state (por defecto '021')
+          $base = (string) ($state['estado'] ?? '021');
+          $base = trim(mb_strtolower($base));
+
+          // Normalización mínima en la vista (por si viene con legacy):
+          $map = [
+            'entramite' => '021', 'en tramite' => '021', 'en trámite' => '021', 'alta' => '021', 'vigente' => '021',
+            'irregular' => '032',
+            'sin_efecto' => 'exp_sin_efecto',
+          ];
+          $base = $map[$base] ?? $base;
+
+          // Validar conjunto permitido
+          $permitidos = ['021','032','040','baja','baja_oficio','exp_sin_efecto'];
+          if (!in_array($base, $permitidos, true)) $base = '021';
+
+          // Opciones de “Cambios” por estado base (sólo 021 y 032)
+          $cambiosOpts = match ($base) {
+            '021' => [
+              '' => 'Ninguno',
+              'cambio_domicilio' => 'Cambio de Domicilio',
+              'adicion_anexo'    => 'Adición de Rubro Anexo',
+              'cambio_razon'     => 'Cambio de Razón Social',
+              'resolucion_482'   => 'Resolución 482/22',
+              'permiso_habilitante' => 'Permiso Habilitante',
+              'sala_de_elaboracion' => 'Sala de Elaboración',
+              'cambio_fantasia'  => 'Cambio de Nombre de Fantasia',
+            ],
+            '032' => [
+              '' => 'Ninguno',
+              'cambio_rubro'     => 'Cambio de Rubro',
+              'adicion_anexo'    => 'Adeción de Rubro Anexo',
+              'cambio_fantasia'  => 'Cambio de Nombre de Fantasía',
+              'baja_alojamiento' => 'Baja de Unidad de Alojamiento',
+              'cambio_razon'     => 'Cambio de Razón Social',
+              'permiso_habilitante' => 'Permiso Habilitante',
+              'sala_de_elaboracion' => 'Sala de Elaboración',
+            ],
+            default => [],
+          };
+        @endphp
+
+        <div class="form-row">
+          {{-- Estado (usa CÓDIGOS BASE) --}}
+          <div class="form-group col-md-4 mb-2">
+            <label class="mb-1" for="estado">Estado</label>
+            <select id="estado" wire:model.live="state.estado"
+                    class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
+              <option value="">-- Seleccioná estado --</option>
+              <option value="021">021/90</option>
+              <option value="032">032/01</option>
+              <option value="040">040/25</option>
+              <option value="baja">Baja</option>
+              <option value="baja_oficio">Baja de oficio</option>
+              <option value="exp_sin_efecto">Expediente sin efecto</option>
+            </select>
+            @error('state.estado') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          </div>
+
+          {{-- Cambios (sólo 021 y 032) --}}
+          @if(in_array($base, ['021','032'], true))
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="cambio_tipo">Cambios:</label>
+              <select id="cambio_tipo" wire:model.live="state.cambio_tipo" class="form-control form-control-sm">
+                @foreach($cambiosOpts as $key => $txt)
+                  <option value="{{ $key }}">{{ $txt }}</option>
+                @endforeach
+              </select>
+            </div>
+          @endif
+
+          {{-- Tipo de habilitación --}}
+          <div class="form-group col-md-4 mb-2">
+            <label class="mb-1" for="tipo_hab">Tipo de habilitación</label>
+            <select id="tipo_hab" wire:model.live="state.tipo_hab"
+                    class="form-control form-control-sm @error('state.tipo_hab') is-invalid @enderror">
+              <option value="definitiva">Definitiva</option>
+              <option value="prev">Provisoria</option>
+            </select>
+            @error('state.tipo_hab') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          </div>
+        </div>
+
+        {{-- Fechas por estado base --}}
+        <div class="form-row">
+          @if($base === '021')
+            {{-- 021: alta + vto (ambas requeridas por validación del componente) --}}
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_alta">Fecha de alta</label>
+              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta"
+                    class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
+              @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
+              <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto"
+                    class="form-control @error('fecha_vto') is-invalid @enderror">
+              @error('state.fecha_vto') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+          @elseif($base === '032' || $base === '040')
+            {{-- 032/040: alta requerida, vto opcional --}}
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_alta">Fecha de alta</label>
+              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta"
+                    class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
+              @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
+              <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto"
+                    class="form-control form-control-sm @error('state.fecha_vto') is-invalid @enderror">
+              @error('state.fecha_vto') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+          @elseif(in_array($base, ['baja','baja_oficio','exp_sin_efecto'], true))
+            {{-- Bajas: alta (requerida si no existía) + baja (requerida) --}}
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_alta">Fecha de alta</label>
+              <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta"
+                    class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
+              @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+            <div class="form-group col-md-4 mb-2">
+              <label class="mb-1" for="fecha_baja">Fecha de baja</label>
+              <input type="date" id="fecha_baja" wire:model.defer="state.fecha_baja"
+                    class="form-control form-control-sm @error('state.fecha_baja') is-invalid @enderror">
+              @error('state.fecha_baja') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+          @endif
+
+          <div class="form-group col-md-4 mb-3">
+            <label class="mb-1 d-block">Situación</label>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="chkClausurado" wire:model="state.es_clausurado">
+              <label class="form-check-label" for="chkClausurado">Clausurado</label>
+            </div>
+          </div>
+        </div>
+
+        {{-- Observaciones --}}
+        <div class="form-group mb-2">
+          <label class="mb-1" for="observaciones">Observaciones</label>
+          <textarea id="observaciones" wire:model.defer="state.observaciones"
+            class="form-control form-control-sm @error('state.observaciones') is-invalid @enderror" rows="2"
+            placeholder="Observaciones (opcional)"></textarea>
+          @error('state.observaciones') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+
+        {{-- Documentación (dinámica por estado base) --}}
+        @php
+          $docSchema = isset($docSchema) && is_array($docSchema)
+              ? $docSchema
+              : (method_exists($this, 'getDocSchemaProperty') ? $this->docSchema : ['items' => [], 'uso_inmueble' => ['show' => false]]);
+        @endphp
+
+        <div class="border rounded p-2 mt-2">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h6 class="mb-0">Documentación</h6>
+            <div class="btn-group btn-group-sm">
+              <button type="button" class="btn btn-success"
+                      wire:click="marcarTodosLosDocs(true)"
+                      @disabled(empty($docSchema['items']) && empty($docSchema['uso_inmueble']['show']))>
+                Presentó toda la documentación
+              </button>
+              <button type="button" class="btn btn-outline-secondary" wire:click="marcarTodosLosDocs(false)">
+                Limpiar
+              </button>
+            </div>
+          </div>
+
+          @if(empty($docSchema['items']) && empty($docSchema['uso_inmueble']['show']))
+            <em>No hay documentos para este estado.</em>
+          @else
+            <div class="row">
+              @foreach($docSchema['items'] as $i => $it)
+                <div class="col-md-6">
+                  <label class="form-check mb-1">
+                    <input class="form-check-input" type="checkbox" wire:model="state.documentos.{{ $it['key'] }}">
+                    <span class="form-check-label">{{ $it['label'] }}</span>
+                  </label>
                 </div>
+              @endforeach
+            </div>
 
-                {{-- Contacto y domicilios --}}
-                <div class="form-row">
-                    <div class="form-group col-md-6 mb-2">
-                        <label class="mb-1" for="domicilio_responsable">Domicilio Responsable</label>
-                        <input type="text" id="domicilio_responsable" wire:model.defer="state.domicilio_responsable"
-                            class="form-control form-control-sm text-capitalize @error('state.domicilio_responsable') is-invalid @enderror"
-                            placeholder="Domicilio del responsable">
-                        @error('state.domicilio_responsable')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="form-group col-md-6 mb-2">
-                        <label class="mb-1" for="domicilio_comercio">Domicilio del Comercio</label>
-                        <input type="text" id="domicilio_comercio" wire:model.defer="state.domicilio_comercio"
-                            class="form-control form-control-sm text-capitalize @error('state.domicilio_comercio') is-invalid @enderror"
-                            placeholder="Domicilio del comercio">
-                        @error('state.domicilio_comercio')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1" for="correo">Correo electrónico</label>
-                        <input type="email" id="correo" wire:model.defer="state.correo"
-                            class="form-control form-control-sm @error('state.correo') is-invalid @enderror"
-                            placeholder="correo@ejemplo.com">
-                        @error('state.correo')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1" for="telefono">Teléfono</label>
-                        <input type="text" id="telefono" wire:model.defer="state.telefono"
-                            class="form-control form-control-sm @error('state.telefono') is-invalid @enderror"
-                            placeholder="Teléfono">
-                        @error('state.telefono')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1" for="nomenclatura">Nomenclatura (opcional)</label>
-                        <input type="text" id="nomenclatura" wire:model.defer="state.nomenclatura"
-                            class="form-control form-control-sm @error('state.nomenclatura') is-invalid @enderror"
-                            placeholder="Nomenclatura">
-                        @error('state.nomenclatura')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
-
-                {{-- Mega Rubro -> Rubro Madre -> Subrubro (Livewire puro) --}}
-                <div class="form-row">
-                    {{-- Mega rubro --}}
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1">Mega rubro</label>
-                        <select class="form-control form-control-sm"
-                                wire:model.live="selectedMega" wire:change="onMegaChange">
-                            <option value="">-- Seleccione Mega rubro --</option>
-                            @foreach ($megas ?? [] as $mega)
-                                <option value="{{ $mega }}">{{ $mega }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- Rubro madre (bloqueado hasta elegir mega) --}}
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1">Rubro madre</label>
-                        <select class="form-control form-control-sm"
-                                wire:model.live="selectedMadre" wire:change="onMadreChange"
-                                @disabled(empty($selectedMega))>
-                            <option value="">-- Seleccione Rubro madre --</option>
-                            @foreach ($madres ?? [] as $madre)
-                                <option value="{{ $madre }}">{{ $madre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- Subrubro (guarda rubro_id) (bloqueado hasta elegir madre) --}}
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1">Subrubro</label>
-                        <select class="form-control form-control-sm @error('state.rubro_id') is-invalid @enderror"
-                                wire:model.live="state.rubro_id"
-                                @disabled(empty($selectedMadre))>
-                            <option value="">-- Seleccione Subrubro --</option>
-                            @foreach (($subs ?? []) as $op)
-                                <option value="{{ $op['id'] }}">{{ $op['sub'] }}</option>
-                            @endforeach
-                        </select>
-                        @error('state.rubro_id')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
-
-
-
-                {{-- Estado + Fechas + Monto + Observaciones --}}
-                @php
-                $estado = $state['estado'] ?? 'entramite';
-                @endphp
-
-                <div class="form-row align-items-end">
-                {{-- Estado --}}
-                    <div class="form-group col-md-4 mb-2">
-                        <label class="mb-1" for="estado">Estado</label>
-                        <select id="estado" wire:model.defer="state.estado"
-                        class="form-control form-control-sm @error('state.estado') is-invalid @enderror">
-                        <option value="vigente">Vigente</option>
-                        <option value="irregular">Irregular</option>
-                        <option value="entramite">En Trámite</option>
-                        <option value="baja">Baja</option>
-                        </select>
-                        @error('state.estado') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
-
-                    <div class="form-group col-md-4 mb-2 {{ in_array($estado, ['vigente','irregular']) ? '' : 'd-none' }}" id="grp-tipo-habilitacion">
-                        <label class="mb-1" for="tipo_habilitacion">Tipo de habilitacion</label>
-                        <select id="tipo_habilitacion" wire:model.defer="state.tipo_habilitacion"
-                            class="form-control form-control-sm @error('state.tipo_habilitacion') is-invalid @enderror">
-                            <option value="definitiva">Definitiva</option>
-                            <option value="provisoria">Provisoria</option>
-                        </select>
-                        @error('state.tipo_habilitacion') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
-
-                    {{-- Fecha de alta (Vigente e Irregular y Baja) --}}
-                    <div class="form-group col-md-4 mb-2 {{ in_array($estado, ['entramite']) ? 'd-none' : '' }}" id="grp-fecha-alta">
-                        <label class="mb-1" for="fecha_alta">Fecha de alta</label>
-                        <input type="date" id="fecha_alta" wire:model.defer="state.fecha_alta"
-                        class="form-control form-control-sm @error('state.fecha_alta') is-invalid @enderror">
-                        @error('state.fecha_alta') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        @if($showEditModal)
-                        <small class="form-text text-muted d-none" id="ayuda-vigente-desde-tramite">
-                            Si cambiás de <em>En trámite</em> a <em>Vigente</em> podés dejarla vacía: se usa la fecha de hoy.
-                        </small>
-                        @endif
-                    </div>
-
-                    {{-- Fecha de vencimiento (Vigente e Irregular) --}}
-                    <div class="form-group col-md-4 mb-2 {{ in_array($estado, ['vigente','irregular']) ? '' : 'd-none' }}" id="grp-fecha-vto">
-                        <label class="mb-1" for="fecha_vto">Fecha de vencimiento</label>
-                        <input type="date" id="fecha_vto" wire:model.defer="state.fecha_vto"
-                        class="form-control form-control-sm" readonly>
-                    </div>
-                    
-
-                    {{-- Fecha de baja (solo Baja) --}}
-                    <div class="form-group col-md-4 mb-2 {{ $estado === 'baja' ? '' : 'd-none' }}" id="grp-fecha-baja">
-                        <label class="mb-1" for="fecha_baja">Fecha de baja</label>
-                        <input type="date" id="fecha_baja" wire:model.defer="state.fecha_baja"
-                        class="form-control form-control-sm" readonly>
-                    </div>
-                </div>
-
-                {{-- Monto --}}
+            {{-- Uso de inmueble: checkbox + select (si aplica) --}}
+            @if(data_get($docSchema,'uso_inmueble.show'))
+              <hr class="my-2">
+              <div class="form-row align-items-end">
                 <div class="form-group col-md-4 mb-2">
-                    <label class="mb-1" for="monto_pagar">Monto a pagar (opcional)</label>
-                    <input type="number" step="0.01" id="monto_pagar" wire:model.defer="state.monto_pagar"
-                    class="form-control form-control-sm @error('state.monto_pagar') is-invalid @enderror" placeholder="0.00">
-                    @error('state.monto_pagar') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                  <label class="mb-1 d-block">{{ data_get($docSchema,'uso_inmueble.label','Uso de inmueble') }}</label>
+                  <label class="form-check m-0">
+                    <input class="form-check-input" type="checkbox"
+                          wire:model="state.documentos.{{ $docSchema['uso_inmueble']['checkboxKey'] }}">
+                    <span class="form-check-label">Presenta comprobante</span>
+                  </label>
                 </div>
-
-
-                <div class="form-group mb-2">
-                    <label class="mb-1" for="observaciones">Observaciones</label>
-                    <textarea id="observaciones" wire:model.defer="state.observaciones"
-                        class="form-control form-control-sm @error('state.observaciones') is-invalid @enderror" rows="2"
-                        placeholder="Observaciones (opcional)"></textarea>
-                    @error('state.observaciones')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                <div class="form-group col-md-8 mb-2">
+                  <label class="mb-1" for="uso_inmueble_tipo">Tipo</label>
+                  <select id="uso_inmueble_tipo" class="form-control form-control-sm"
+                          wire:model="state.documentos.{{ $docSchema['uso_inmueble']['selectKey'] }}">
+                    <option value="">-- Seleccione uno --</option>
+                    @foreach($docSchema['uso_inmueble']['options'] as $val => $txt)
+                      <option value="{{ $val }}">{{ $txt }}</option>
+                    @endforeach
+                  </select>
                 </div>
+              </div>
+            @endif
+          @endif
+        </div>
+      </div>
 
-                {{-- Documentación (Generales + Jurídicas) --}}
-                <div class="border rounded p-2 mt-2">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <h6 class="mb-0">Documentación</h6>
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-success" wire:click="marcarTodosLosDocs(true)">
-                                Presentó toda la documentación
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary"
-                                wire:click="marcarTodosLosDocs(false)">
-                                Limpiar
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        {{-- Generales --}}
-                        <div class="col-md-6">
-                            <strong class="d-block mb-1">General</strong>
-
-                            @php
-                                $g = fn($k, $t) => '<label class="form-check mb-1">
-                  <input class="form-check-input" type="checkbox" wire:model="state.documentos.' .
-                                    $k .
-                                    '">
-                  <span class="form-check-label">' .
-                                    $t .
-                                    '</span></label>';
-                            @endphp
-
-                            {!! $g('doc_libre_deuda_municipal', 'Certificado de libre deuda municipal') !!}
-                            {!! $g('doc_planeamiento_urbano', 'Dirección de Planeamiento Urbano') !!}
-                            {!! $g('doc_solicitud_habilitacion_pago', 'Solicitud de habilitación + pago') !!}
-                            {!! $g('doc_comprobante_uso_local', 'Comprobante de uso del local') !!}
-                            {!! $g('doc_afip_constancia', 'Constancia de inscripción emitida por AFIP') !!}
-                            {!! $g(
-                                'doc_recaudacion_rn',
-                                'Constancia de inscripción emitida por Agencia de Recaudación Tributaria de Río Negro',
-                            ) !!}
-                            {!! $g('doc_fotocopia_dni', 'Fotocopia del DNI') !!}
-                            {!! $g('doc_comprobante_uso_inmueble', 'Comprobante que acredite el uso del inmueble a destinar a comercio') !!}
-                            {!! $g('doc_libre_deuda_tasas_inmueble', 'Libre deuda de tasas municipales de la propiedad') !!}
-                            {!! $g('doc_aptitud_tecnica_local', 'Certificado de aptitud técnica del local a habilitar') !!}
-                            {!! $g('doc_cocap_rhi', 'Certificado de CO.CA.P.R.HI') !!}
-                            {!! $g('doc_nota_carteleria_obras', 'Nota a Obras Públicas declarando cartelería usada como publicidad') !!}
-                            {!! $g('doc_libro_actas_100', 'Libro de actas de 100 hojas') !!}
-                        </div>
-
-                        {{-- Jurídicas (si es Jurídica → se muestra via JS) --}}
-                        <div class="col-md-6 d-none" id="docs-juridica">
-                            <strong class="d-block mb-1">Personas Jurídicas</strong>
-
-                            {!! $g('doc_acta_constitucion', 'Acta de constitución de sociedad u organización') !!}
-                            {!! $g('doc_contrato_societario', 'Contrato societario') !!}
-                            {!! $g('doc_docs_representantes', 'Documentación de sus representantes') !!}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-footer py-2 px-3">
-                <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">
-                    <i class="fa fa-times mr-1"></i> Cerrar
-                </button>
-                <button type="submit" class="btn btn-sm btn-primary">
-                    <i class="fa fa-save mr-1"></i> {{ $showEditModal ? 'Guardar Cambios' : 'Grabar' }}
-                </button>
-            </div>
-        </form>
-    </div>
+      <div class="modal-footer py-2 px-3">
+        <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">
+          <i class="fa fa-times mr-1"></i> Cerrar
+        </button>
+        <button type="submit" class="btn btn-primary"
+          wire:loading.attr="disabled" wire:target="createCliente,updateComercio">
+          <span wire:loading.remove wire:target="createCliente,updateComercio">Guardar</span>
+          <span wire:loading wire:target="createCliente,updateComercio">Guardando…</span>
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 
-{{-- JS: Modal + Persona + Rubros --}}
+@push('scripts')
 <script>
-    // Mostrar/ocultar modal por eventos Livewire
-    document.addEventListener('livewire:init', () => {
-        Livewire.on('show-form', () => $('#form').modal('show'));
-        Livewire.on('hide-form', () => $('#form').modal('hide'));
-        // re-aplicar modos luego de cada render
-        Livewire.hook('message.processed', () => {
-            aplicarModoPersona(leerTipoPersona());
-        });
-    });
+document.addEventListener('livewire:init', () => {
 
-    // Foco inicial
-    document.addEventListener('DOMContentLoaded', function() {
-        $('#form').on('shown.bs.modal', function() {
-            const persona = leerTipoPersona();
-            aplicarModoPersona(persona);
-            const input = persona === 'juridica' ? document.getElementById('razon_social') :
-                document.getElementById('apellido');
-            if (input) {
-                input.focus();
-                input.select();
-            }
-        });
-    });
+    // Reinicia SIEMPRE TomSelect (destruye y crea)
+    function resetTomSelect(selector, options = {}) {
+        const el = document.querySelector(selector);
+        if (!el) return;
 
-    // --- Persona: Física/Jurídica (sin recargar) ---
-    function leerTipoPersona() {
-        const sel = document.getElementById('persona_tipo');
-        return sel ? sel.value : 'fisica';
+        // Si TomSelect ya existe, destruirlo
+        if (el.tomselect) {
+            el.tomselect.destroy();
+        }
+
+        // Crear uno nuevo
+        const ts = new TomSelect(el, options);
+
+        return ts;
     }
 
-    function aplicarModoPersona(tipo) {
-        const esJ = (tipo === 'juridica');
+    // Setear valores iniciales desde Livewire → JS
+    function setValues(payload = {}) {
+        const { rubroId, anexos = [] } = payload;
 
-        const bApe = document.getElementById('bloque-fisica-apellido');
-        const bNom = document.getElementById('bloque-fisica-nombres');
-        const bRaz = document.getElementById('bloque-juridica-razon');
-        const docsJ = document.getElementById('docs-juridica');
-
-        const ape = document.getElementById('apellido');
-        const nom = document.getElementById('nombres');
-        const raz = document.getElementById('razon_social');
-
-        if (bApe) bApe.classList.toggle('d-none', esJ);
-        if (bNom) bNom.classList.toggle('d-none', esJ);
-        if (bRaz) bRaz.classList.toggle('d-none', !esJ);
-        if (docsJ) docsJ.classList.toggle('d-none', !esJ);
-
-        if (ape) ape.disabled = esJ;
-        if (nom) nom.disabled = esJ;
-        if (raz) raz.disabled = !esJ;
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const sel = document.getElementById('persona_tipo');
-        if (sel) {
-            aplicarModoPersona(sel.value);
-            sel.addEventListener('change', () => aplicarModoPersona(sel.value));
-        }
-    });
-    function aplicarModoEstado() {
-        const estado = document.getElementById('estado')?.value || 'entramite';
-        const gAlta = document.getElementById('grp-fecha-alta');
-        const gTipo = document.getElementById('grp-tipo-habilitacion');
-        const gVto  = document.getElementById('grp-fecha-vto');
-        const gBaja = document.getElementById('grp-fecha-baja');
-        const ayuda = document.getElementById('ayuda-vigente-desde-tramite');
-
-        // reset
-        [gAlta,gTipo,gVto,gBaja].forEach(e => e && e.classList.add('d-none'));
-        if (ayuda) ayuda.classList.add('d-none');
-
-        if (estado === 'entramite') {
-            // ninguna fecha
-        }
-        if (estado === 'vigente') {
-            if (gAlta) gAlta.classList.remove('d-none');
-            if (gTipo) gTipo.classList.remove('d-none');
-            if (gVto)  gVto.classList.remove('d-none');
-            if (@json($showEditModal ? true : false)) {
-            // sólo muestro el hint en edición
-            if (ayuda) ayuda.classList.remove('d-none');
-            }
-        }
-        if (estado === 'irregular') {
-            if (gAlta) gAlta.classList.remove('d-none');
-            if (gTipo) gTipo.classList.remove('d-none');
-            if (gVto)  gVto.classList.remove('d-none');
-        }
-        if (estado === 'baja') {
-            if (gAlta) gAlta.classList.remove('d-none');
-            if (gBaja) gBaja.classList.remove('d-none');
+        const rp = document.getElementById('select-rubro-principal');
+        if (rp?.tomselect) {
+            rp.tomselect.setValue(rubroId ? String(rubroId) : '', false);
         }
 
-        // cálculo cliente de vto (solo vigente/irregular)
-        if ((estado === 'vigente' || estado === 'irregular')) {
-            const alta = document.getElementById('fecha_alta')?.value;
-            const tipo = document.getElementById('tipo_habilitacion')?.value || 'definitiva';
-            const vto  = document.getElementById('fecha_vto');
-            if (alta && vto) {
-            const d = new Date(alta);
-            if (tipo === 'provisoria') {
-                d.setMonth(d.getMonth() + 6);
-            } else {
-                d.setFullYear(d.getFullYear() + 1);
-            }
-            vto.value = d.toISOString().slice(0,10);
+        const ra = document.getElementById('select-rubros-anexos');
+        if (ra?.tomselect) {
+            ra.tomselect.clear();
+            if (anexos.length) {
+                ra.tomselect.setValue(anexos.map(String), false);
             }
         }
     }
 
-        document.addEventListener('DOMContentLoaded', () => {
-        const selEstado = document.getElementById('estado');
-        const alta = document.getElementById('fecha_alta');
-        const tipoHabilitacion = document.getElementById('tipo_habilitacion');
-        if (selEstado) selEstado.addEventListener('change', aplicarModoEstado);
-        if (alta) alta.addEventListener('change', aplicarModoEstado);
-        if (tipoHabilitacion) tipoHabilitacion.addEventListener('change', aplicarModoEstado);
-        aplicarModoEstado();
-        });
+    // Vincular eventos por ÚNICA VEZ
+    function bindEvents() {
 
-        // Reaplicar post-render Livewire
-        document.addEventListener('livewire:init', () => {
-        Livewire.hook('message.processed', aplicarModoEstado);
-        });
-    // --- Rubro Madre/Subrubro ---
-    document.addEventListener('DOMContentLoaded', function() {
-        const mapa = @json($mapaSub ?? [], JSON_UNESCAPED_UNICODE);
-        const madreEl = document.getElementById('rubro-madre');
-        const subEl = document.getElementById('rubro-sub');
-        const currentRubroId = {{ $rubroIdActual ?? 0 }};
-
-        if (!madreEl || !subEl) return;
-
-        // id => madreKey (para precarga)
-        const idToMadre = {};
-        Object.keys(mapa).forEach(key => (mapa[key] || []).forEach(it => idToMadre[it.id] = key));
-
-        function poblarSubrubros(madreKey) {
-            subEl.innerHTML = '<option value="">-- Seleccione Subrubro --</option>';
-            const lista = mapa[madreKey] || [];
-            if (!madreKey || !lista.length) {
-                subEl.disabled = true;
-                return;
-            }
-            lista.forEach(it => {
-                const opt = document.createElement('option');
-                opt.value = it.id;
-                opt.textContent = it.sub || '(Sin subrubro)';
-                subEl.appendChild(opt);
+        const rp = document.getElementById('select-rubro-principal');
+        if (rp && !rp.dataset.bound) {
+            rp.addEventListener('change', e => {
+                const v = e.target.value;
+                @this.set('state.rubro_id', v ? parseInt(v) : null);
             });
-            subEl.disabled = false;
+            rp.dataset.bound = "1";
         }
 
-        madreEl.addEventListener('change', () => {
-            poblarSubrubros(madreEl.value);
-            subEl.value = '';
-        });
-
-        // Precarga en edición
-        if (currentRubroId) {
-            const mk = idToMadre[currentRubroId];
-            if (mk) {
-                madreEl.value = mk;
-                poblarSubrubros(mk);
-                subEl.value = String(currentRubroId);
-            }
+        const ra = document.getElementById('select-rubros-anexos');
+        if (ra && !ra.dataset.bound) {
+            ra.addEventListener('change', e => {
+                const values = Array.from(e.target.selectedOptions).map(o => parseInt(o.value));
+                @this.set('state.rubros_anexos', values);
+            });
+            ra.dataset.bound = "1";
         }
+    }
 
-    });
-    document.addEventListener('livewire:init', () => {
-        Livewire.on('confirm-baja', ({ message }) => {
-            if (confirm(message)) {
-            Livewire.dispatch('confirmarBajaHoy');   // setea hoy + readonly
-            } else {
-            Livewire.dispatch('cancelarCambioBaja'); // revierte el select
-            }
+    // Al procesarse CUALQUIER mensaje Livewire
+    Livewire.hook('message.processed', () => {
+
+        // Inicializar ambos selects SIEMPRE
+        resetTomSelect('#select-rubro-principal', {
+            allowEmptyOption: true,
+            maxOptions: 4000,
+            plugins: ['dropdown_input']
         });
+
+        resetTomSelect('#select-rubros-anexos', {
+            plugins: ['remove_button','checkbox_options','dropdown_input'],
+            maxOptions: 8000,
+            persist: false
+        });
+
+        bindEvents();
     });
+
+    // Abrir modal → inicializar estados
+    Livewire.on('show-form', payload => {
+        $('#form').modal('show');
+        setTimeout(() => {
+            resetTomSelect('#select-rubro-principal', {
+                allowEmptyOption: true,
+                maxOptions: 4000,
+                plugins: ['dropdown_input']
+            });
+
+            resetTomSelect('#select-rubros-anexos', {
+                plugins: ['remove_button','checkbox_options','dropdown_input'],
+                maxOptions: 8000,
+                persist: false
+            });
+
+            bindEvents();
+            setValues(payload);
+
+        }, 80);
+    });
+
+    Livewire.on('hide-form', () => $('#form').modal('hide'));
+
+});
 </script>
 
-<style>
-    @media (max-width: 576px) {
-        .modal-dialog {
-            max-width: 98vw !important;
-            margin: 1.75rem auto;
-        }
+@endpush
 
-        .modal-content {
-            padding: 0.5rem;
-        }
-    }
+<style>
+  @media (max-width: 576px) {
+    .modal-dialog { max-width: 98vw !important; margin: 1.75rem auto; }
+    .modal-content { padding: 0.5rem; }
+  }
+  .modal.show .modal-dialog { margin-top: 3.5rem; }
 </style>

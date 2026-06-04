@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ComercioEstado extends Model
 {
+
     protected $table = 'comercio_estados';
     protected $primaryKey = 'codigo';
     public $incrementing = false;
