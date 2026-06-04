@@ -76,7 +76,7 @@
             {{-- Próximos a vencer --}}
             <div class="d-flex flex-column" style="min-width:180px;">
               <label class="text-muted small mb-1">Próx. a vencer (días)</label>
-              <select class="form-control form-control-sm shadow-sm" wire:model.live="proximos_vtos">
+              <select class="form-control form-control-sm shadow-sm" wire:model.live="proximosVtos">
                 <option value="">-- Todos --</option>
                 <option value="30">30</option>
                 <option value="60">60</option>
@@ -104,7 +104,7 @@
                 'estado' => $estado,
                 'desde' => $desde,
                 'hasta' => $hasta,
-                'proximos_vtos' => $proximos_vtos,
+                'proximos_vtos' => $this->proximosVtos,
                 'solo_clausurados' => $solo_clausurados ? 1 : 0,
              ]) }}">
             <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
@@ -262,7 +262,7 @@
         {{-- Próximos a vencer --}}
         <div class="col-lg-6">
           <div class="card border-secondary">
-            <div class="card-header">Habilitaciones próximas a vencer ({{ $this->proximos_vtos }} días)</div>
+            <div class="card-header">Habilitaciones próximas a vencer ({{ $this->proximosVtos ? $this->proximosVtos.' días' : 'Todos' }})</div>
             <div class="card-body p-0">
               <div class="table-responsive">
                 <table class="table table-sm table-striped mb-0">

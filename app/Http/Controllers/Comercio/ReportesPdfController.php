@@ -17,7 +17,9 @@ class ReportesPdfController extends Controller
         $rubroGeneral = $request->filled('rubroGeneral') ? (string) $request->query('rubroGeneral') : null;
         $desde = $request->filled('desde') ? (string) $request->query('desde') : null;
         $hasta = $request->filled('hasta') ? (string) $request->query('hasta') : null;
-        $proximosVtos = max(1, min((int) $request->integer('proximos_vtos', 30), 365));
+        $proximosVtos = $request->filled('proximos_vtos')
+            ? max(1, min((int) $request->integer('proximos_vtos'), 365))
+            : null;
         $soloClausurados = $request->boolean('solo_clausurados');
 
         $rubrosTieneGeneral = Schema::hasTable('rubros') && Schema::hasColumn('rubros', 'rubro_general');
@@ -65,7 +67,7 @@ class ReportesPdfController extends Controller
             'estado' => $estado ?: 'Todos',
             'desde' => $desde ?: '-',
             'hasta' => $hasta ?: '-',
-            'proximos' => $proximosVtos.' dias',
+            'proximos' => $proximosVtos ? $proximosVtos.' dias' : 'Todos',
             'clausurados' => $soloClausurados ? 'Si' : 'No',
         ];
 

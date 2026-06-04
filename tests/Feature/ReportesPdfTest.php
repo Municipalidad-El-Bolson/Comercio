@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\Comercio\Reportes;
 use App\Http\Middleware\SingleSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class ReportesPdfTest extends TestCase
@@ -23,5 +25,16 @@ class ReportesPdfTest extends TestCase
         $response->assertOk();
         $response->assertHeader('content-type', 'application/pdf');
         $response->assertHeader('content-disposition');
+    }
+
+    public function test_admin_puede_seleccionar_todos_en_proximos_vencimientos(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        Livewire::actingAs($user)
+            ->test(Reportes::class)
+            ->set('proximosVtos', '')
+            ->assertSet('proximosVtos', null)
+            ->assertOk();
     }
 }
