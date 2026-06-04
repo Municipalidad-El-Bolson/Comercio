@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Rubro;
 use App\Models\Ubicacion;
 use Carbon\Carbon;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class ReportesPdfController extends Controller
 {
@@ -19,6 +22,7 @@ class ReportesPdfController extends Controller
         $hasta = $request->filled('hasta') ? (string) $request->query('hasta') : null;
         $proximosVtos = max(1, min((int) $request->integer('proximos_vtos', 30), 365));
         $soloClausurados = $request->boolean('solo_clausurados');
+        $puedeFiltrarRubroGeneral = $rubroGeneral && Schema::hasColumn('rubros', 'rubro_general');
 
         $estadoVisual = function (?string $e) {
             return match ($e) {
@@ -50,19 +54,12 @@ class ReportesPdfController extends Controller
             ->when($rubroId, fn ($q) => $q->where('rubro_id', $rubroId))
             ->when($estado, fn ($q) => $q->where('estado', $estado))
             ->when($soloClausurados, fn ($q) => $q->where('situacion', 'clausurado'))
-            ->when($rubroGeneral, fn ($q) => $q->whereHas('rubro', fn ($r) => $r->where('rubro_general', $rubroGeneral)))
+            ->when($puedeFiltrarRubroGeneral, fn ($q) => $q->whereHas('rubro', fn ($r) => $r->where('rubro_general', $rubroGeneral)))
             ->with([
                 'rubro:id,subrubro',
-                'rubros:id,subrubro',
-                'telefonos:id,ubicacion_id,telefono',
             ])
-            ->orderByRaw("
-                COALESCE(
-                    NULLIF(nombre_comercial,''),
-                    NULLIF(razon_social,''),
-                    CONCAT(TRIM(apellido),' ',TRIM(nombres))
-                ) asc
-            ")
+            ->orderBy('nombre_comercial')
+            ->orderBy('razon_social')
             ->get([
                 'id',
                 'rubro_id',
@@ -79,37 +76,37 @@ class ReportesPdfController extends Controller
                 $titular = $r->razon_social ?: trim(($r->apellido ?? '').' '.($r->nombres ?? ''));
                 $titular = $titular !== '' ? $titular : '-';
 
-                $telsRel = $r->relationLoaded('telefonos') ? $r->telefonos->pluck('telefono')->filter()->all() : [];
-                $telefonos = !empty($telsRel)
-                    ? implode(' / ', $telsRel)
-                    : (trim((string) ($r->telefono ?? '')) ?: '-');
-
-                $sub = '-';
-                if ($r->relationLoaded('rubros') && $r->rubros->count()) {
-                    $sub = $r->rubros->first()->subrubro ?? '-';
-                } elseif ($r->relationLoaded('rubro')) {
-                    $sub = optional($r->rubro)->subrubro ?? '-';
-                }
-
                 return [
                     'fantasia' => $fantasia,
                     'titular' => $titular,
-                    'telefonos' => $telefonos,
+                    'telefonos' => trim((string) ($r->telefono ?? '')) ?: '-',
                     'vto' => $r->fecha_vto ? Carbon::parse($r->fecha_vto)->format('Y-m-d') : '-',
                     'direccion' => $r->domicilio_comercio ?: '-',
-                    'subrubro' => $sub,
+                    'subrubro' => optional($r->rubro)->subrubro ?? '-',
                 ];
             });
 
-        $pdf = app('dompdf.wrapper')->loadView('pdf.reporte-habilitaciones', [
+        $html = view('pdf.reporte-habilitaciones', [
             'titulo' => 'Reporte de Habilitaciones Comerciales',
             'desde' => $desde,
             'hasta' => $hasta,
             'filtros' => $filtros,
             'items' => $items,
             'proximosDias' => $proximosVtos,
-        ])->setPaper('a4', 'portrait');
+        ])->render();
 
-        return $pdf->download('reporte_habilitaciones_'.now()->format('Ymd_His').'.pdf');
+        $options = new Options();
+        $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('isRemoteEnabled', false);
+
+        $pdf = new Dompdf($options);
+        $pdf->loadHtml($html, 'UTF-8');
+        $pdf->setPaper('a4', 'portrait');
+        $pdf->render();
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="reporte_habilitaciones_'.now()->format('Ymd_His').'.pdf"',
+        ]);
     }
 }
