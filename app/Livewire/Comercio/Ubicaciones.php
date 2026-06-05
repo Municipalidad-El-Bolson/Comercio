@@ -279,15 +279,29 @@ class Ubicaciones extends AdminComponent
     public function render()
     {
         $t = '%'.$this->searchTerm.'%';
+        $hasHc = Schema::hasColumn('ubicaciones', 'hc');
+        $hasNumeroHabilitacion = Schema::hasColumn('ubicaciones', 'numero_habilitacion');
 
         // 1) Creamos la query BASE
         $ubicaciones = Ubicacion::with(['rubro','estadoModel'])
-            ->where(function($q) use ($t) {
+            ->where(function($q) use ($t, $hasHc, $hasNumeroHabilitacion) {
                 $q->where('nombre_comercial','like',$t)
                 ->orWhere('razon_social','like',$t)
                 ->orWhere(DB::raw("CONCAT(apellido,' ',nombres)"), 'like', $t)
                 ->orWhere('dni_cuit', 'like', $t)
-                ->orWhere('domicilio_comercio','like',$t)
+                ->orWhere('domicilio_comercio','like',$t);
+
+                if ($hasHc) {
+                    $q->orWhere('hc', 'like', $t);
+                }
+
+                if ($hasNumeroHabilitacion) {
+                    $q->orWhere('numero_habilitacion', 'like', $t);
+                }
+
+                $q->orWhereHas('habilitaciones', function ($qh) use ($t) {
+                    $qh->where('numero', 'like', $t);
+                })
                 ->orWhereHas('rubro', function($qr) use ($t) {
                     $qr->where('subrubro','like',$t);
                 });
