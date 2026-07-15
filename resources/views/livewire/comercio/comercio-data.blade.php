@@ -222,8 +222,8 @@
                 $rubroTxt = (string) (optional($ubicacion->rubro)->subrubro ?? optional($ubicacion->rubro)->nombre ?? '');
                 $rubroN = Str::of($rubroTxt)->lower()->trim()->ascii()->toString();
 
-                $esAlojTur = $rgN === 'alojamiento de alquiler turistico';
-                $esCamping = Str::contains($rubroN, 'camping'); // por si viene "Camping ..." o similar
+                $esAlojTur = optional($ubicacion->rubro)->esAlojamientoTuristico() ?? false;
+                $esCamping = optional($ubicacion->rubro)->esCamping() ?? false;
               @endphp
 
               {{-- Alojamiento turístico --}}
@@ -707,4 +707,3 @@
 
 </style>
 @endpush
-

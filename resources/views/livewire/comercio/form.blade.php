@@ -132,12 +132,12 @@
         {{-- CAMPOS DINÁMICOS --}}
         @php
           $rubro   = optional(\App\Models\Rubro::find($state['rubro_id'] ?? null));
-          $general = mb_strtoupper($rubro->rubro_general ?? '');
-          $sub     = mb_strtoupper($rubro->subrubro ?? '');
+          $esAlojamientoTuristico = $rubro->esAlojamientoTuristico();
+          $esCamping = $rubro->esCamping();
         @endphp
 
-        @if($general === 'ALOJAMIENTO DE ALQUILER TURISTICO' && mb_strpos($sub, 'CAMPING') === false)
-          <div class="row mt-3">
+        @if($esAlojamientoTuristico && !$esCamping)
+          <div class="row mt-3" wire:key="alojamiento-{{ $state['rubro_id'] ?? 'sin-rubro' }}">
             <div class="col-md-6 mb-2">
               <label class="mb-1">Cantidad de Unidades</label>
               <input type="number"
@@ -154,8 +154,8 @@
           </div>
         @endif
 
-        @if($general === 'ALOJAMIENTO DE ALQUILER TURISTICO' && mb_strpos($sub, 'CAMPING') !== false)
-          <div class="row mt-3">
+        @if($esAlojamientoTuristico && $esCamping)
+          <div class="row mt-3" wire:key="camping-{{ $state['rubro_id'] ?? 'sin-rubro' }}">
 
             <div class="col-md-4 mb-2">
               <label class="mb-1">Cantidad de Fogones</label>
