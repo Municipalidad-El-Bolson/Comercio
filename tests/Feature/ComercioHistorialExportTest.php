@@ -43,7 +43,10 @@ class ComercioHistorialExportTest extends TestCase
             'meta' => [
                 'action' => 'updated',
                 'diff' => [
-                    'domicilio_comercio' => ['old' => 'Dirección anterior', 'new' => 'Dirección nueva'],
+                    'domicilio_comercio' => [
+                        'old' => 'Cerro Perito Moreno Cota 1365, R8430 El Bolsón, Río Negro, Argentina',
+                        'new' => 'Cerro Perito Moreno Cota 1367, R8430 El Bolsón, Río Negro, Argentina',
+                    ],
                     'barrio' => ['old' => 'Barrio anterior', 'new' => 'Barrio nuevo'],
                     'rubro_id' => ['old' => $rubroAnterior, 'new' => $rubroNuevo],
                     'fecha_alta' => ['old' => '2025-06-18T03:00:00.000000Z', 'new' => '2021-07-20T03:00:00.000000Z'],
@@ -56,6 +59,8 @@ class ComercioHistorialExportTest extends TestCase
         $lines = $audit->fresh()->diff_lines;
         $this->assertCount(4, $lines);
         $this->assertStringContainsString('Domicilio', $lines[0]);
+        $this->assertStringContainsString('Cota 1365 → Cerro Perito Moreno Cota 1367', $lines[0]);
+        $this->assertStringNotContainsString('R8430', $lines[0]);
         $this->assertStringContainsString('Barrio', $lines[1]);
         $this->assertStringContainsString('Kiosco', $lines[2]);
         $this->assertStringContainsString('Almacén', $lines[2]);

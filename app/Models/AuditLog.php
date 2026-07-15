@@ -150,6 +150,14 @@ class AuditLog extends Model
             return \App\Models\Rubro::query()->find($value)?->subrubro ?? 'Rubro #'.$value;
         }
 
+        if ($field === 'domicilio_comercio') {
+            return preg_replace(
+                '/,\s*R8430\s+El\s+Bols[oó]n,\s*R[ií]o\s+Negro,\s*Argentina\s*$/iu',
+                '',
+                trim((string) $value)
+            );
+        }
+
         if (str_starts_with($field, 'fecha_')) {
             try { return \Illuminate\Support\Carbon::parse($value)->format('d/m/Y'); }
             catch (\Throwable) {}
