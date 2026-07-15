@@ -67,8 +67,14 @@
                 </div>
 
                 <hr class="my-3">
-                <h6 class="mb-2"><i class="fas fa-history mr-1"></i>Historial del expediente</h6>
-                <div class="table-responsive">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0"><i class="fas fa-history mr-1"></i>Historial del expediente</h6>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            wire:click="$toggle('historialColapsado')">
+                        {{ $historialColapsado ? 'Expandir' : 'Minimizar' }}
+                    </button>
+                </div>
+                <div class="table-responsive {{ $historialColapsado ? 'd-none' : '' }}">
                     <table class="table table-sm table-striped table-bordered mb-0">
                         <thead class="thead-light">
                             <tr>

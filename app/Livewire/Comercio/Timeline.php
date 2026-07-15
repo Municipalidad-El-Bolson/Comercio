@@ -36,6 +36,7 @@ class Timeline extends Component
     public ?string $etapaActual = null;
     public ?string $obs = null;
     public bool $colapsado = false;
+    public bool $historialColapsado = false;
 
     protected $rules = [
         'etapaActual' => 'required|string',
