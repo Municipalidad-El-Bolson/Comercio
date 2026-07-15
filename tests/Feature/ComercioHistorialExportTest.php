@@ -7,6 +7,7 @@ use App\Models\Ubicacion;
 use App\Models\User;
 use App\Http\Middleware\SingleSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ComercioHistorialExportTest extends TestCase
@@ -25,6 +26,15 @@ class ComercioHistorialExportTest extends TestCase
             'tipo_hab' => 'prev',
         ]);
 
+        $rubroAnterior = DB::table('rubros')->insertGetId([
+            'mega_rubro' => 'COMERCIO', 'rubro_madre' => 'ANTERIOR', 'subrubro' => 'Kiosco',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $rubroNuevo = DB::table('rubros')->insertGetId([
+            'mega_rubro' => 'COMERCIO', 'rubro_madre' => 'NUEVO', 'subrubro' => 'Almacén',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
         $audit = AuditLog::query()->create([
             'user_id' => $user->id,
             'action' => 'Se modificó el comercio',
@@ -35,6 +45,8 @@ class ComercioHistorialExportTest extends TestCase
                 'diff' => [
                     'domicilio_comercio' => ['old' => 'Dirección anterior', 'new' => 'Dirección nueva'],
                     'barrio' => ['old' => 'Barrio anterior', 'new' => 'Barrio nuevo'],
+                    'rubro_id' => ['old' => $rubroAnterior, 'new' => $rubroNuevo],
+                    'fecha_alta' => ['old' => '2025-06-18T03:00:00.000000Z', 'new' => '2021-07-20T03:00:00.000000Z'],
                     'lat' => ['old' => -41.9, 'new' => -41.8],
                     'lng' => ['old' => -71.5, 'new' => -71.4],
                 ],
@@ -42,9 +54,14 @@ class ComercioHistorialExportTest extends TestCase
         ]);
 
         $lines = $audit->fresh()->diff_lines;
-        $this->assertCount(2, $lines);
+        $this->assertCount(4, $lines);
         $this->assertStringContainsString('Domicilio', $lines[0]);
         $this->assertStringContainsString('Barrio', $lines[1]);
+        $this->assertStringContainsString('Kiosco', $lines[2]);
+        $this->assertStringContainsString('Almacén', $lines[2]);
+        $this->assertStringContainsString('18/06/2025', $lines[3]);
+        $this->assertStringContainsString('20/07/2021', $lines[3]);
+        $this->assertStringNotContainsString('T03:00:00', $lines[3]);
 
         $this->actingAs($user)
             ->get(route('comercio.historial.excel', $ubicacion))

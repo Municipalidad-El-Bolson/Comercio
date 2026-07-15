@@ -121,8 +121,8 @@ class AuditLog extends Model
                     ?? $fieldMap['*'][$field]
                     ?? ucfirst(str_replace('_',' ',$field));
 
-                $old = $this->beautify($field, $change['old'] ?? null);
-                $new = $this->beautify($field, $change['new'] ?? null);
+                $old = $this->formatValue($field, $change['old'] ?? null);
+                $new = $this->formatValue($field, $change['new'] ?? null);
 
                 return "{$label}: {$old} → {$new}";
                 })->values()->all();
@@ -140,11 +140,20 @@ class AuditLog extends Model
         return [$label, $article];
     }
 
-    protected function beautify(string $field, $value): string
+    public function formatValue(string $field, $value): string
     {
         if ($value === null || $value === '') return '(vacío)';
         if (is_bool($value)) return $value ? 'Sí' : 'No';
         if (is_array($value)) return json_encode($value, JSON_UNESCAPED_UNICODE);
+
+        if ($field === 'rubro_id') {
+            return \App\Models\Rubro::query()->find($value)?->subrubro ?? 'Rubro #'.$value;
+        }
+
+        if (str_starts_with($field, 'fecha_')) {
+            try { return \Illuminate\Support\Carbon::parse($value)->format('d/m/Y'); }
+            catch (\Throwable) {}
+        }
 
         if (str_ends_with($field, '_at')) {
             try { return \Illuminate\Support\Carbon::parse($value)->format('d/m/Y H:i'); }

@@ -66,8 +66,8 @@ class ComercioHistorialExportController extends Controller
                     'usuario' => $audit->user?->name ?? '(sistema)',
                     'accion' => $audit->message,
                     'campo' => $label,
-                    'anterior' => $this->value($change['old'] ?? null),
-                    'nuevo' => $this->value($change['new'] ?? null),
+                    'anterior' => $audit->formatValue($field, $change['old'] ?? null),
+                    'nuevo' => $audit->formatValue($field, $change['new'] ?? null),
                 ];
                 })->values()->all();
         })->values()->all();
@@ -83,12 +83,4 @@ class ComercioHistorialExportController extends Controller
             ->get();
     }
 
-    private function value($value): string
-    {
-        if ($value === null || $value === '') return '(vacío)';
-        if (is_bool($value)) return $value ? 'Sí' : 'No';
-        if (is_array($value)) return json_encode($value, JSON_UNESCAPED_UNICODE);
-
-        return (string) $value;
-    }
 }
