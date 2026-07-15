@@ -910,8 +910,10 @@ class Ubicaciones extends AdminComponent
 
             try {
                 $ubic->movimientos()->create([
+                    'tipo'    => 'estado',
                     'etapa'   => 'estado',
-                    'detalle' => $estadoLabel,
+                    'titulo'  => $estadoLabel,
+                    'estado'  => $estadoLabel,
                 ]);
             } catch (\Throwable $e) { }
         });

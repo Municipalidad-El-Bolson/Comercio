@@ -915,8 +915,10 @@ class ComercioMapa extends AdminComponent
             // 4.7) (Opcional) Movimiento legible
             try {
                 $ubic->movimientos()->create([
+                    'tipo'    => 'estado',
                     'etapa'   => 'estado',
-                    'detalle' => $estadoLabel,
+                    'titulo'  => $estadoLabel,
+                    'estado'  => $estadoLabel,
                 ]);
             } catch (\Throwable $e) { /* noop */ }
         });
