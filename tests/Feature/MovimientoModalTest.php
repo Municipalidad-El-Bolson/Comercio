@@ -31,6 +31,7 @@ class MovimientoModalTest extends TestCase
             ->set('estado', 'Completo')
             ->set('descripcion', 'Sin observaciones')
             ->set('dias_vencimiento', 15)
+            ->assertSee('Fecha de vencimiento:')
             ->call('guardarMovimiento')
             ->assertHasNoErrors();
 

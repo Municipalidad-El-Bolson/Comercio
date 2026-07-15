@@ -44,12 +44,22 @@
             </div>
           </div>
 
-          <div class="form-group mb-2">
-            <label class="mb-1">Plazo para próxima inspección (días)</label>
-            <input type="number" min="1" max="3650" wire:model.defer="dias_vencimiento"
+          <div class="form-group mb-2 border border-warning rounded p-2 bg-light">
+            <label class="mb-1 font-weight-bold">
+              <i class="fas fa-calendar-alt mr-1 text-warning"></i>Vencimiento del acta (opcional)
+            </label>
+            <div class="input-group input-group-sm">
+              <input type="number" min="1" max="3650" wire:model.live.debounce.300ms="dias_vencimiento"
                    class="form-control form-control-sm @error('dias_vencimiento') is-invalid @enderror"
-                   placeholder="Opcional. Ej.: 15">
-            <small class="form-text text-muted">Si se completa, el acta aparecerá en Seguimiento de actas.</small>
+                   placeholder="Ej.: 15">
+              <div class="input-group-append"><span class="input-group-text">días</span></div>
+            </div>
+            @if($this->fechaVencimientoEstimada)
+              <div class="mt-1 font-weight-bold text-danger">
+                Fecha de vencimiento: {{ $this->fechaVencimientoEstimada }}
+              </div>
+            @endif
+            <small class="form-text text-muted">Al completar el plazo aparecerá en Seguimiento de actas.</small>
             @error('dias_vencimiento') <div class="invalid-feedback">{{ $message }}</div> @enderror
           </div>
 

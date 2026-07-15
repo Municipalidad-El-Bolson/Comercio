@@ -42,6 +42,18 @@ class MovimientoModal extends Component
         return view('livewire.comercio.movimiento-modal');
     }
 
+    public function getFechaVencimientoEstimadaProperty(): ?string
+    {
+        if (!$this->dias_vencimiento) return null;
+
+        $fechaBase = $this->movimientoIdEdit
+            ? (Movimiento::find($this->movimientoIdEdit)?->fecha ?? now())
+            : now();
+
+        return \Illuminate\Support\Carbon::parse($fechaBase)
+            ->startOfDay()->addDays((int) $this->dias_vencimiento)->format('d/m/Y');
+    }
+
     public function abrirModalMovimientos($ubicacionId)
     {
         $this->ubicacion = Ubicacion::findOrFail($ubicacionId);
