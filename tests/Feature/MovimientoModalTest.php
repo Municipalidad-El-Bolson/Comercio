@@ -47,4 +47,12 @@ class MovimientoModalTest extends TestCase
             \App\Models\Movimiento::query()->where('tipo', 'acta')->first()->fecha_vencimiento->format('Y-m-d')
         );
     }
+
+    public function test_el_perfil_del_comercio_monta_el_modal_de_actas(): void
+    {
+        $view = file_get_contents(resource_path('views/livewire/comercio/comercio-data.blade.php'));
+
+        $this->assertStringContainsString('<livewire:comercio.movimiento-modal', $view);
+        $this->assertStringContainsString('wire:click="mostrarMovimientos(', $view);
+    }
 }

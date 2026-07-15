@@ -1,4 +1,5 @@
 <div class="container">
+<livewire:comercio.movimiento-modal wire:key="movimiento-modal-comercio-{{ $ubicacion->id }}" />
 {{-- HEADER / HERO --}}
 @php
   $esJuridica  = ($ubicacion->getRawOriginal('persona_tipo') ?? $ubicacion->persona_tipo ?? 'fisica') === 'juridica';
