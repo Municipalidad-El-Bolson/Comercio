@@ -13,6 +13,7 @@ use App\Support\HandlesEstados;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Schema;
 use App\Models\UbicacionEstadoHist;
+use App\Models\AuditLog;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;          
 use Carbon\Carbon;                      
@@ -1158,6 +1159,12 @@ public function refrescarDatos($id = null): void
         }
 
         $esJuridica = ($this->state['persona_tipo'] ?? 'fisica') === 'juridica';
+        $auditoriaComercio = AuditLog::with('user')
+            ->where('entity_type', Ubicacion::class)
+            ->where('entity_id', (string) $this->ubicacion->id)
+            ->latest('created_at')
+            ->latest('id')
+            ->get();
 
         return view('livewire.comercio.comercio-data', [
             'ubicacion'  => $this->ubicacion,
@@ -1168,9 +1175,9 @@ public function refrescarDatos($id = null): void
             'esJuridica' => $esJuridica,
             'docsTotal'  => $total,
             'docsOK'     => $presentadas,
+            'auditoriaComercio' => $auditoriaComercio,
             'estadoChip' => $chips['estadoChip'],
             'cambioChip' => $chips['cambioChip'],
         ])->layout('admin.layouts.app');
     }
 }
-

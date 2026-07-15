@@ -381,15 +381,23 @@
     <div class="card mb-4 border-secondary" x-data="{open:false}">
     <div class="card-header bg-light d-flex justify-content-between align-items-center">
       <strong class="mr-2">
-        <i class="far fa-folder-open mr-1"></i>Historial de estado
+        <i class="far fa-folder-open mr-1"></i>Historial completo
       </strong>
 
-      <button class="btn btn-sm btn-outline-secondary d-flex align-items-center"
+      <div class="d-flex align-items-center">
+        <a class="btn btn-sm btn-outline-success mr-1" href="{{ route('comercio.historial.excel', $ubicacion) }}">
+          <i class="fas fa-file-excel mr-1"></i>Excel
+        </a>
+        <a class="btn btn-sm btn-outline-danger mr-2" href="{{ route('comercio.historial.pdf', $ubicacion) }}">
+          <i class="fas fa-file-pdf mr-1"></i>PDF
+        </a>
+        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center"
               type="button"
               @click="open=!open">
-        <span class="mr-1" x-text="open ? 'Ocultar' : 'Ver'"></span>
-        <i :class="open ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
-      </button>
+          <span class="mr-1" x-text="open ? 'Ocultar' : 'Ver'"></span>
+          <i :class="open ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+        </button>
+      </div>
     </div>
 
 
@@ -399,25 +407,24 @@
             <thead>
               <tr>
                 <th>Fecha</th>
-                <th>Estado</th>
-                <th>Alta</th>
-                <th>Baja</th>
-                <th>Vto</th>
                 <th>Usuario</th>
+                <th>Acción y ediciones</th>
               </tr>
             </thead>
             <tbody>
-              @forelse($ubicacion->estadosHistorial as $h)
+              @forelse($auditoriaComercio as $h)
                 <tr>
                   <td>{{ $h->created_at?->format('d/m/Y H:i') }}</td>
-                  <td>{{ $h->estado_label }}</td>
-                  <td>{{ $h->fecha_alta ? \Carbon\Carbon::parse($h->fecha_alta)->format('d/m/Y') : '' }}</td>
-                  <td>{{ $h->fecha_baja ? \Carbon\Carbon::parse($h->fecha_baja)->format('d/m/Y') : '' }}</td>
-                  <td>{{ $h->fecha_vto  ? \Carbon\Carbon::parse($h->fecha_vto )->format('d/m/Y') : '' }}</td>
-                  <td>{{ optional(\App\Models\User::find($h->user_id))->name }}</td>
+                  <td>{{ $h->user?->name ?? '(sistema)' }}</td>
+                  <td>
+                    <div class="font-weight-bold">{{ $h->message }}</div>
+                    @foreach($h->diff_lines as $line)
+                      <div class="small text-muted">{{ $line }}</div>
+                    @endforeach
+                  </td>
                 </tr>
               @empty
-                <tr><td colspan="6" class="text-muted">Sin movimientos.</td></tr>
+                <tr><td colspan="3" class="text-muted">Sin ediciones registradas.</td></tr>
               @endforelse
             </tbody>
           </table>
@@ -700,5 +707,4 @@
 
 </style>
 @endpush
-
 

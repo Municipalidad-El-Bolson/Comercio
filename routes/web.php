@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Storage;
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Comercio\ReportesPdfController;
+use App\Http\Controllers\Comercio\ComercioHistorialExportController;
 
 use App\Livewire\Comercio\Ubicaciones;
 use App\Livewire\Comercio\ComercioMapa;
@@ -51,6 +52,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin,writer')->group(function () {
         Route::get('/ubicaciones', Ubicaciones::class)->name('ubicaciones');
         Route::get('/comercios/{ubicacion}', ComercioData::class)->name('comercio.data');
+        Route::get('/comercios/{ubicacion}/historial/excel', [ComercioHistorialExportController::class, 'excel'])->name('comercio.historial.excel');
+        Route::get('/comercios/{ubicacion}/historial/pdf', [ComercioHistorialExportController::class, 'pdf'])->name('comercio.historial.pdf');
         Route::get('/mesa', MesaInbox::class)->name('mesa.inbox'); 
         Route::get('/vencimientos/proximos', ProximosIndex::class)->name('prox_vto.index');
         Route::get('/vencimientos/vencidos',  VencidosIndex::class)->name('vto.index');
