@@ -5,6 +5,7 @@ namespace App\Livewire\Comercio;
 use Livewire\Component;
 use App\Models\Movimiento;
 use App\Models\Ubicacion;
+use App\Models\ExpedienteSeguimiento;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,11 @@ class Timeline extends Component
             : Carbon::now($tz)->toDateString();
 
         // Persistencia (mantengo tu tipo=timeline)
+        DB::transaction(function () use ($fecha) {
+        $ultimo = ExpedienteSeguimiento::query()
+            ->where('ubicacion_id', $this->ubicacionId)
+            ->latest('fecha')->latest('id')->first();
+
         Movimiento::updateOrCreate(
             [
                 'ubicacion_id' => $this->ubicacionId,
@@ -97,6 +103,16 @@ class Timeline extends Component
                 'tipo_acta'    => null,
             ]
         );
+
+        ExpedienteSeguimiento::create([
+            'ubicacion_id' => $this->ubicacionId,
+            'sector_desde' => $ultimo?->sector_hasta,
+            'sector_hasta' => $this->etapaActual,
+            'fecha' => $fecha,
+            'observacion' => trim((string) ($this->obs ?? '')) ?: null,
+            'user_id' => auth()->id(),
+        ]);
+        });
 
         // Mover selector a la siguiente etapa NO completada
         $keys = array_keys($this->etapas);
@@ -159,9 +175,14 @@ class Timeline extends Component
 
     public function render()
     {
+        $historial = ExpedienteSeguimiento::with('user')
+            ->where('ubicacion_id', $this->ubicacionId)
+            ->orderByDesc('fecha')->orderByDesc('id')->get();
+
         return view('livewire.comercio.timeline', [
             'steps'     => $this->steps,   // view-model listo para la vista
             'createdAt' => $this->createdAt,
+            'historial' => $historial,
         ]);
     }
 }

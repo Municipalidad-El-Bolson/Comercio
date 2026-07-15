@@ -2,7 +2,7 @@
     <div class="card mb-3">
         {{-- Header --}}
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <strong>Seguimiento de documentación</strong>
+            <strong>Seguimiento del expediente</strong>
 
             <div class="ml-auto">
                 <button class="btn btn-sm btn-outline-secondary" wire:click="$toggle('colapsado')">
@@ -64,6 +64,35 @@
                             </div>
                         </div>
                     @endforeach
+                </div>
+
+                <hr class="my-3">
+                <h6 class="mb-2"><i class="fas fa-history mr-1"></i>Historial del expediente</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-bordered mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Desde</th>
+                                <th>Hacia</th>
+                                <th>Usuario</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($historial as $registro)
+                                <tr>
+                                    <td>{{ $registro->fecha?->format('d/m/Y') }}</td>
+                                    <td>{{ data_get($etapas, $registro->sector_desde.'.title', 'Inicio del expediente') }}</td>
+                                    <td>{{ data_get($etapas, $registro->sector_hasta.'.title', $registro->sector_hasta) }}</td>
+                                    <td>{{ $registro->user?->name ?? '(sin registro)' }}</td>
+                                    <td>{{ $registro->observacion ?: '—' }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="5" class="text-muted text-center">Todavía no hay avances registrados.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
