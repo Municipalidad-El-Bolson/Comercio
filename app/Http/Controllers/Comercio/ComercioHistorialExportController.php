@@ -13,19 +13,30 @@ class ComercioHistorialExportController extends Controller
 {
     public function excel(Ubicacion $ubicacion): StreamedResponse
     {
-        $filename = 'historial_comercio_'.$ubicacion->id.'_'.now()->format('Ymd_His').'.csv';
+        $filename = 'historial_comercio_'.$ubicacion->id.'_'.now()->format('Ymd_His').'.xls';
 
         return response()->streamDownload(function () use ($ubicacion) {
-            $out = fopen('php://output', 'wb');
-            fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Fecha', 'Usuario', 'Acción', 'Campo', 'Valor anterior', 'Valor nuevo'], ';');
+            echo '<?xml version="1.0" encoding="UTF-8"?>';
+            echo '<?mso-application progid="Excel.Sheet"?>';
+            echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+            echo '<Styles><Style ss:ID="Header"><Font ss:Bold="1"/><Interior ss:Color="#D9EAF7" ss:Pattern="Solid"/></Style></Styles>';
+            echo '<Worksheet ss:Name="Historial"><Table>';
+            echo '<Column ss:Width="105"/><Column ss:Width="100"/><Column ss:Width="180"/>';
+            echo '<Column ss:Width="120"/><Column ss:Width="180"/><Column ss:Width="180"/>';
+            echo '<Row ss:StyleID="Header">';
+            foreach (['Fecha', 'Usuario', 'Acción', 'Campo', 'Valor anterior', 'Valor nuevo'] as $heading) {
+                echo $this->excelCell($heading);
+            }
+            echo '</Row>';
 
             foreach ($this->rows($ubicacion) as $row) {
-                fputcsv($out, array_values($row), ';');
+                echo '<Row>';
+                foreach ($row as $value) echo $this->excelCell((string) $value);
+                echo '</Row>';
             }
 
-            fclose($out);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+            echo '</Table></Worksheet></Workbook>';
+        }, $filename, ['Content-Type' => 'application/vnd.ms-excel; charset=UTF-8']);
     }
 
     public function pdf(Ubicacion $ubicacion)
@@ -57,18 +68,18 @@ class ComercioHistorialExportController extends Controller
             return collect($diff)
                 ->reject(fn ($change, $field) => in_array($field, ['lat', 'lng'], true))
                 ->map(function ($change, $field) use ($audit) {
-                $label = config('audit.fields.'.$audit->entity_type.'.'.$field)
-                    ?? config('audit.fields.*.'.$field)
-                    ?? ucfirst(str_replace('_', ' ', $field));
+                    $label = config('audit.fields.'.$audit->entity_type.'.'.$field)
+                        ?? config('audit.fields.*.'.$field)
+                        ?? ucfirst(str_replace('_', ' ', $field));
 
-                return [
-                    'fecha' => $audit->created_at?->format('d/m/Y H:i') ?? '',
-                    'usuario' => $audit->user?->name ?? '(sistema)',
-                    'accion' => $audit->message,
-                    'campo' => $label,
-                    'anterior' => $audit->formatValue($field, $change['old'] ?? null),
-                    'nuevo' => $audit->formatValue($field, $change['new'] ?? null),
-                ];
+                    return [
+                        'fecha' => $audit->created_at?->format('d/m/Y H:i') ?? '',
+                        'usuario' => $audit->user?->name ?? '(sistema)',
+                        'accion' => $audit->message,
+                        'campo' => $label,
+                        'anterior' => $audit->formatValue($field, $change['old'] ?? null),
+                        'nuevo' => $audit->formatValue($field, $change['new'] ?? null),
+                    ];
                 })->values()->all();
         })->values()->all();
     }
@@ -83,4 +94,10 @@ class ComercioHistorialExportController extends Controller
             ->get();
     }
 
+    private function excelCell(string $value): string
+    {
+        return '<Cell><Data ss:Type="String">'
+            .htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8')
+            .'</Data></Cell>';
+    }
 }

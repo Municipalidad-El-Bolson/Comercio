@@ -63,11 +63,16 @@ class ComercioHistorialExportTest extends TestCase
         $this->assertStringContainsString('20/07/2021', $lines[3]);
         $this->assertStringNotContainsString('T03:00:00', $lines[3]);
 
-        $this->actingAs($user)
-            ->get(route('comercio.historial.excel', $ubicacion))
+        $excel = $this->actingAs($user)
+            ->get(route('comercio.historial.excel', $ubicacion));
+
+        $excel
             ->assertOk()
-            ->assertHeader('content-type', 'text/csv; charset=UTF-8')
+            ->assertHeader('content-type', 'application/vnd.ms-excel; charset=UTF-8')
             ->assertDownload();
+        $this->assertStringContainsString('ss:Type="String">18/06/2025', $excel->streamedContent());
+        $this->assertStringContainsString('ss:Type="String">20/07/2021', $excel->streamedContent());
+        $this->assertStringNotContainsString('T03:00:00', $excel->streamedContent());
 
         $this->actingAs($user)
             ->get(route('comercio.historial.pdf', $ubicacion))
