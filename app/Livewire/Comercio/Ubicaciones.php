@@ -316,7 +316,9 @@ class Ubicaciones extends AdminComponent
 
         // 3) ORDER + PAGINACIÓN
         $ubicaciones = $ubicaciones
+            ->orderByRaw("CASE WHEN nombre_comercial IS NULL OR TRIM(nombre_comercial) = '' THEN 1 ELSE 0 END")
             ->orderBy('nombre_comercial')
+            ->orderBy('id')
             ->paginate(10);
 
         return view('livewire.comercio.ubicaciones', [
