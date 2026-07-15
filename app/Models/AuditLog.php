@@ -114,7 +114,9 @@ class AuditLog extends Model
 
             $fieldMap = config('audit.fields', []);
 
-            return collect($diff)->map(function ($change, $field) use ($fieldMap) {
+            return collect($diff)
+                ->reject(fn ($change, $field) => in_array($field, ['lat', 'lng'], true))
+                ->map(function ($change, $field) use ($fieldMap) {
                 $label = $fieldMap[$this->entity_type][$field]
                     ?? $fieldMap['*'][$field]
                     ?? ucfirst(str_replace('_',' ',$field));
@@ -123,7 +125,7 @@ class AuditLog extends Model
                 $new = $this->beautify($field, $change['new'] ?? null);
 
                 return "{$label}: {$old} → {$new}";
-            })->values()->all();
+                })->values()->all();
         });
     }
 

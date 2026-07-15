@@ -25,16 +25,26 @@ class ComercioHistorialExportTest extends TestCase
             'tipo_hab' => 'prev',
         ]);
 
-        AuditLog::query()->create([
+        $audit = AuditLog::query()->create([
             'user_id' => $user->id,
             'action' => 'Se modificó el comercio',
             'entity_type' => Ubicacion::class,
             'entity_id' => (string) $ubicacion->id,
             'meta' => [
                 'action' => 'updated',
-                'diff' => ['nombre_comercial' => ['old' => 'Anterior', 'new' => 'Comercio auditado']],
+                'diff' => [
+                    'domicilio_comercio' => ['old' => 'Dirección anterior', 'new' => 'Dirección nueva'],
+                    'barrio' => ['old' => 'Barrio anterior', 'new' => 'Barrio nuevo'],
+                    'lat' => ['old' => -41.9, 'new' => -41.8],
+                    'lng' => ['old' => -71.5, 'new' => -71.4],
+                ],
             ],
         ]);
+
+        $lines = $audit->fresh()->diff_lines;
+        $this->assertCount(2, $lines);
+        $this->assertStringContainsString('Domicilio', $lines[0]);
+        $this->assertStringContainsString('Barrio', $lines[1]);
 
         $this->actingAs($user)
             ->get(route('comercio.historial.excel', $ubicacion))

@@ -54,9 +54,12 @@ class ComercioHistorialExportController extends Controller
                 ]];
             }
 
-            return collect($diff)->map(function ($change, $field) use ($audit) {
-                $line = $audit->diff_lines[array_search($field, array_keys(Arr::get($audit->meta, 'diff', [])), true)] ?? $field;
-                [$label] = explode(':', $line, 2);
+            return collect($diff)
+                ->reject(fn ($change, $field) => in_array($field, ['lat', 'lng'], true))
+                ->map(function ($change, $field) use ($audit) {
+                $label = config('audit.fields.'.$audit->entity_type.'.'.$field)
+                    ?? config('audit.fields.*.'.$field)
+                    ?? ucfirst(str_replace('_', ' ', $field));
 
                 return [
                     'fecha' => $audit->created_at?->format('d/m/Y H:i') ?? '',
@@ -66,7 +69,7 @@ class ComercioHistorialExportController extends Controller
                     'anterior' => $this->value($change['old'] ?? null),
                     'nuevo' => $this->value($change['new'] ?? null),
                 ];
-            })->values()->all();
+                })->values()->all();
         })->values()->all();
     }
 
