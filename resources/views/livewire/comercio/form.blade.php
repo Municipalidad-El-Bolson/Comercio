@@ -449,9 +449,11 @@
           @else
             <div class="row">
               @foreach($docSchema['items'] as $i => $it)
-                <div class="col-md-6">
-                  <label class="form-check mb-1">
-                    <input class="form-check-input" type="checkbox" wire:model="state.documentos.{{ $it['key'] }}">
+                <div class="col-md-6" wire:key="documento-{{ $formKey ?? 'form' }}-{{ $it['key'] }}">
+                  <label class="form-check mb-1" for="documento_{{ $formKey ?? 'form' }}_{{ $it['key'] }}">
+                    <input id="documento_{{ $formKey ?? 'form' }}_{{ $it['key'] }}"
+                           class="form-check-input" type="checkbox"
+                           wire:model="state.documentos.{{ $it['key'] }}">
                     <span class="form-check-label">{{ $it['label'] }}</span>
                   </label>
                 </div>
@@ -461,11 +463,13 @@
             {{-- Uso de inmueble: checkbox + select (si aplica) --}}
             @if(data_get($docSchema,'uso_inmueble.show'))
               <hr class="my-2">
-              <div class="form-row align-items-end">
+              <div class="form-row align-items-end"
+                   wire:key="uso-inmueble-{{ $formKey ?? 'form' }}-{{ $docSchema['uso_inmueble']['checkboxKey'] }}">
                 <div class="form-group col-md-4 mb-2">
                   <label class="mb-1 d-block">{{ data_get($docSchema,'uso_inmueble.label','Uso de inmueble') }}</label>
-                  <label class="form-check m-0">
-                    <input class="form-check-input" type="checkbox"
+                  <label class="form-check m-0" for="uso_inmueble_{{ $formKey ?? 'form' }}">
+                    <input id="uso_inmueble_{{ $formKey ?? 'form' }}"
+                          class="form-check-input" type="checkbox"
                           wire:model="state.documentos.{{ $docSchema['uso_inmueble']['checkboxKey'] }}">
                     <span class="form-check-label">Presenta comprobante</span>
                   </label>
