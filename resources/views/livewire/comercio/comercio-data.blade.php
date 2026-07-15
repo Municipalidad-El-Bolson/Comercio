@@ -434,7 +434,7 @@
 
     {{-- ACTAS --}}
     @php
-      $movs = $ubicacion->movimientos()->latest()->get();
+      $movs = $ubicacion->movimientos()->where('tipo', 'acta')->latest()->get();
     @endphp
     <div class="card mb-4 border-secondary" x-data="{openMovs:false}">
       <div class="card-header bg-light d-flex justify-content-between align-items-center">
@@ -442,10 +442,16 @@
           <strong class="mr-2"><i class="far fa-clipboard mr-1"></i>Actas</strong>
           <span class="badge badge-info">{{ $movs->count() }}</span>
         </div>
-        <button class="btn btn-sm btn-outline-secondary" type="button" @click="openMovs = !openMovs">
-          <span class="mr-1" x-text="openMovs ? 'ocultar' : 'ver'"></span>
-          <i :class="openMovs ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
-        </button>
+        <div>
+          <button type="button" class="btn btn-sm btn-primary mr-1"
+                  wire:click="mostrarMovimientos({{ $ubicacion->id }})">
+            <i class="fas fa-plus mr-1"></i>Nueva acta
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" @click="openMovs = !openMovs">
+            <span class="mr-1" x-text="openMovs ? 'ocultar' : 'ver'"></span>
+            <i :class="openMovs ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </button>
+        </div>
       </div>
 
       <div x-show="openMovs" x-collapse x-cloak>

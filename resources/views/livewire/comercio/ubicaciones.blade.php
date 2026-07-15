@@ -251,13 +251,6 @@
     </div>
 </div>
 
-@push('scripts')
-<script>
-  window.addEventListener('mostrar-modal-movimientos', () => {
-    $('#modalMovimientos').modal('show');
-  });
-</script>
-@endpush
 @push('styles')
 <style>
 
@@ -377,6 +370,5 @@
 
 </style>
 @endpush
-
 
 

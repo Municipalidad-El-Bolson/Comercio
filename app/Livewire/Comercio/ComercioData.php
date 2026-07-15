@@ -805,6 +805,19 @@ class ComercioData extends Component
         $this->dispatch('toast', mensaje: 'Movimiento eliminado correctamente', tipo: 'success');
     }
 
+    public function mostrarMovimientos(int $id): void
+    {
+        abort_unless($id === (int) $this->ubicacion->id, 404);
+        $this->dispatch('abrirModalMovimientos', $id);
+    }
+
+    #[On('movimiento-guardado')]
+    public function refrescarActas($ubicacionId = null): void
+    {
+        if ($ubicacionId && (int) $ubicacionId !== (int) $this->ubicacion->id) return;
+        $this->ubicacion->refresh();
+    }
+
 
     /** ====== Repeater Teléfonos ====== */
     public function addTelefono(): void

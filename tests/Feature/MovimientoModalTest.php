@@ -1,0 +1,44 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Livewire\Comercio\MovimientoModal;
+use App\Models\Ubicacion;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
+use Tests\TestCase;
+
+class MovimientoModalTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_carga_un_acta_para_el_comercio_preseleccionado(): void
+    {
+        $user = User::factory()->create(['role' => 'writer']);
+        $ubicacion = Ubicacion::query()->create([
+            'nombre_comercial' => 'Comercio con acta',
+            'dni_cuit' => '20123456789',
+            'estado' => 'entramite',
+            'estado_base' => '021',
+            'tipo_hab' => 'prev',
+        ]);
+
+        Livewire::actingAs($user)->test(MovimientoModal::class)
+            ->call('abrirModalMovimientos', $ubicacion->id)
+            ->set('titulo', 'Inspección del local')
+            ->set('tipo_acta', 'inspeccion')
+            ->set('estado', 'Completo')
+            ->set('descripcion', 'Sin observaciones')
+            ->call('guardarMovimiento')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('movimientos', [
+            'ubicacion_id' => $ubicacion->id,
+            'tipo' => 'acta',
+            'tipo_acta' => 'inspeccion',
+            'titulo' => 'Inspección Del Local',
+            'estado' => 'Completo',
+        ]);
+    }
+}

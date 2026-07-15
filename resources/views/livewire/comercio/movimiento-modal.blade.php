@@ -163,6 +163,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (input) { input.focus(); input.select(); }
   });
 });
+window.addEventListener('mostrar-modal-movimientos', () => {
+  $('#modalMovimientos').modal('show');
+});
 </script>
-
 

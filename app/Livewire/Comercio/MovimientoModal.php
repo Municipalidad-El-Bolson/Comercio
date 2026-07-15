@@ -105,6 +105,7 @@ class MovimientoModal extends Component
 
         // refrescar lista y reset form
         $this->cargarMovimientos();
+        $this->dispatch('movimiento-guardado', ubicacionId: $this->ubicacion->id);
         $this->resetForm(keepModalOpen: true);
     }
 
