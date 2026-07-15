@@ -437,7 +437,7 @@
     @php
       $movs = $ubicacion->movimientos()->where('tipo', 'acta')->latest()->get();
     @endphp
-    <div class="card mb-4 border-secondary" x-data="{openMovs:false}">
+    <div class="card mb-4 border-secondary" wire:key="actas-comercio-{{ $ubicacion->id }}">
       <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
           <strong class="mr-2"><i class="far fa-clipboard mr-1"></i>Actas</strong>
@@ -448,14 +448,14 @@
                   wire:click="mostrarMovimientos({{ $ubicacion->id }})">
             <i class="fas fa-plus mr-1"></i>Nueva acta
           </button>
-          <button class="btn btn-sm btn-outline-secondary" type="button" @click="openMovs = !openMovs">
-            <span class="mr-1" x-text="openMovs ? 'ocultar' : 'ver'"></span>
-            <i :class="openMovs ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          <button class="btn btn-sm btn-outline-secondary" type="button" wire:click="$toggle('actasAbiertas')">
+            <span class="mr-1">{{ $actasAbiertas ? 'ocultar' : 'ver' }}</span>
+            <i class="fas {{ $actasAbiertas ? 'fa-chevron-up' : 'fa-chevron-down' }}"></i>
           </button>
         </div>
       </div>
 
-      <div x-show="openMovs" x-collapse x-cloak>
+      <div class="{{ $actasAbiertas ? '' : 'd-none' }}">
         <div class="card-body p-2">
           @if($movs->isEmpty())
             <div class="text-center text-muted py-3">Sin movimientos aún.</div>
@@ -484,7 +484,7 @@
                       $isImg= $ok && preg_match('/\.(jpe?g|png|gif|webp|bmp)$/i', $path);
                       $fecha = \Illuminate\Support\Carbon::parse($mov->fecha ?? $mov->created_at)->format('d/m/Y H:i');
                     @endphp
-                    <tr>
+                    <tr wire:key="acta-perfil-{{ $mov->id }}">
                       <td class="text-sm">{{ $mov->titulo ?? '—' }}</td>
                       <td class="text-sm">{{ $mov->tipo ?? '—' }}</td>
                       <td class="text-sm">{{ $mov->estado ?? '—' }}</td>
@@ -504,7 +504,9 @@
                       <td class="text-sm">{{ $mov->fecha_vencimiento?->format('d/m/Y') ?? '—' }}</td>
                       <td class="text-center">
                         <button type="button" class="btn btn-sm btn-outline-danger"
-                                wire:click.prevent="eliminarMovimiento({{ $mov->id }})">
+                                wire:click.prevent="eliminarMovimiento({{ $mov->id }})"
+                                wire:loading.attr="disabled"
+                                wire:target="eliminarMovimiento({{ $mov->id }})">
                           Borrar
                         </button>
                       </td>

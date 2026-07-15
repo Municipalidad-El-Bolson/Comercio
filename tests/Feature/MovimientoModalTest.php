@@ -55,5 +55,7 @@ class MovimientoModalTest extends TestCase
 
         $this->assertStringContainsString('<livewire:comercio.movimiento-modal', $view);
         $this->assertStringContainsString('wire:click="mostrarMovimientos(', $view);
+        $this->assertStringContainsString('wire:key="acta-perfil-', $view);
+        $this->assertStringContainsString('wire:click="$toggle(\'actasAbiertas\')"', $view);
     }
 }

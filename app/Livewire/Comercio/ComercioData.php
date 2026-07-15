@@ -23,6 +23,7 @@ class ComercioData extends Component
     use HandlesEstados;
 
     public Ubicacion $ubicacion;
+    public bool $actasAbiertas = false;
     public bool $showEditModal = false;
     public string $rubroQuery = '';
     public string $anexoQuery = '';
@@ -787,9 +788,13 @@ class ComercioData extends Component
 
     }
 
-    public function eliminarMovimiento($id)
+    public function eliminarMovimiento(int $id): void
     {
-        $mov = \App\Models\Movimiento::find($id);
+        $mov = \App\Models\Movimiento::query()
+            ->whereKey($id)
+            ->where('ubicacion_id', $this->ubicacion->id)
+            ->where('tipo', 'acta')
+            ->first();
 
         if (!$mov) {
             return;
@@ -801,8 +806,10 @@ class ComercioData extends Component
         }
 
         $mov->delete();
+        $this->actasAbiertas = true;
+        $this->ubicacion->refresh();
 
-        $this->dispatch('toast', mensaje: 'Movimiento eliminado correctamente', tipo: 'success');
+        $this->dispatch('toast', mensaje: 'Acta eliminada correctamente', tipo: 'success');
     }
 
     public function mostrarMovimientos(int $id): void
