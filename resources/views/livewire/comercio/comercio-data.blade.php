@@ -469,6 +469,7 @@
                     <th>Descripción</th>
                     <th>Archivo</th>
                     <th>Fecha</th>
+                    <th>Vencimiento</th>
                     <th class="text-center">Acciones</th>
                   </tr>
                 </thead>
@@ -499,6 +500,7 @@
                         @endif
                       </td>
                       <td class="text-sm">{{ $fecha }}</td>
+                      <td class="text-sm">{{ $mov->fecha_vencimiento?->format('d/m/Y') ?? '—' }}</td>
                       <td class="text-center">
                         <button type="button" class="btn btn-sm btn-outline-danger"
                                 wire:click.prevent="eliminarMovimiento({{ $mov->id }})">

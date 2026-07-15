@@ -19,6 +19,7 @@ class MovimientoModal extends Component
     // Form
     public $titulo, $descripcion, $estado = 'En Proceso', $archivo;
     public $tipo_acta = null;
+    public $dias_vencimiento = null;
 
     // Edición
     public ?int $movimientoIdEdit = null;
@@ -30,6 +31,7 @@ class MovimientoModal extends Component
         'estado'      => 'required|string|in:En Proceso,Observado,Completo,Rechazado,Archivado,Cancelado',
         'archivo'     => 'nullable|file|max:2048',
         'tipo_acta'   => 'nullable|in:asesoramiento,notificacion,inspeccion,infraccion',
+        'dias_vencimiento' => 'nullable|integer|min:1|max:3650',
     ];
 
     // Abrir modal desde afuera
@@ -81,6 +83,7 @@ class MovimientoModal extends Component
                 'estado'       => $this->estado,
                 'archivo'      => $archivoPath,
                 'fecha'        => now(),
+                'fecha_vencimiento' => $this->calcularFechaVencimiento(now()),
             ]);
 
             $this->dispatch('toast', type: 'success', message: 'Movimiento creado.');
@@ -96,6 +99,7 @@ class MovimientoModal extends Component
                 'titulo'      => Str::title($this->titulo),
                 'descripcion' => $this->descripcion ? Str::title($this->descripcion) : '',
                 'estado'      => $this->estado,
+                'fecha_vencimiento' => $this->calcularFechaVencimiento($mov->fecha ?: now()),
                 'archivo'     => $archivoPath, // mantener/ reemplazar según arriba
                 // 'fecha'    => $mov->fecha, // si no querés tocar la fecha original
             ]);
@@ -121,6 +125,10 @@ class MovimientoModal extends Component
         $this->descripcion      = $mov->descripcion;
         $this->estado           = $mov->estado ?? 'En Proceso';
         $this->tipo_acta        = $mov->tipo_acta;
+        $this->dias_vencimiento = $mov->fecha_vencimiento
+            ? max(1, \Illuminate\Support\Carbon::parse($mov->fecha ?? $mov->created_at)
+                ->startOfDay()->diffInDays($mov->fecha_vencimiento, false))
+            : null;
         $this->archivo          = null;                // limpiar input file
         $this->archivoActual    = $mov->archivo;       // ruta actual (public/movimientos/xxx)
 
@@ -163,7 +171,7 @@ class MovimientoModal extends Component
 
     private function resetForm(bool $keepModalOpen = false): void
     {
-        $this->reset(['titulo','descripcion','archivo','tipo_acta']);
+        $this->reset(['titulo','descripcion','archivo','tipo_acta','dias_vencimiento']);
         $this->estado            = 'En Proceso';
         $this->movimientoIdEdit  = null;
         $this->archivoActual     = null;
@@ -172,5 +180,13 @@ class MovimientoModal extends Component
         if (!$keepModalOpen) {
             // $this->dispatch('cerrar-modal-movimientos');
         }
+    }
+
+    private function calcularFechaVencimiento($fechaBase): ?string
+    {
+        if (!$this->dias_vencimiento) return null;
+
+        return \Illuminate\Support\Carbon::parse($fechaBase)
+            ->startOfDay()->addDays((int) $this->dias_vencimiento)->toDateString();
     }
 }

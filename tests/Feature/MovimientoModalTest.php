@@ -30,6 +30,7 @@ class MovimientoModalTest extends TestCase
             ->set('tipo_acta', 'inspeccion')
             ->set('estado', 'Completo')
             ->set('descripcion', 'Sin observaciones')
+            ->set('dias_vencimiento', 15)
             ->call('guardarMovimiento')
             ->assertHasNoErrors();
 
@@ -40,5 +41,10 @@ class MovimientoModalTest extends TestCase
             'titulo' => 'Inspección Del Local',
             'estado' => 'Completo',
         ]);
+
+        $this->assertSame(
+            now()->startOfDay()->addDays(15)->toDateString(),
+            \App\Models\Movimiento::query()->where('tipo', 'acta')->first()->fecha_vencimiento->format('Y-m-d')
+        );
     }
 }

@@ -21,11 +21,13 @@ class Movimiento extends Model
         'archivo',
         'etapa',
         'fecha',
+        'fecha_vencimiento',
         'observacion',
     ];
 
     protected $casts = [
         'fecha'       => 'datetime',
+        'fecha_vencimiento' => 'date',
         'created_at'  => 'datetime',
         'updated_at'  => 'datetime',
     ];

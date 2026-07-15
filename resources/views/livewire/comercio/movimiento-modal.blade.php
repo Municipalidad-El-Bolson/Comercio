@@ -45,6 +45,15 @@
           </div>
 
           <div class="form-group mb-2">
+            <label class="mb-1">Plazo para próxima inspección (días)</label>
+            <input type="number" min="1" max="3650" wire:model.defer="dias_vencimiento"
+                   class="form-control form-control-sm @error('dias_vencimiento') is-invalid @enderror"
+                   placeholder="Opcional. Ej.: 15">
+            <small class="form-text text-muted">Si se completa, el acta aparecerá en Seguimiento de actas.</small>
+            @error('dias_vencimiento') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          </div>
+
+          <div class="form-group mb-2">
             <label class="mb-1">Descripción</label>
             <textarea wire:model.defer="descripcion" class="form-control form-control-sm text-capitalize" rows="2"></textarea>
             @error('descripcion') <small class="text-danger">{{ $message }}</small> @enderror
@@ -85,6 +94,7 @@
                 <th class="text-sm">Descripción</th>
                 <th class="text-sm">Archivo</th>
                 <th class="text-sm">Fecha</th>
+                <th class="text-sm">Vencimiento</th>
                 <th class="text-sm text-center">Acciones</th>
               </tr>
             </thead>
@@ -116,6 +126,7 @@
                         @endif
                   </td>
                   <td class="text-sm">{{ optional($mov->fecha)->format('d/m/Y H:i') }}</td>
+                  <td class="text-sm">{{ $mov->fecha_vencimiento?->format('d/m/Y') ?? '—' }}</td>
                   <td class="text-center">
                     <button type="button" class="btn btn-sm btn-outline-primary"
                             wire:click="editarMovimiento({{ $mov->id }})">
@@ -131,7 +142,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="6" class="text-center text-sm">Sin movimientos aún.</td>
+                  <td colspan="7" class="text-center text-sm">Sin movimientos aún.</td>
                 </tr>
               @endforelse
             </tbody>
@@ -167,4 +178,3 @@ window.addEventListener('mostrar-modal-movimientos', () => {
   $('#modalMovimientos').modal('show');
 });
 </script>
-

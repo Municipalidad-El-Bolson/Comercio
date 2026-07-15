@@ -56,6 +56,16 @@
                 </li>
                 @endcan
 
+                @can('manage-ubicaciones')
+                <li class="nav-item">
+                    <a href="{{ route('actas.seguimiento') }}"
+                       class="nav-link {{ request()->routeIs('actas.seguimiento') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-clipboard-check"></i>
+                        <p>Seguimiento de actas</p>
+                    </a>
+                </li>
+                @endcan
+
                 {{-- Auditoría --}}
                 @can('access-admin')
                 <li class="nav-item">

@@ -12,6 +12,7 @@ use App\Livewire\Comercio\ComercioMapa;
 use App\Livewire\Comercio\Historial;
 use App\Livewire\Comercio\Reportes;
 use App\Livewire\Comercio\ComercioData;
+use App\Livewire\Comercio\ActasSeguimiento;
 use App\Livewire\Auth\RegisterUser;
 use App\Livewire\Admin\UsersIndex;
 use App\Livewire\MesaEntrada\Form as MesaForm;
@@ -52,6 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin,writer')->group(function () {
         Route::get('/ubicaciones', Ubicaciones::class)->name('ubicaciones');
         Route::get('/comercios/{ubicacion}', ComercioData::class)->name('comercio.data');
+        Route::get('/actas/seguimiento', ActasSeguimiento::class)->name('actas.seguimiento');
         Route::get('/comercios/{ubicacion}/historial/excel', [ComercioHistorialExportController::class, 'excel'])->name('comercio.historial.excel');
         Route::get('/comercios/{ubicacion}/historial/pdf', [ComercioHistorialExportController::class, 'pdf'])->name('comercio.historial.pdf');
         Route::get('/mesa', MesaInbox::class)->name('mesa.inbox'); 
