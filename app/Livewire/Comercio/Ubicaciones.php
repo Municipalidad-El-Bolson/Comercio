@@ -316,7 +316,11 @@ class Ubicaciones extends AdminComponent
 
         // 3) ORDER + PAGINACIÓN
         $ubicaciones = $ubicaciones
-            ->orderByRaw("CASE WHEN nombre_comercial IS NULL OR TRIM(nombre_comercial) = '' THEN 1 ELSE 0 END")
+            ->orderByRaw("CASE WHEN nombre_comercial IS NULL
+                OR TRIM(nombre_comercial) = ''
+                OR SUBSTR(TRIM(nombre_comercial), 1, 1) = '.'
+                OR SUBSTR(TRIM(nombre_comercial), 1, 1) IN ('0','1','2','3','4','5','6','7','8','9')
+                THEN 1 ELSE 0 END")
             ->orderBy('nombre_comercial')
             ->orderBy('id')
             ->paginate(10);

@@ -69,12 +69,18 @@ class UbicacionesSearchTest extends TestCase
         }
 
         $this->insertarUbicacion($rubroId, '   ', 'CUIT-SIN-FANTASIA');
+        $this->insertarUbicacion($rubroId, '123 Comercio', 'CUIT-NOMBRE-NUMERICO');
+        $this->insertarUbicacion($rubroId, '. Comercio', 'CUIT-NOMBRE-PUNTO');
 
         Livewire::actingAs($user)
             ->test(Ubicaciones::class)
             ->assertDontSee('CUIT-SIN-FANTASIA')
+            ->assertDontSee('CUIT-NOMBRE-NUMERICO')
+            ->assertDontSee('CUIT-NOMBRE-PUNTO')
             ->call('nextPage')
-            ->assertSee('CUIT-SIN-FANTASIA');
+            ->assertSee('CUIT-SIN-FANTASIA')
+            ->assertSee('CUIT-NOMBRE-NUMERICO')
+            ->assertSee('CUIT-NOMBRE-PUNTO');
     }
 
     private function insertarUbicacion(int $rubroId, ?string $nombreComercial, string $dniCuit): void
