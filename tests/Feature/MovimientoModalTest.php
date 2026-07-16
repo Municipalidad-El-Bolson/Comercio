@@ -59,5 +59,6 @@ class MovimientoModalTest extends TestCase
         $this->assertStringContainsString('wire:click="$toggle(\'actasAbiertas\')"', $view);
         $this->assertStringContainsString("wire:click=\"\$set('comunicacionAbierta', true)\"", $view);
         $this->assertStringContainsString('@if($comunicacionAbierta)', $view);
+        $this->assertStringContainsString('disabled title="No hay teléfono cargado"', $view);
     }
 }

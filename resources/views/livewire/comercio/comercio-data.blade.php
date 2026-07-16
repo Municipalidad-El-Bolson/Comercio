@@ -135,11 +135,17 @@
             <i class="fas fa-arrow-left mr-1"></i> Volver
           </a>
 
-          <button type="button" class="btn btn-success btn-sm"
-                  wire:click="$set('comunicacionAbierta', true)"
-                  onclick="setTimeout(() => document.getElementById('comunicacion-asistida')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)">
-            <i class="fab fa-whatsapp mr-1"></i> WhatsApp
-          </button>
+          @if($this->contactoWhatsappUrl)
+            <button type="button" class="btn btn-success btn-sm"
+                    wire:click="$set('comunicacionAbierta', true)"
+                    onclick="setTimeout(() => document.getElementById('comunicacion-asistida')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)">
+              <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+            </button>
+          @else
+            <button type="button" class="btn btn-success btn-sm" disabled title="No hay teléfono cargado">
+              <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+            </button>
+          @endif
 
           @if($this->contactoEmailUrl)
             <a href="{{ $this->contactoEmailUrl }}" class="btn btn-outline-primary btn-sm">
