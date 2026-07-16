@@ -2,23 +2,17 @@
 
 namespace App\Livewire\MesaEntrada;
 
-use App\Models\MesaEntradaRegistro;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Illuminate\Support\Facades\Gate;
 
 #[Layout('admin.layouts.app')]
 class Inbox extends Component
 {
-    use WithPagination;
-
-    public array $items = [];
+    public array $allItems = [];
     public string $search = '';
     public string $fechaDesde = '';
     public string $fechaHasta = '';
-
-    protected string $paginationTheme = 'bootstrap';
 
     public function mount(): void
     {
@@ -32,7 +26,7 @@ class Inbox extends Component
             ->pluck('id')
             ->toArray();
 
-        $this->items = $user->notifications()
+        $this->allItems = $user->notifications()
             ->where('type', \App\Notifications\MesaEntradaNotification::class)
             ->latest()
             ->take(200)
@@ -52,25 +46,9 @@ class Inbox extends Component
             ->toArray();
     }
 
-    public function updatingSearch(): void
-    {
-        $this->resetPage('historialPage');
-    }
-
-    public function updatedFechaDesde(): void
-    {
-        $this->resetPage('historialPage');
-    }
-
-    public function updatedFechaHasta(): void
-    {
-        $this->resetPage('historialPage');
-    }
-
     public function limpiarFiltros(): void
     {
         $this->reset(['search', 'fechaDesde', 'fechaHasta']);
-        $this->resetPage('historialPage');
     }
 
 
@@ -82,7 +60,7 @@ class Inbox extends Component
             ->delete();
 
         // Remover visualmente de la lista
-        $this->items = array_filter($this->items, fn($i) => $i['id'] !== $id);
+        $this->allItems = array_values(array_filter($this->allItems, fn($i) => $i['id'] !== $id));
     }
 
 
@@ -106,25 +84,17 @@ class Inbox extends Component
 
     public function render()
     {
-        $term = trim($this->search);
+        $term = mb_strtolower(trim($this->search));
+        $items = collect($this->allItems)->filter(function ($item) use ($term) {
+            $haystack = mb_strtolower(implode(' ', [
+                $item['nro_ingreso'], $item['titular'], $item['hc'], $item['sender_name'], implode(' ', $item['docs']),
+            ]));
 
-        $historial = MesaEntradaRegistro::query()
-            ->with('user:id,name')
-            ->when($term !== '', function ($query) use ($term) {
-                $query->where(function ($subquery) use ($term) {
-                    $subquery->where('titular_razon', 'like', "%{$term}%")
-                        ->orWhere('hc', 'like', "%{$term}%")
-                        ->orWhere('nro_ingreso', 'like', "%{$term}%")
-                        ->orWhere('sender_name', 'like', "%{$term}%")
-                        ->orWhere('documentos', 'like', "%{$term}%");
-                });
-            })
-            ->when($this->fechaDesde !== '', fn ($query) => $query->whereDate('fecha', '>=', $this->fechaDesde))
-            ->when($this->fechaHasta !== '', fn ($query) => $query->whereDate('fecha', '<=', $this->fechaHasta))
-            ->orderByDesc('fecha')
-            ->orderByDesc('id')
-            ->paginate(20, ['*'], 'historialPage');
+            return ($term === '' || str_contains($haystack, $term))
+                && ($this->fechaDesde === '' || $item['fecha'] >= $this->fechaDesde)
+                && ($this->fechaHasta === '' || $item['fecha'] <= $this->fechaHasta);
+        })->values()->all();
 
-        return view('livewire.mesa-entrada.inbox', compact('historial'));
+        return view('livewire.mesa-entrada.inbox', compact('items'));
     }
 }

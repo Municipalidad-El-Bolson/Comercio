@@ -17,6 +17,8 @@ use App\Livewire\Auth\RegisterUser;
 use App\Livewire\Admin\UsersIndex;
 use App\Livewire\MesaEntrada\Form as MesaForm;
 use App\Livewire\MesaEntrada\Inbox as MesaInbox;
+use App\Livewire\MesaEntrada\Historial as MesaHistorial;
+use App\Http\Controllers\MesaEntrada\ExportController as MesaEntradaExportController;
 use App\Livewire\Vencimientos\ProximosIndex;
 use App\Livewire\Vencimientos\VencidosIndex;
 
@@ -46,6 +48,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/mesa', MesaInbox::class)
         ->middleware('can:mesa-entrada-view')
         ->name('mesa.inbox');
+    Route::get('/mesa/historial', MesaHistorial::class)->middleware('can:mesa-entrada-view')->name('mesa.historial');
+    Route::get('/mesa/excel', [MesaEntradaExportController::class, 'inboxExcel'])->middleware('can:mesa-entrada-view')->name('mesa.inbox.excel');
+    Route::get('/mesa/pdf', [MesaEntradaExportController::class, 'inboxPdf'])->middleware('can:mesa-entrada-view')->name('mesa.inbox.pdf');
+    Route::get('/mesa/historial/excel', [MesaEntradaExportController::class, 'historialExcel'])->middleware('can:mesa-entrada-view')->name('mesa.historial.excel');
+    Route::get('/mesa/historial/pdf', [MesaEntradaExportController::class, 'historialPdf'])->middleware('can:mesa-entrada-view')->name('mesa.historial.pdf');
  
 
     /** Mapas (mesa NO entra) */

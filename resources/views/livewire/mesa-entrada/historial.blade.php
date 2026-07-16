@@ -1,0 +1,37 @@
+<div class="container-fluid pt-4">
+  <div class="content-header py-0 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <h1 class="m-0" style="font-size:2.25rem;">Registro histórico de Mesa de entrada</h1>
+    <div class="d-flex gap-2">
+      <a class="btn btn-success" href="{{ route('mesa.historial.excel', ['search' => $search, 'desde' => $fechaDesde, 'hasta' => $fechaHasta]) }}"><i class="fas fa-file-excel me-1"></i> Excel</a>
+      <a class="btn btn-danger" href="{{ route('mesa.historial.pdf', ['search' => $search, 'desde' => $fechaDesde, 'hasta' => $fechaHasta]) }}"><i class="fas fa-file-pdf me-1"></i> PDF</a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body border-bottom">
+      <div class="row g-2 align-items-end">
+        <div class="col-12 col-lg-6"><label class="form-label small mb-1">Buscar</label><input type="search" class="form-control" wire:model.live.debounce.350ms="search" placeholder="Nº de ingreso, titular, HC, documento o usuario"></div>
+        <div class="col-6 col-lg-2"><label class="form-label small mb-1">Desde</label><input type="date" class="form-control" wire:model.live="fechaDesde"></div>
+        <div class="col-6 col-lg-2"><label class="form-label small mb-1">Hasta</label><input type="date" class="form-control" wire:model.live="fechaHasta"></div>
+        <div class="col-12 col-lg-2"><button class="btn btn-outline-secondary w-100" wire:click="limpiarFiltros">Limpiar</button></div>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Fecha</th><th>Nº ingreso</th><th>Titular / Razón social</th><th>HC</th><th>Documentación</th><th>Ingresó</th></tr></thead>
+        <tbody>
+          @forelse ($historial as $registro)
+            <tr>
+              <td class="text-nowrap">{{ $registro->fecha?->format('d/m/Y') }}</td><td class="fw-semibold">#{{ $registro->nro_ingreso }}</td><td>{{ $registro->titular_razon }}</td><td>{{ $registro->hc ?: '—' }}</td>
+              <td style="min-width:260px"><div class="d-flex flex-wrap gap-1">@foreach ($registro->documentos ?? [] as $documento)<span class="badge bg-secondary">{{ $documento }}</span>@endforeach</div></td>
+              <td><div>{{ $registro->user?->name ?? $registro->sender_name ?? '—' }}</div><small class="text-muted">{{ $registro->created_at?->format('d/m/Y H:i') }}</small></td>
+            </tr>
+          @empty
+            <tr><td colspan="6" class="text-center text-muted py-4">No se encontraron ingresos.</td></tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+    @if ($historial->hasPages())<div class="card-footer bg-white">{{ $historial->links() }}</div>@endif
+  </div>
+</div>

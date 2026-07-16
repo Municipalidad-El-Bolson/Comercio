@@ -18,6 +18,14 @@
                     </a>
                 </li>
 
+                <li class="nav-item">
+                    <a href="{{ route('mesa.historial') }}"
+                       class="nav-link {{ request()->routeIs('mesa.historial*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-history"></i>
+                        <p>Registro histórico Mesa</p>
+                    </a>
+                </li>
+
                 {{-- Próximos a vencer --}}
                 <li class="nav-item">
                 <a href="{{ route('prox_vto.index') }}"

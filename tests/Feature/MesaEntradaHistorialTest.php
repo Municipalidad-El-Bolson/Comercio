@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\MesaEntrada\Form;
 use App\Livewire\MesaEntrada\Inbox;
+use App\Livewire\MesaEntrada\Historial;
 use App\Models\Documento;
 use App\Models\MesaEntradaRegistro;
 use App\Models\User;
@@ -11,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use App\Notifications\MesaEntradaNotification;
 use Tests\TestCase;
 
 class MesaEntradaHistorialTest extends TestCase
@@ -54,10 +56,48 @@ class MesaEntradaHistorialTest extends TestCase
         ]);
 
         Livewire::actingAs($user)
-            ->test(Inbox::class)
+            ->test(Historial::class)
             ->set('search', 'AFIP')
             ->assertSee('Titular buscable')
             ->assertSee('Constancia de AFIP');
+    }
+
+    public function test_mesa_de_entrada_tiene_buscador_independiente(): void
+    {
+        $user = User::factory()->create(['role' => 'writer']);
+        $user->notify(new MesaEntradaNotification([
+            'fecha' => '2026-07-16', 'nro_ingreso' => 901, 'docs' => ['Final de obra'],
+            'titular' => 'Comercio Encontrado', 'hc' => 'HC-901', 'sender_name' => 'Mesa',
+        ]));
+
+        Livewire::actingAs($user)->test(Inbox::class)
+            ->set('search', 'Final de obra')
+            ->assertSee('Comercio Encontrado')
+            ->set('search', 'inexistente')
+            ->assertDontSee('Comercio Encontrado');
+    }
+
+    public function test_ambas_pantallas_exportan_excel_y_pdf_con_filtros(): void
+    {
+        $this->withoutMiddleware(\App\Http\Middleware\SingleSession::class);
+        $user = User::factory()->create(['role' => 'writer']);
+        $user->notify(new MesaEntradaNotification([
+            'fecha' => '2026-07-16', 'nro_ingreso' => 902, 'docs' => ['DNI'],
+            'titular' => 'Exportable', 'hc' => null, 'sender_name' => 'Mesa',
+        ]));
+        MesaEntradaRegistro::create([
+            'fecha' => '2026-07-16', 'nro_ingreso' => 902, 'titular_razon' => 'Exportable',
+            'documentos' => ['DNI'], 'sender_name' => 'Mesa',
+        ]);
+
+        $this->actingAs($user)->get(route('mesa.inbox.excel', ['search' => 'Exportable']))
+            ->assertOk()->assertHeader('content-type', 'application/vnd.ms-excel; charset=UTF-8');
+        $this->actingAs($user)->get(route('mesa.inbox.pdf', ['search' => 'Exportable']))
+            ->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->actingAs($user)->get(route('mesa.historial.excel', ['search' => 'Exportable']))
+            ->assertOk()->assertHeader('content-type', 'application/vnd.ms-excel; charset=UTF-8');
+        $this->actingAs($user)->get(route('mesa.historial.pdf', ['search' => 'Exportable']))
+            ->assertOk()->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_importa_notificaciones_anteriores_sin_duplicarlas_por_destinatario(): void
