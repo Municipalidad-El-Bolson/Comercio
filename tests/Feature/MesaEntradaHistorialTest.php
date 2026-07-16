@@ -8,6 +8,8 @@ use App\Models\Documento;
 use App\Models\MesaEntradaRegistro;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -56,5 +58,35 @@ class MesaEntradaHistorialTest extends TestCase
             ->set('search', 'AFIP')
             ->assertSee('Titular buscable')
             ->assertSee('Constancia de AFIP');
+    }
+
+    public function test_importa_notificaciones_anteriores_sin_duplicarlas_por_destinatario(): void
+    {
+        $payload = [
+            'fecha' => '2026-07-10',
+            'nro_ingreso' => 777,
+            'titular' => 'Histórico Municipal',
+            'hc' => 'HC-10',
+            'docs' => ['Certificado de salud'],
+            'sender_name' => 'Mesa',
+        ];
+
+        foreach (range(1, 3) as $recipient) {
+            DB::table('notifications')->insert([
+                'id' => (string) Str::uuid(),
+                'type' => \App\Notifications\MesaEntradaNotification::class,
+                'notifiable_type' => User::class,
+                'notifiable_id' => $recipient,
+                'data' => json_encode($payload),
+                'created_at' => '2026-07-10 10:30:00',
+                'updated_at' => '2026-07-10 10:30:00',
+            ]);
+        }
+
+        $migration = require database_path('migrations/2026_07_16_130000_backfill_mesa_entrada_registros_from_notifications.php');
+        $migration->up();
+
+        $this->assertSame(1, MesaEntradaRegistro::where('nro_ingreso', 777)->count());
+        $this->assertSame(['Certificado de salud'], MesaEntradaRegistro::where('nro_ingreso', 777)->first()->documentos);
     }
 }
