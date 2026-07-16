@@ -19,6 +19,18 @@ class MesaEntradaHistorialTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_agrega_nueva_documentacion_y_mesa_puede_volver_desde_historial(): void
+    {
+        foreach (['Plan de evacuación', 'Croquis de plan de evacuación', 'Nota de transferencia de razón social a familiar'] as $nombre) {
+            $this->assertDatabaseHas('documentos', ['nombre' => $nombre, 'activo' => true]);
+        }
+
+        $mesa = User::factory()->create(['role' => 'mesa']);
+        Livewire::actingAs($mesa)->test(Historial::class)
+            ->assertSee('Volver a cargar documentación')
+            ->assertSee(route('mesa.form'), false);
+    }
+
     public function test_un_envio_crea_un_registro_historico_permanente(): void
     {
         $mesa = User::factory()->create(['role' => 'mesa']);

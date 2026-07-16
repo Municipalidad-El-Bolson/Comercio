@@ -4,11 +4,9 @@ namespace App\Livewire\MesaEntrada;
 
 use App\Models\MesaEntradaRegistro;
 use Illuminate\Support\Facades\Gate;
-use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-#[Layout('admin.layouts.app')]
 class Historial extends Component
 {
     use WithPagination;
@@ -56,6 +54,7 @@ class Historial extends Component
             ->orderByDesc('id')
             ->paginate(20);
 
-        return view('livewire.mesa-entrada.historial', compact('historial'));
+        $layout = auth()->user()?->role === 'mesa' ? 'admin.layouts.mesa' : 'admin.layouts.app';
+        return view('livewire.mesa-entrada.historial', compact('historial'))->layout($layout);
     }
 }

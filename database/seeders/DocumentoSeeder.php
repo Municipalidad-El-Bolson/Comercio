@@ -56,6 +56,9 @@ class DocumentoSeeder extends Seeder
             'Informe puesta a tierra y continuidad de tasas',   
             'Informe de mantenimiento y buen funcionamiento de ascensores',
             'Informe de mantenimiento y buen funcionamiento de camillas',
+            'Plan de evacuación',
+            'Croquis de plan de evacuación',
+            'Nota de transferencia de razón social a familiar',
         ];
 
         foreach ($nombres as $nombre) {
