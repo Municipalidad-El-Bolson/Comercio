@@ -39,6 +39,7 @@
               <label class="text-muted small mb-1">Estado</label>
               <select class="form-control form-control-sm shadow-sm" wire:model.live="estado">
                 <option value="">-- Todos --</option>
+                <option value="todas_bajas">Todas las bajas</option>
                 <option value="entramite">021/90</option>
                 <option value="irregular">032/01</option>
                 <option value="040">040/25</option>

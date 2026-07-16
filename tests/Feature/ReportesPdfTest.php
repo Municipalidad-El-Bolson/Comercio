@@ -23,6 +23,29 @@ class ReportesPdfTest extends TestCase
         $view = file_get_contents(resource_path('views/livewire/comercio/reportes.blade.php'));
 
         $this->assertStringContainsString('<section class="content" data-autosave="off">', $view);
+        $this->assertStringContainsString('<option value="todas_bajas">Todas las bajas</option>', $view);
+    }
+
+    public function test_filtro_todas_las_bajas_agrupa_los_tres_estados(): void
+    {
+        $rubro = (new Rubro())->forceFill([
+            'mega_rubro' => 'COMERCIO', 'rubro_madre' => 'COMERCIO', 'subrubro' => 'PRUEBA BAJAS',
+        ]);
+        $rubro->save();
+
+        foreach (['baja', 'baja_oficio', 'sin_efecto', 'entramite'] as $index => $estado) {
+            \Illuminate\Support\Facades\DB::table('ubicaciones')->insert([
+                'persona_tipo' => 'fisica', 'apellido' => 'Titular', 'nombres' => (string) $index,
+                'dni_cuit' => '1000000'.$index, 'rubro_id' => $rubro->id, 'estado' => $estado,
+                'estado_base' => $estado === 'sin_efecto' ? 'exp_sin_efecto' : $estado,
+                'situacion' => $estado === 'entramite' ? 'alta' : 'baja',
+            ]);
+        }
+
+        $ids = app(ReportesComercioData::class)->query(['estado' => 'todas_bajas'])
+            ->pluck('estado')->sort()->values()->all();
+
+        $this->assertSame(['baja', 'baja_oficio', 'sin_efecto'], $ids);
     }
 
     public function test_admin_puede_descargar_pdf_de_reportes(): void

@@ -32,7 +32,11 @@ class ReportesComercioData
                     $rubros->whereHas('rubro', $match)->orWhereHas('rubros', $match);
                 });
             })
-            ->when($filters['estado'] ?? null, fn ($query, $estado) => $query->where('estado', $estado))
+            ->when($filters['estado'] ?? null, function ($query, $estado) {
+                $estado === 'todas_bajas'
+                    ? $query->whereIn('estado', ['baja', 'baja_oficio', 'sin_efecto'])
+                    : $query->where('estado', $estado);
+            })
             ->when($filters['solo_clausurados'] ?? false, fn ($query) => $query->where('situacion', 'clausurado'))
             ->when($filters['desde'] ?? null, fn ($query, $desde) => $this->whereFechaAsociada($query, '>=', $desde))
             ->when($filters['hasta'] ?? null, fn ($query, $hasta) => $this->whereFechaAsociada($query, '<=', $hasta))
@@ -98,7 +102,9 @@ class ReportesComercioData
 
         return [
             'Rubro' => $rubro ?: ($filters['rubro_general'] ?? null) ?: 'Todos',
-            'Estado' => $filters['estado'] ?? null ?: 'Todos',
+            'Estado' => ($filters['estado'] ?? null) === 'todas_bajas'
+                ? 'Todas las bajas'
+                : (($filters['estado'] ?? null) ?: 'Todos'),
             'Período' => ($filters['desde'] ?? null) || ($filters['hasta'] ?? null)
                 ? (($filters['desde'] ?? null) ?: 'sin límite').' a '.(($filters['hasta'] ?? null) ?: 'sin límite')
                 : 'Sin filtro de fecha',
