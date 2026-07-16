@@ -13,7 +13,6 @@ use App\Livewire\Comercio\Historial;
 use App\Livewire\Comercio\Reportes;
 use App\Livewire\Comercio\ComercioData;
 use App\Livewire\Comercio\ActasSeguimiento;
-use App\Livewire\Auth\RegisterUser;
 use App\Livewire\Admin\UsersIndex;
 use App\Livewire\MesaEntrada\Form as MesaForm;
 use App\Livewire\MesaEntrada\Inbox as MesaInbox;
@@ -76,7 +75,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/historial', Historial::class)->name('historial');
         Route::get('/reportes', Reportes::class)->name('reportes');
         Route::get('/reportes/pdf', ReportesPdfController::class)->name('reportes.pdf');
-        Route::get('/register-user', RegisterUser::class)->name('register-user');
+        Route::redirect('/register-user', '/usuarios')->name('register-user');
         Route::get('/usuarios', UsersIndex::class)->name('users.index');
     });
 

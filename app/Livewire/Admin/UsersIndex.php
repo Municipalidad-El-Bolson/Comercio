@@ -10,6 +10,8 @@ use Livewire\WithPagination;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 #[Layout('admin.layouts.app')]
 class UsersIndex extends Component
@@ -82,7 +84,7 @@ class UsersIndex extends Component
     public function create(): void
     {
         $this->resetForm();
-        $this->dispatch('open-user-modal');
+        $this->showForm = true;
     }
 
     public function edit(int $id): void
@@ -94,34 +96,37 @@ class UsersIndex extends Component
         $this->role = $u->role;
         $this->password = '';
         $this->password_confirmation = '';
-        $this->dispatch('open-user-modal');
+        $this->resetValidation();
+        $this->showForm = true;
     }
 
     public function save(): void
     {
+        $this->name = preg_replace('/\s+/', ' ', trim($this->name));
+        $this->email = mb_strtolower(trim($this->email));
         $this->validate();
 
-        if ($this->editingId) {
-            $u = User::findOrFail($this->editingId);
-            $u->name = $this->name;
-            $u->email = $this->email;
-            $u->role = $this->role;
-            if ($this->password !== '') {
-                $u->password = Hash::make($this->password);
+        DB::transaction(function (): void {
+            if ($this->editingId) {
+                $u = User::lockForUpdate()->findOrFail($this->editingId);
+                if ($u->role === 'admin' && $this->role !== 'admin' && User::where('role', 'admin')->count() <= 1) {
+                    throw ValidationException::withMessages(['role' => 'Debe quedar al menos un administrador.']);
+                }
+                $u->name = $this->name;
+                $u->email = $this->email;
+                $u->role = $this->role;
+                if ($this->password !== '') $u->password = Hash::make($this->password);
+                $u->save();
+            } else {
+                User::create([
+                    'name' => $this->name, 'email' => $this->email, 'role' => $this->role,
+                    'password' => Hash::make($this->password),
+                ]);
             }
-            $u->save();
-            session()->flash('status', 'Usuario actualizado.');
-        } else {
-            User::create([
-                'name' => $this->name,
-                'email' => $this->email,
-                'role' => $this->role,
-                'password' => Hash::make($this->password),
-            ]);
-            session()->flash('status', 'Usuario creado.');
-        }
+        });
 
-        $this->dispatch('close-user-modal');
+        session()->flash('status', $this->editingId ? 'Usuario actualizado correctamente.' : 'Usuario creado correctamente.');
+        $this->showForm = false;
         $this->resetForm();
     }
 
@@ -133,7 +138,12 @@ class UsersIndex extends Component
             session()->flash('status', 'No podés eliminar tu propio usuario.');
             return;
         }
-        User::findOrFail($id)->delete();
+        $usuario = User::findOrFail($id);
+        if ($usuario->role === 'admin' && User::where('role', 'admin')->count() <= 1) {
+            session()->flash('error', 'No se puede eliminar el último administrador.');
+            return;
+        }
+        $usuario->delete();
         session()->flash('status', 'Usuario eliminado.');
         $this->resetPage();
     }
@@ -145,6 +155,12 @@ class UsersIndex extends Component
         ]);
         $this->role = 'reader';
         $this->resetValidation();
+    }
+
+    public function closeForm(): void
+    {
+        $this->showForm = false;
+        $this->resetForm();
     }
 
     public function render()
