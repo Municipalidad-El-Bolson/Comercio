@@ -21,6 +21,8 @@ class Form extends Component
     public string $titular_razon = '';
     public ?string $hc = null;
     public array $documentacion_ids = [];
+    public array $documentacion_nombres = [];
+    public string $observacion = '';
 
     /** Documentos disponibles */
     public $opsDocs = [];
@@ -59,16 +61,30 @@ class Form extends Component
         $this->documentacion_ids = array_values(
             array_filter($this->documentacion_ids, fn($v) => (int)$v !== (int)$id)
         );
+        unset($this->documentacion_nombres[$id]);
+    }
+
+    public function updatedDocumentacionIds(): void
+    {
+        $seleccionados = array_map('intval', $this->documentacion_ids);
+        foreach ($this->opsDocs as $documento) {
+            if (in_array((int) $documento->id, $seleccionados, true) && empty($this->documentacion_nombres[$documento->id])) {
+                $this->documentacion_nombres[$documento->id] = $documento->nombre;
+            }
+        }
+        $this->documentacion_nombres = array_intersect_key($this->documentacion_nombres, array_flip($seleccionados));
     }
 
     public function selectAll(): void
     {
         $this->documentacion_ids = $this->opsDocs->pluck('id')->map(fn($v) => (int)$v)->all();
+        $this->updatedDocumentacionIds();
     }
 
     public function clearAll(): void
     {
         $this->documentacion_ids = [];
+        $this->documentacion_nombres = [];
     }
 
     public function rules(): array
@@ -80,6 +96,8 @@ class Form extends Component
             'hc'                  => ['nullable', 'string', 'max:100'],
             'documentacion_ids'   => ['array', 'min:1'],
             'documentacion_ids.*' => ['integer', Rule::exists('documentos', 'id')],
+            'documentacion_nombres.*' => ['required', 'string', 'max:255'],
+            'observacion' => ['nullable', 'string', 'max:2000'],
         ];
     }
 
@@ -87,7 +105,9 @@ class Form extends Component
     {
         $this->validate();
 
-        $docs = array_values($this->selectedDocsMap);
+        $docs = collect($this->documentacion_ids)
+            ->map(fn ($id) => trim((string) ($this->documentacion_nombres[(int) $id] ?? $this->selectedDocsMap[(int) $id] ?? '')))
+            ->filter()->values()->all();
 
         $payload = [
             'fecha'       => $this->fecha,
@@ -96,6 +116,7 @@ class Form extends Component
             'titular'     => $this->titular_razon,
             'hc'          => $this->hc,
             'sender_name' => auth()->user()->name ?? 'Mesa de Entrada',
+            'observacion' => trim($this->observacion) ?: null,
         ];
 
         $registro = MesaEntradaRegistro::create([
@@ -104,6 +125,7 @@ class Form extends Component
             'titular_razon' => $this->titular_razon,
             'hc' => $this->hc,
             'documentos' => $docs,
+            'observacion' => $payload['observacion'],
             'user_id' => auth()->id(),
             'sender_name' => $payload['sender_name'],
         ]);
@@ -127,6 +149,8 @@ class Form extends Component
             'titular_razon',
             'hc',
             'documentacion_ids',
+            'documentacion_nombres',
+            'observacion',
         ]);
 
         $this->loadDocs();

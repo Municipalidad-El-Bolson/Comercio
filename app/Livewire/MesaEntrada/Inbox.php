@@ -41,6 +41,7 @@ class Inbox extends Component
                 'titular'     => data_get($n->data, 'titular'),
                 'hc'          => data_get($n->data, 'hc'),
                 'sender_name' => data_get($n->data, 'sender_name'),
+                'observacion' => data_get($n->data, 'observacion'),
                 'created_at'  => $n->created_at?->format('d/m/Y H:i'),
             ])
             ->toArray();
@@ -87,7 +88,7 @@ class Inbox extends Component
         $term = mb_strtolower(trim($this->search));
         $items = collect($this->allItems)->filter(function ($item) use ($term) {
             $haystack = mb_strtolower(implode(' ', [
-                $item['nro_ingreso'], $item['titular'], $item['hc'], $item['sender_name'], implode(' ', $item['docs']),
+                $item['nro_ingreso'], $item['titular'], $item['hc'], $item['sender_name'], $item['observacion'], implode(' ', $item['docs']),
             ]));
 
             return ($term === '' || str_contains($haystack, $term))

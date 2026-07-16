@@ -15,6 +15,7 @@ class MesaEntradaRegistro extends Model
         'titular_razon',
         'hc',
         'documentos',
+        'observacion',
         'user_id',
         'sender_name',
     ];

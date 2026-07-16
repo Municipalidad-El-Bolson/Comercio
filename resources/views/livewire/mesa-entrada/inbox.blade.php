@@ -1,39 +1,10 @@
-<div class="container-fluid pt-4">
-  <div class="row justify-content-center"><div class="col-12 col-xl-10">
-    <div class="content-header py-0 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
-      <h1 class="m-0" style="font-size:2.25rem;">Mesa de entrada</h1>
-      <div class="d-flex flex-wrap gap-2">
-        <a class="btn btn-success btn-sm" href="{{ route('mesa.inbox.excel', ['search' => $search, 'desde' => $fechaDesde, 'hasta' => $fechaHasta]) }}"><i class="fas fa-file-excel me-1"></i> Excel</a>
-        <a class="btn btn-danger btn-sm" href="{{ route('mesa.inbox.pdf', ['search' => $search, 'desde' => $fechaDesde, 'hasta' => $fechaHasta]) }}"><i class="fas fa-file-pdf me-1"></i> PDF</a>
-        <button class="btn btn-outline-secondary btn-sm" wire:click="markAllAsRead">Marcar todas como leídas</button>
-      </div>
-    </div>
-
-    <div class="card shadow-sm mb-3"><div class="card-body">
-      <div class="row g-2 align-items-end">
-        <div class="col-12 col-lg-6"><label class="form-label small mb-1">Buscar</label><input type="search" class="form-control" wire:model.live.debounce.350ms="search" placeholder="Nº de ingreso, titular, HC, documento o usuario"></div>
-        <div class="col-6 col-lg-2"><label class="form-label small mb-1">Desde</label><input type="date" class="form-control" wire:model.live="fechaDesde"></div>
-        <div class="col-6 col-lg-2"><label class="form-label small mb-1">Hasta</label><input type="date" class="form-control" wire:model.live="fechaHasta"></div>
-        <div class="col-12 col-lg-2"><button class="btn btn-outline-secondary w-100" wire:click="limpiarFiltros">Limpiar</button></div>
-      </div>
-    </div></div>
-
-    <div class="card shadow-sm"><div class="list-group list-group-flush">
-      @forelse ($items as $it)
-        <div class="list-group-item d-flex flex-column flex-md-row justify-content-between @if($it['nuevo']) noti-flash @endif">
-          <div><div class="fw-semibold">#{{ $it['nro_ingreso'] }} — {{ $it['titular'] }} @if(!$it['read_at'])<span class="badge bg-primary">nuevo</span>@endif</div>
-            <div class="text-muted small">Fecha {{ $it['fecha'] }} · HC: {{ $it['hc'] ?? '—' }} · De: {{ $it['sender_name'] ?? 'Mesa' }} · {{ $it['created_at'] }}</div>
-            <div class="mt-2 d-flex flex-wrap gap-2">@foreach ($it['docs'] as $d)<span class="badge bg-secondary">{{ $d }}</span>@endforeach</div>
-          </div>
-          <div class="mt-2 mt-md-0 text-nowrap">@if(!$it['read_at'])<button class="btn btn-sm btn-outline-success me-2" wire:click="markAsRead('{{ $it['id'] }}')">Marcar leída</button>@endif<button class="btn btn-sm btn-outline-danger" wire:click="deleteItem('{{ $it['id'] }}')">Borrar</button></div>
-        </div>
-      @empty
-        <div class="list-group-item text-center text-muted py-4">No se encontraron ingresos.</div>
-      @endforelse
-    </div></div>
-  </div></div>
-</div>
-@push('styles')<style>
-  .btn{border-radius:.45rem!important;font-weight:600!important}.list-group-item{border-left:4px solid transparent!important;transition:.25s ease}.list-group-item:hover{background:#f9fafb!important;border-left-color:#4a6cf7!important}
-  @keyframes flash{0%{background-color:#fff3cd}50%{background-color:#ffe8a1}100%{background-color:#fff3cd}}.noti-flash{animation:flash 1s ease-in-out 2}
-</style>@endpush
+<div class="container-fluid pt-4"><div class="row justify-content-center"><div class="col-12 col-xl-10">
+  <div class="content-header py-0 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2"><h1 class="m-0" style="font-size:2.25rem">Mesa de entrada</h1><div class="d-flex flex-wrap gap-2"><a class="btn btn-success btn-sm" href="{{ route('mesa.inbox.excel', ['search'=>$search,'desde'=>$fechaDesde,'hasta'=>$fechaHasta]) }}"><i class="fas fa-file-excel me-1"></i> Excel</a><a class="btn btn-danger btn-sm" href="{{ route('mesa.inbox.pdf', ['search'=>$search,'desde'=>$fechaDesde,'hasta'=>$fechaHasta]) }}"><i class="fas fa-file-pdf me-1"></i> PDF</a><button class="btn btn-outline-secondary btn-sm" wire:click="markAllAsRead">Marcar todas como leídas</button></div></div>
+  <div class="card shadow-sm mb-3"><div class="card-body"><div class="row g-2 align-items-end">
+    <div class="col-12 col-lg-6"><label class="form-label small mb-1">Buscar</label><input type="search" class="form-control" wire:model.live.debounce.350ms="search" placeholder="Nº de expediente, titular, HC, documento u observación"></div><div class="col-6 col-lg-2"><label class="form-label small mb-1">Desde</label><input type="date" class="form-control" wire:model.live="fechaDesde"></div><div class="col-6 col-lg-2"><label class="form-label small mb-1">Hasta</label><input type="date" class="form-control" wire:model.live="fechaHasta"></div><div class="col-12 col-lg-2"><button class="btn btn-outline-secondary w-100" wire:click="limpiarFiltros">Limpiar</button></div>
+  </div></div></div>
+  <div class="card shadow-sm"><div class="list-group list-group-flush">@forelse($items as $it)
+    <div class="list-group-item d-flex flex-column flex-md-row justify-content-between @if($it['nuevo']) noti-flash @endif"><div><div class="fw-semibold">Expediente Nº {{ $it['nro_ingreso'] }} — {{ $it['titular'] }} @if($it['observacion'])<i class="fas fa-comment-alt text-warning ms-1" title="{{ $it['observacion'] }}"></i>@endif @if(!$it['read_at'])<span class="badge bg-primary">nuevo</span>@endif</div><div class="text-muted small">Fecha {{ $it['fecha'] }} · HC: {{ $it['hc'] ?? '—' }} · De: {{ $it['sender_name'] ?? 'Mesa' }} · {{ $it['created_at'] }}</div><div class="mt-2 d-flex flex-wrap gap-2">@foreach($it['docs'] as $d)<span class="badge bg-secondary">{{ $d }}</span>@endforeach</div>@if($it['observacion'])<div class="alert alert-warning py-1 px-2 mt-2 mb-0 small"><i class="fas fa-comment-alt me-1"></i>{{ $it['observacion'] }}</div>@endif</div>
+      <div class="mt-2 mt-md-0 text-nowrap">@if(!$it['read_at'])<button class="btn btn-sm btn-outline-success me-2" wire:click="markAsRead('{{ $it['id'] }}')">Marcar leída</button>@endif<button class="btn btn-sm btn-outline-danger" wire:click="deleteItem('{{ $it['id'] }}')">Borrar</button></div></div>
+  @empty<div class="list-group-item text-center text-muted py-4">No se encontraron expedientes.</div>@endforelse</div></div>
+</div></div><style>.list-group-item{border-left:4px solid transparent!important}.list-group-item:hover{background:#f9fafb!important;border-left-color:#4a6cf7!important}@keyframes flash{0%{background:#fff3cd}50%{background:#ffe8a1}100%{background:#fff3cd}}.noti-flash{animation:flash 1s ease-in-out 2}</style></div>

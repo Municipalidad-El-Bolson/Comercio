@@ -24,6 +24,7 @@ class Ubicacion extends Model
     protected $table = 'ubicaciones';
 
     protected $fillable = [
+        'hc',
         'persona_tipo',
         'apellido',
         'nombres',

@@ -31,6 +31,8 @@ class MesaEntradaHistorialTest extends TestCase
             ->set('titular_razon', 'Comercio del Sur')
             ->set('hc', 'HC-88')
             ->set('documentacion_ids', [$documento->id])
+            ->set('documentacion_nombres.'.$documento->id, 'Libre deuda corregido')
+            ->set('observacion', 'Presentó el original para cotejo')
             ->call('submit')
             ->assertHasNoErrors();
 
@@ -38,7 +40,8 @@ class MesaEntradaHistorialTest extends TestCase
 
         $this->assertSame(321, $registro->nro_ingreso);
         $this->assertSame('Comercio del Sur', $registro->titular_razon);
-        $this->assertSame(['Certificado de libre deuda'], $registro->documentos);
+        $this->assertSame(['Libre deuda corregido'], $registro->documentos);
+        $this->assertSame('Presentó el original para cotejo', $registro->observacion);
         $this->assertSame($mesa->id, $registro->user_id);
     }
 
@@ -53,6 +56,7 @@ class MesaEntradaHistorialTest extends TestCase
             'documentos' => ['Constancia de AFIP'],
             'user_id' => $user->id,
             'sender_name' => $user->name,
+            'observacion' => 'Falta validar sello',
         ]);
 
         Livewire::actingAs($user)
@@ -60,6 +64,10 @@ class MesaEntradaHistorialTest extends TestCase
             ->set('search', 'AFIP')
             ->assertSee('Titular buscable')
             ->assertSee('Constancia de AFIP');
+
+        Livewire::actingAs($user)->test(Historial::class)
+            ->set('search', 'validar sello')
+            ->assertSee('Titular buscable');
     }
 
     public function test_mesa_de_entrada_tiene_buscador_independiente(): void

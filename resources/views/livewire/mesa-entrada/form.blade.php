@@ -1,167 +1,40 @@
 <div class="container-fluid pt-4">
-  <div class="row justify-content-center">
-    <div class="col-12 col-lg-8">
-      <div class="content-header py-0 mb-3 d-flex align-items-center justify-content-between border-bottom pb-2">
-        <h1 class="m-0">Notificar</h1>
-        <a href="{{ route('mesa.historial') }}" class="btn btn-outline-primary btn-sm">
-          <i class="fas fa-history me-1"></i> Historial de ingresos
-        </a>
-      </div>
-
-      @if (session('status'))
-        <div class="alert alert-success">{{ session('status') }}</div>
-      @endif
-
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <form wire:submit.prevent="submit" class="row g-3">
-
-            <div class="col-md-4">
-              <label class="form-label">Fecha</label>
-              <input type="date" class="form-control @error('fecha') is-invalid @enderror"
-                     wire:model="fecha">
-              @error('fecha') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            <div class="col-md-4">
-              <label class="form-label">Nº ingreso</label>
-              <input type="number" class="form-control @error('nro_ingreso') is-invalid @enderror"
-                     wire:model="nro_ingreso" min="1">
-              @error('nro_ingreso') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            <div class="col-md-8">
-              <label class="form-label">Titular / Razón social</label>
-              <input type="text" class="form-control @error('titular_razon') is-invalid @enderror"
-                     wire:model.defer="titular_razon">
-              @error('titular_razon') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            <div class="col-md-4">
-              <label class="form-label">HC (opcional)</label>
-              <input type="text" class="form-control" wire:model.defer="hc">
-            </div>
-
-            {{-- Documentación (checkboxes con scroll + chips con X) --}}
-            <div class="col-12">
-              <label class="form-label mb-1">Seleccioná Documentación</label>
-
-              <div class="d-flex gap-2 mb-2">
-                <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="selectAll">Tildar todo</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="clearAll">Destildar todo</button>
-              </div>
-
-              <div class="border rounded p-2" style="max-height: 280px; overflow-y: auto;">
-                <div class="row g-2">
-                  @foreach($opsDocs as $op)
-                    <div class="col-12 col-md-6">
-                      <div class="form-check">
-                        <input class="form-check-input"
-                              type="checkbox"
-                              id="doc-{{ $op->id }}"
-                              value="{{ $op->id }}"
-                              wire:model.live="documentacion_ids">
-                        <label class="form-check-label" for="doc-{{ $op->id }}">
-                          {{ $op->nombre }}
-                        </label>
-                      </div>
-                    </div>
-                  @endforeach
-                </div>
-              </div>
-
-              @error('documentacion_ids')
-                <div class="invalid-feedback d-block">{{ $message }}</div>
-              @enderror
-
-              {{-- Chips azules con ✕ (aparecen al instante) --}}
-              @if(!empty($selectedDocsMap))
-                <div class="mt-3 d-flex flex-wrap gap-2">
-                  @foreach($selectedDocsMap as $id => $name)
-                    <span class="badge bg-primary text-white d-inline-flex align-items-center fade-in" style="transition:all .2s;">
-                      <span class="me-1">{{ $name }}</span>
-                      <button type="button"
-                              class="btn btn-sm btn-light py-0 px-1 ms-1 rounded-circle border-0"
-                              style="font-size:.8rem; line-height:1; color:#0d6efd;"
-                              aria-label="Quitar {{ $name }}"
-                              wire:click="removeDoc({{ $id }})">×</button>
-                    </span>
-                  @endforeach
-                </div>
-              @endif
-            </div>
-
-            <style>
-              .fade-in{opacity:0;transform:scale(.95);animation:fadeIn .25s forwards}
-              @keyframes fadeIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
-            </style>
-
-
-            <div class="col-12 d-flex justify-content-end">
-              <button class="btn btn-primary">
-                <i class="fas fa-paper-plane me-1"></i> Notificar
-              </button>
-            </div>
-
-          </form>
-        </div>
-      </div>
+  <div class="row justify-content-center"><div class="col-12 col-lg-8">
+    <div class="content-header py-0 mb-3 d-flex align-items-center justify-content-between border-bottom pb-2">
+      <h1 class="m-0">Notificar</h1>
+      <a href="{{ route('mesa.historial') }}" class="btn btn-outline-primary btn-sm"><i class="fas fa-history me-1"></i> Historial de ingresos</a>
     </div>
-  </div>
+    @if(session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
+    <div class="card shadow-sm"><div class="card-body">
+      <form wire:submit.prevent="submit" class="row g-3">
+        <div class="col-md-4"><label class="form-label">Fecha</label><input type="date" class="form-control @error('fecha') is-invalid @enderror" wire:model="fecha">@error('fecha')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+        <div class="col-md-4"><label class="form-label">Nº de expediente</label><input type="number" class="form-control @error('nro_ingreso') is-invalid @enderror" wire:model="nro_ingreso" min="1">@error('nro_ingreso')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+        <div class="col-md-8"><label class="form-label">Titular / Razón social</label><input type="text" class="form-control @error('titular_razon') is-invalid @enderror" wire:model.defer="titular_razon">@error('titular_razon')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+        <div class="col-md-4"><label class="form-label">HC (para vincular al comercio)</label><input type="text" class="form-control" wire:model.defer="hc"></div>
+
+        <div class="col-12">
+          <label class="form-label mb-1">Seleccioná la documentación</label>
+          <div class="d-flex gap-2 mb-2"><button type="button" class="btn btn-outline-secondary btn-sm" wire:click="selectAll">Tildar todo</button><button type="button" class="btn btn-outline-secondary btn-sm" wire:click="clearAll">Destildar todo</button></div>
+          <div class="border rounded p-2" style="max-height:280px;overflow-y:auto"><div class="row g-2">
+            @foreach($opsDocs as $op)<div class="col-12 col-md-6"><div class="form-check"><input class="form-check-input" type="checkbox" id="doc-{{ $op->id }}" value="{{ $op->id }}" wire:model.live="documentacion_ids"><label class="form-check-label" for="doc-{{ $op->id }}">{{ $op->nombre }}</label></div></div>@endforeach
+          </div></div>
+          @error('documentacion_ids')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+
+          @if(!empty($selectedDocsMap))
+            <div class="mt-3 border rounded p-3 bg-light">
+              <div class="small text-muted mb-2"><i class="fas fa-edit me-1"></i>Podés editar cada documento antes de notificar.</div>
+              @foreach($selectedDocsMap as $id => $name)
+                <div class="input-group input-group-sm mb-2 fade-in"><span class="input-group-text"><i class="fas fa-file-alt"></i></span><input type="text" class="form-control" wire:model.defer="documentacion_nombres.{{ $id }}"><button type="button" class="btn btn-outline-danger" aria-label="Quitar {{ $name }}" wire:click="removeDoc({{ $id }})"><i class="fas fa-times"></i></button></div>
+                @error('documentacion_nombres.'.$id)<div class="text-danger small">{{ $message }}</div>@enderror
+              @endforeach
+            </div>
+          @endif
+        </div>
+
+        <div class="col-12"><label class="form-label" for="observacion"><i class="fas fa-comment-alt text-warning me-1"></i>Observación del titular (opcional)</label><textarea id="observacion" rows="3" class="form-control @error('observacion') is-invalid @enderror" wire:model.defer="observacion" placeholder="Detalle adicional sobre la documentación o el expediente"></textarea>@error('observacion')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+        <div class="col-12 d-flex justify-content-end"><button class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i> Notificar</button></div>
+      </form>
+    </div></div>
+  </div></div>
+  <style>.fade-in{animation:fadeIn .25s}@keyframes fadeIn{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}</style>
 </div>
-<script>
-document.addEventListener('livewire:init', () => {
-  Livewire.on('form-reset', () => {
-    // Buscar el componente Livewire actual (de forma automática)
-    const comp = Object.values(Livewire.components.componentsById || {})[0];
-    if (!comp) return;
-
-    const form = document.querySelector('form');
-    if (!form) return;
-
-    // Limpiar todos los campos visualmente
-    form.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], textarea').forEach(el => {
-      el.value = '';
-    });
-
-    // Destildar todos los checkboxes
-    form.querySelectorAll('input[type="checkbox"]').forEach(chk => {
-      chk.checked = false;
-    });
-
-    // Borrar chips visualmente
-    const chipsContainer = form.querySelector('.d-flex.flex-wrap.gap-2');
-    if (chipsContainer) chipsContainer.innerHTML = '';
-
-    // Feedback en el botón
-    const btn = form.querySelector('button[type="submit"]');
-    if (btn) {
-      btn.disabled = true;
-      const originalText = btn.innerHTML;
-      btn.innerHTML = 'Enviado ✅';
-      btn.classList.add('btn-success');
-      setTimeout(() => {
-        btn.innerHTML = originalText;
-        btn.classList.remove('btn-success');
-        btn.disabled = false;
-      }, 1500);
-    }
-
-    // 🔄 Resetear estado interno del componente Livewire
-    try {
-      comp.$wire.set('nro_ingreso', null);
-      comp.$wire.set('titular_razon', '');
-      comp.$wire.set('hc', null);
-      comp.$wire.set('documentacion_ids', []);
-      comp.$wire.set('fecha', new Date().toISOString().slice(0, 10));
-      comp.$wire.call('clearAll');
-    } catch (err) {
-      console.warn('Error reseteando Livewire state:', err);
-      Livewire.dispatch('$refresh'); // fallback
-    }
-  });
-});
-</script>
-
-
-<script src="https://unpkg.com/alpinejs@3.x.x" defer></script>

@@ -47,7 +47,8 @@ class Historial extends Component
                     ->orWhere('hc', 'like', "%{$term}%")
                     ->orWhere('nro_ingreso', 'like', "%{$term}%")
                     ->orWhere('sender_name', 'like', "%{$term}%")
-                    ->orWhere('documentos', 'like', "%{$term}%");
+                    ->orWhere('documentos', 'like', "%{$term}%")
+                    ->orWhere('observacion', 'like', "%{$term}%");
             }))
             ->when($this->fechaDesde !== '', fn ($query) => $query->whereDate('fecha', '>=', $this->fechaDesde))
             ->when($this->fechaHasta !== '', fn ($query) => $query->whereDate('fecha', '<=', $this->fechaHasta))

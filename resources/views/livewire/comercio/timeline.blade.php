@@ -14,6 +14,14 @@
         {{-- Contenido colapsable --}}
         <div class="{{ $colapsado ? 'd-none' : '' }}">
             <div class="card-body pb-3">
+                @if($observacionesMesa->isNotEmpty())
+                    <div class="alert alert-warning py-2">
+                        <div class="font-weight-bold mb-1"><i class="fas fa-comment-alt mr-1"></i>Observaciones ingresadas por Mesa de entrada</div>
+                        @foreach($observacionesMesa as $observacionMesa)
+                            <div class="small mb-1"><strong>Expediente Nº {{ $observacionMesa->nro_ingreso }}</strong> ({{ $observacionMesa->fecha?->format('d/m/Y') }}): {{ $observacionMesa->observacion }}</div>
+                        @endforeach
+                    </div>
+                @endif
                 {{-- Controles --}}
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                     <select class="form-control form-control-sm mr-2" style="max-width:320px" wire:model.live="etapaActual">

@@ -6,6 +6,7 @@ use Livewire\Component;
 use App\Models\Movimiento;
 use App\Models\Ubicacion;
 use App\Models\ExpedienteSeguimiento;
+use App\Models\MesaEntradaRegistro;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -180,10 +181,17 @@ class Timeline extends Component
             ->where('ubicacion_id', $this->ubicacionId)
             ->orderByDesc('fecha')->orderByDesc('id')->get();
 
+        $hc = trim((string) optional(Ubicacion::find($this->ubicacionId))->hc);
+        $observacionesMesa = $hc === '' ? collect() : MesaEntradaRegistro::query()
+            ->where('hc', $hc)
+            ->whereNotNull('observacion')->where('observacion', '!=', '')
+            ->latest('fecha')->latest('id')->get();
+
         return view('livewire.comercio.timeline', [
             'steps'     => $this->steps,   // view-model listo para la vista
             'createdAt' => $this->createdAt,
             'historial' => $historial,
+            'observacionesMesa' => $observacionesMesa,
         ]);
     }
 }

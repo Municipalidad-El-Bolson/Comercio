@@ -44,7 +44,7 @@ class ExportController extends Controller
                 $data = $notification->data;
                 $haystack = mb_strtolower(implode(' ', [
                     data_get($data, 'nro_ingreso'), data_get($data, 'titular'), data_get($data, 'hc'),
-                    data_get($data, 'sender_name'), implode(' ', data_get($data, 'docs', [])),
+                    data_get($data, 'sender_name'), data_get($data, 'observacion'), implode(' ', data_get($data, 'docs', [])),
                 ]));
                 $fecha = (string) data_get($data, 'fecha');
 
@@ -60,6 +60,7 @@ class ExportController extends Controller
                 'docs' => data_get($notification->data, 'docs', []),
                 'usuario' => data_get($notification->data, 'sender_name'),
                 'cargado' => $notification->created_at?->format('d/m/Y H:i'),
+                'observacion' => data_get($notification->data, 'observacion'),
             ]))->values();
     }
 
@@ -73,7 +74,8 @@ class ExportController extends Controller
                     ->orWhere('hc', 'like', "%{$term}%")
                     ->orWhere('nro_ingreso', 'like', "%{$term}%")
                     ->orWhere('sender_name', 'like', "%{$term}%")
-                    ->orWhere('documentos', 'like', "%{$term}%");
+                    ->orWhere('documentos', 'like', "%{$term}%")
+                    ->orWhere('observacion', 'like', "%{$term}%");
             }))
             ->when($request->filled('desde'), fn ($query) => $query->whereDate('fecha', '>=', (string) $request->string('desde')))
             ->when($request->filled('hasta'), fn ($query) => $query->whereDate('fecha', '<=', (string) $request->string('hasta')))
@@ -86,6 +88,7 @@ class ExportController extends Controller
                 'docs' => $registro->documentos,
                 'usuario' => $registro->user?->name ?? $registro->sender_name,
                 'cargado' => $registro->created_at?->format('d/m/Y H:i'),
+                'observacion' => $registro->observacion,
             ]));
     }
 
@@ -97,6 +100,7 @@ class ExportController extends Controller
             'titular' => (string) ($data['titular'] ?? ''),
             'hc' => (string) ($data['hc'] ?? ''),
             'documentacion' => implode(', ', (array) ($data['docs'] ?? [])),
+            'observacion' => (string) ($data['observacion'] ?? ''),
             'usuario' => (string) ($data['usuario'] ?? ''),
             'cargado' => (string) ($data['cargado'] ?? ''),
         ];
@@ -109,9 +113,9 @@ class ExportController extends Controller
             echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
             echo '<Styles><Style ss:ID="Header"><Font ss:Bold="1"/><Interior ss:Color="#D9EAF7" ss:Pattern="Solid"/></Style></Styles>';
             echo '<Worksheet ss:Name="'.htmlspecialchars($sheet, ENT_XML1).'"><Table>';
-            foreach ([80, 75, 180, 75, 260, 120, 105] as $width) echo '<Column ss:Width="'.$width.'"/>';
+            foreach ([80, 90, 180, 75, 240, 180, 120, 105] as $width) echo '<Column ss:Width="'.$width.'"/>';
             echo '<Row ss:StyleID="Header">';
-            foreach (['Fecha', 'Nº ingreso', 'Titular / Razón social', 'HC', 'Documentación', 'Ingresó', 'Fecha de carga'] as $heading) echo $this->cell($heading);
+            foreach (['Fecha', 'Nº de expediente', 'Titular / Razón social', 'HC', 'Documentación', 'Observación', 'Ingresó', 'Fecha de carga'] as $heading) echo $this->cell($heading);
             echo '</Row>';
             foreach ($rows as $row) {
                 echo '<Row>'; foreach ($row as $value) echo $this->cell($value); echo '</Row>';
