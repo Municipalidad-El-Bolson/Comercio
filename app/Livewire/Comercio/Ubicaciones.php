@@ -232,7 +232,7 @@ class Ubicaciones extends AdminComponent
     /** ======== Ciclo de vida ======== */
     public function mount()
     {
-        abort_unless(Gate::allows('manage-ubicaciones'), 403);
+        abort_unless(Gate::allows('view-ubicaciones'), 403);
 
         $this->rubroOpts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
         $this->anexoOpts = $this->rubroOpts;
@@ -335,6 +335,7 @@ class Ubicaciones extends AdminComponent
     /** ======== Form actions ======== */
     public function nuevoComercio()
     {
+        abort_unless(Gate::allows('manage-ubicaciones'), 403);
         $this->reset('state', 'ubicacion');
 
         $opts = Rubro::orderBy('subrubro')->get(['id','subrubro'])->toArray();
@@ -444,6 +445,7 @@ class Ubicaciones extends AdminComponent
 
     public function editaComercio(\App\Models\Ubicacion $ubicacion)
     {
+        abort_unless(Gate::allows('manage-ubicaciones'), 403);
         $this->showEditModal = true;
 
         $this->ubicacion = $ubicacion->loadMissing([
@@ -743,6 +745,7 @@ class Ubicaciones extends AdminComponent
     /** ======== CREATE ======== */
     public function createCliente()
     {
+        abort_unless(Gate::allows('manage-ubicaciones'), 403);
 
         // --- 0) Mapear estado del form a base/canónico/label antes de validar ---
         $rawEstado   = $this->state['estado'] ?? 'entramite';        // puede venir "021"/"032" o "entramite"/"irregular"
@@ -927,6 +930,7 @@ class Ubicaciones extends AdminComponent
 
     public function eliminarMovimiento($id)
     {
+        abort_unless(Gate::allows('manage-actas'), 403);
         $mov = \App\Models\Movimiento::find($id);
 
         if (!$mov) {
@@ -945,6 +949,7 @@ class Ubicaciones extends AdminComponent
 
     public function updateComercio()
     {
+        abort_unless(Gate::allows('manage-ubicaciones'), 403);
 
         // ---- 0) Mapear estado (form -> base -> canónico) ANTES de validar ----
         $rawEstado   = $this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite';
@@ -1273,6 +1278,7 @@ class Ubicaciones extends AdminComponent
 
     public function mostrarMovimientos($id)
     {
+        abort_unless(Gate::allows('manage-actas'), 403);
         $this->dispatch('abrirModalMovimientos', $id);
     }
 

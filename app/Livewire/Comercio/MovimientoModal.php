@@ -8,6 +8,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Gate;
 
 class MovimientoModal extends Component
 {
@@ -56,6 +57,7 @@ class MovimientoModal extends Component
 
     public function abrirModalMovimientos($ubicacionId)
     {
+        abort_unless(Gate::allows('manage-actas'), 403);
         $this->ubicacion = Ubicacion::findOrFail($ubicacionId);
 
         // reset formulario (y edición)
@@ -69,6 +71,7 @@ class MovimientoModal extends Component
     /** === CREAR o ACTUALIZAR según haya $movimientoIdEdit === */
     public function guardarMovimiento()
     {
+        abort_unless(Gate::allows('manage-actas'), 403);
         $this->validate();
 
         // Manejo de archivo: calcular ruta final según si hay upload nuevo
@@ -129,6 +132,7 @@ class MovimientoModal extends Component
     /** Precargar datos para editar (se llama directo desde Blade) */
     public function editarMovimiento(int $movId): void
     {
+        abort_unless(Gate::allows('manage-actas'), 403);
         $mov = Movimiento::where('id', $movId)
             ->where('ubicacion_id', $this->ubicacion->id)
             ->firstOrFail();
@@ -167,6 +171,7 @@ class MovimientoModal extends Component
 
     public function eliminarMovimiento(int $movId)
     {
+        abort_unless(Gate::allows('manage-actas'), 403);
         $mov = Movimiento::where('id', $movId)
             ->where('ubicacion_id', $this->ubicacion->id)
             ->firstOrFail();

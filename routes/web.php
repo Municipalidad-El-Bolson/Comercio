@@ -57,15 +57,15 @@ Route::middleware('auth')->group(function () {
     /** Mapas (mesa NO entra) */
     Route::middleware('role:admin,writer,reader')->group(function () {
         Route::get('/mapas', ComercioMapa::class)->name('mapas');
+        Route::get('/ubicaciones', Ubicaciones::class)->name('ubicaciones');
+        Route::get('/comercios/{ubicacion}', ComercioData::class)->name('comercio.data');
+        Route::get('/comercios/{ubicacion}/historial/excel', [ComercioHistorialExportController::class, 'excel'])->name('comercio.historial.excel');
+        Route::get('/comercios/{ubicacion}/historial/pdf', [ComercioHistorialExportController::class, 'pdf'])->name('comercio.historial.pdf');
     });
 
     /** Writer+Admin */
     Route::middleware('role:admin,writer')->group(function () {
-        Route::get('/ubicaciones', Ubicaciones::class)->name('ubicaciones');
-        Route::get('/comercios/{ubicacion}', ComercioData::class)->name('comercio.data');
         Route::get('/actas/seguimiento', ActasSeguimiento::class)->name('actas.seguimiento');
-        Route::get('/comercios/{ubicacion}/historial/excel', [ComercioHistorialExportController::class, 'excel'])->name('comercio.historial.excel');
-        Route::get('/comercios/{ubicacion}/historial/pdf', [ComercioHistorialExportController::class, 'pdf'])->name('comercio.historial.pdf');
         Route::get('/vencimientos/proximos', ProximosIndex::class)->name('prox_vto.index');
         Route::get('/vencimientos/vencidos',  VencidosIndex::class)->name('vto.index');
     });

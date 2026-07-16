@@ -22,8 +22,8 @@ class RegisterUser extends Component
 
     public array $roleOptions = [
         ['value' => 'admin',  'label' => 'Administrador'],
-        ['value' => 'writer', 'label' => 'Escritor'],
-        ['value' => 'reader', 'label' => 'Lector'],
+        ['value' => 'writer', 'label' => 'Usuario administrativo'],
+        ['value' => 'reader', 'label' => 'Inspector'],
         ['value' => 'mesa',   'label' => 'Mesa de entrada'],
     ];
 

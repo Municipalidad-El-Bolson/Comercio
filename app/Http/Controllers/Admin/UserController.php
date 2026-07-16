@@ -14,7 +14,7 @@ class UserController extends Controller
     }
 
     public function create() {
-        $roles = ['admin' => 'Administrador', 'writer' => 'Escritor', 'reader' => 'Lector', 'mesa' => 'Mesa de entrada'];
+        $roles = ['admin' => 'Administrador', 'writer' => 'Usuario administrativo', 'reader' => 'Inspector', 'mesa' => 'Mesa de entrada'];
         return view('admin.users.create', compact('roles'));
     }
 

@@ -11,6 +11,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Gate;
 
 
 class Timeline extends Component
@@ -72,6 +73,7 @@ class Timeline extends Component
 
     public function guardarEtapa()
     {
+        abort_unless(Gate::allows('manage-ubicaciones'), 403);
         // Validación básica (incluye fecha opcional)
         $allowed = array_keys($this->etapas);
         $this->validate([

@@ -1,7 +1,9 @@
 <div class="container-fluid px-1 px-md-3">
     <x-confirmation-alert />
     <x-loading-indicator />
-    @include('livewire.comercio.form')
+    @can('manage-ubicaciones')
+        @include('livewire.comercio.form')
+    @endcan
     <livewire:comercio.movimiento-modal />
 
     <div class="content-header">
@@ -62,6 +64,7 @@
                         </div>
 
                         {{-- Botón Nuevo comercio --}}
+                        @can('manage-ubicaciones')
                         <div class="pt-1 pt-md-0 text-md-end">
                             <label class="invisible small">.</label> {{-- Alinea el botón con los labels --}}
                             <button
@@ -70,6 +73,7 @@
                                 <i class="fas fa-user-plus"></i> Nuevo comercio
                             </button>
                         </div>
+                        @endcan
 
                     </div>
 
@@ -370,5 +374,4 @@
 
 </style>
 @endpush
-
 

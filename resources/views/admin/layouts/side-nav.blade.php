@@ -9,6 +9,7 @@
         <nav class="mt-2 flex-grow-1">
             <ul class="nav nav-pills nav-sidebar flex-column d-flex flex-column h-100" data-widget="treeview" role="menu" data-accordion="false">
                 
+                @can('administrative-user')
                 {{-- Mesa de entrada --}}
                 <li class="nav-item">
                     <a href="{{ route('mesa.inbox') }}"
@@ -44,6 +45,8 @@
                 </a>
                 </li>
 
+                @endcan
+
                 {{-- Mapa --}}
                 <li class="nav-item">
                     <a href="{{ route('mapas') }}"
@@ -54,7 +57,7 @@
                 </li>
 
                 {{-- Comercios --}}
-                @can('manage-ubicaciones')
+                @can('view-ubicaciones')
                 <li class="nav-item">
                     <a href="{{ route('ubicaciones') }}"
                        class="nav-link {{ request()->routeIs('ubicaciones') ? 'active' : '' }}">

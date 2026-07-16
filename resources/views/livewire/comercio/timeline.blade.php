@@ -23,6 +23,7 @@
                     </div>
                 @endif
                 {{-- Controles --}}
+                @can('manage-ubicaciones')
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                     <select class="form-control form-control-sm mr-2" style="max-width:320px" wire:model.live="etapaActual">
                         @foreach ($etapas as $key => $meta)
@@ -45,6 +46,7 @@
                         Guardar
                     </button>
                 </div>
+                @endcan
 
                 {{-- Timeline --}}
                 <div class="timeline-wrap">

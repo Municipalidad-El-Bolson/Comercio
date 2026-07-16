@@ -135,11 +135,13 @@
             <i class="fas fa-arrow-left mr-1"></i> Volver
           </a>
 
+          @can('manage-ubicaciones')
           @isset($ubicacion->id)
             <a href="#" wire:click.prevent="editaComercio({{ $ubicacion->id }})" class="btn btn-primary btn-sm">
               <i class="fa fa-edit mr-1"></i> Editar
             </a>
           @endisset
+          @endcan
 
           @can('manage-ubicaciones')
             <button type="button" class="btn btn-danger btn-sm"

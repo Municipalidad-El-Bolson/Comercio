@@ -410,6 +410,7 @@ class ComercioData extends Component
 
     public function editaComercio(Ubicacion $ubicacion)
     {
+        abort_unless(Gate::allows('manage-ubicaciones'), 403);
         $this->showEditModal = true;
 
         $this->ubicacion = $ubicacion->loadMissing([
@@ -532,6 +533,7 @@ class ComercioData extends Component
 
     public function updateComercio()
     {
+        abort_unless(Gate::allows('manage-ubicaciones'), 403);
         // ---- 0) Mapear estado ----
         $rawEstado   = $this->state['estado'] ?? $this->ubicacion->estado ?? 'entramite';
         $estadoBase  = $this->estadoBaseNormalize($rawEstado);
@@ -791,6 +793,7 @@ class ComercioData extends Component
 
     public function eliminarMovimiento(int $id): void
     {
+        abort_unless(Gate::allows('manage-actas'), 403);
         $mov = \App\Models\Movimiento::query()
             ->whereKey($id)
             ->where('ubicacion_id', $this->ubicacion->id)
@@ -815,6 +818,7 @@ class ComercioData extends Component
 
     public function mostrarMovimientos(int $id): void
     {
+        abort_unless(Gate::allows('manage-actas'), 403);
         abort_unless($id === (int) $this->ubicacion->id, 404);
         $this->dispatch('abrirModalMovimientos', $id);
     }

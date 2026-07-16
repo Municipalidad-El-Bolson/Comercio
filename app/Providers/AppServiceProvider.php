@@ -18,13 +18,25 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useBootstrapFive();
 
         Gate::define('mesa-entrada-send', fn (User $u) => $u->role === 'mesa' || $u->role === 'admin');
-        Gate::define('mesa-entrada-view', fn (User $u) => in_array($u->role, ['admin','writer','reader','mesa'], true));
+        Gate::define('mesa-entrada-view', fn (User $u) => in_array($u->role, ['admin','writer','mesa'], true));
         
         Gate::define('view-maps', fn (User $u) =>
             in_array($u->role, ['admin','writer','reader'], true)
         );
 
         Gate::define('manage-ubicaciones', fn (User $u) =>
+            in_array($u->role, ['admin','writer'], true)
+        );
+
+        Gate::define('view-ubicaciones', fn (User $u) =>
+            in_array($u->role, ['admin','writer','reader'], true)
+        );
+
+        Gate::define('manage-actas', fn (User $u) =>
+            in_array($u->role, ['admin','writer','reader'], true)
+        );
+
+        Gate::define('administrative-user', fn (User $u) =>
             in_array($u->role, ['admin','writer'], true)
         );
 
