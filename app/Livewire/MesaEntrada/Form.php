@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\MesaEntradaNotification;
+use App\Models\MesaEntradaRegistro;
 
 #[Layout('admin.layouts.mesa')]
 class Form extends Component
@@ -96,6 +97,18 @@ class Form extends Component
             'hc'          => $this->hc,
             'sender_name' => auth()->user()->name ?? 'Mesa de Entrada',
         ];
+
+        $registro = MesaEntradaRegistro::create([
+            'fecha' => $this->fecha,
+            'nro_ingreso' => $this->nro_ingreso,
+            'titular_razon' => $this->titular_razon,
+            'hc' => $this->hc,
+            'documentos' => $docs,
+            'user_id' => auth()->id(),
+            'sender_name' => $payload['sender_name'],
+        ]);
+
+        $payload['registro_id'] = $registro->id;
 
         // 🔹 Buscar usuarios destino
         $destinatarios = User::query()

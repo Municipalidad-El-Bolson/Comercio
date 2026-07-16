@@ -1,8 +1,11 @@
 <div class="container-fluid pt-4">
   <div class="row justify-content-center">
     <div class="col-12 col-lg-8">
-      <div class="content-header py-0 mb-3 text-center">
-        <h1 class="m-0 pb-2 border-bottom">Notificar</h1>
+      <div class="content-header py-0 mb-3 d-flex align-items-center justify-content-between border-bottom pb-2">
+        <h1 class="m-0">Notificar</h1>
+        <a href="{{ route('mesa.inbox') }}" class="btn btn-outline-primary btn-sm">
+          <i class="fas fa-history me-1"></i> Historial de ingresos
+        </a>
       </div>
 
       @if (session('status'))

@@ -42,6 +42,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/mesa/enviar', MesaForm::class)
         ->middleware('can:mesa-entrada-send') // solo 'mesa' (y admin si querés)
         ->name('mesa.form');
+
+    Route::get('/mesa', MesaInbox::class)
+        ->middleware('can:mesa-entrada-view')
+        ->name('mesa.inbox');
  
 
     /** Mapas (mesa NO entra) */
@@ -56,7 +60,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/actas/seguimiento', ActasSeguimiento::class)->name('actas.seguimiento');
         Route::get('/comercios/{ubicacion}/historial/excel', [ComercioHistorialExportController::class, 'excel'])->name('comercio.historial.excel');
         Route::get('/comercios/{ubicacion}/historial/pdf', [ComercioHistorialExportController::class, 'pdf'])->name('comercio.historial.pdf');
-        Route::get('/mesa', MesaInbox::class)->name('mesa.inbox'); 
         Route::get('/vencimientos/proximos', ProximosIndex::class)->name('prox_vto.index');
         Route::get('/vencimientos/vencidos',  VencidosIndex::class)->name('vto.index');
     });
