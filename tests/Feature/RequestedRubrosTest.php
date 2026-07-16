@@ -1,0 +1,41 @@
+<?php
+
+namespace Tests\Feature;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
+
+class RequestedRubrosTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_incorpora_todos_los_rubros_solicitados_sin_duplicados(): void
+    {
+        $esperados = [
+            'ACCESORIOS PARA CELULARES', 'ALIMENTOS BALANCEADOS', 'ALQUILER DE EQUIPO DE MONTAÑA - NIEVE',
+            'ALQUILER DE INDUMENTARIA DE SKI', 'ALQUILER DE SKI', 'ALQUILER DE TRINEOS', 'ARMERÍA',
+            'ARTÍCULOS DE DESPENSA', 'AULA', 'BANCO COMERCIAL', 'BEBIDAS HÍDRICAS',
+            'BODY PIERCING - PERFORACIONES Y COLOCACIÓN DE AROS', 'CAJEROS AUTOMÁTICOS', 'CAJEROS DE AUTOGESTIÓN',
+            'CARPINTERÍA', 'CENTRO ADMINISTRATIVO', 'CENTRO DE EDUCACIÓN PRIVADA', 'CENTRO DE TERAPIAS ALTERNATIVAS',
+            'CENTRO DIAGNÓSTICO POR IMAGEN', 'CERVECERÍA', 'CHURRERÍA', 'CHURRERÍA MÓVIL', 'COCINA Y DEPENDENCIAS',
+            'COMPLEJO DEPORTIVO (CANCHA)', 'COPETÍN AL PASO', 'DEPÓSITO DE PRODUCTOS ALIMENTICIOS',
+            'DEPÓSITO DE ENCOMIENDAS', 'DESTILERÍA', 'DIETÉTICA', 'DISEÑO GRÁFICO', 'ELABORACIÓN DE EMPANADAS',
+            'ELABORACIÓN DE PASTAS CASERAS', 'ELABORACIÓN DE SUSHI', 'ELABORACIÓN DE HELADOS',
+            'EMPRESA CONSTRUCTORA', 'EMPRESA DE SERVICIOS', 'ENTIDAD COMERCIAL', 'ENVASADORA DE AGUA',
+            'ESCUELA DE NIVEL INICIAL', 'ESCUELA PRIMARIA', 'FÁBRICA DE BLOQUES', 'FÁBRICA DE DULCES',
+            'FÁBRICA DE HELADOS', 'FÁBRICA DE PREMOLDEADOS', 'FORRAJERÍA', 'FOTOGRAFÍA INSTANTÁNEA EN LUGAR FIJO',
+            'GESTIÓN DE PRÉSTAMOS MONETARIOS', 'GIMNASIO', 'GIMNASIO Y REHABILITACIÓN DEPORTIVA', 'GRÁFICA',
+            'INDUMENTARIA DE PESCA', 'INDUMENTARIA Y ACCESORIOS PARA MOTOS', 'JUGUETERÍA', 'LAVADERO DE ROPA',
+            'LIBRERÍA', 'MOVIMIENTO DE SUELO', 'MUTUAL', 'NATATORIO', 'OFICINA', 'OFICINA DE EMPRESA CONSTRUCTORA',
+            'OFICINA DE TRÁMITES', 'OFICINA DE TRÁMITES (GESTIONES Y ENCOMIENDAS)', 'OFICINA VENTA DE SEGUROS',
+            'ÓPTICA Y CONTACTOLOGÍA', 'PATIO DE COMIDAS', 'PELUQUERÍA CON VENTA DE PRODUCTOS AFINES', 'REGIONALES',
+            'REPUESTOS DE REFRIGERACIÓN', 'SALA DE EMPAQUE DE FRUTAS FINAS', 'SALÓN DE EVENTOS',
+        ];
+
+        foreach ($esperados as $rubro) {
+            $this->assertSame(1, DB::table('rubros')->where('subrubro', $rubro)->count(), $rubro);
+            $this->assertNotEmpty(DB::table('rubros')->where('subrubro', $rubro)->value('rubro_general'));
+        }
+    }
+}
