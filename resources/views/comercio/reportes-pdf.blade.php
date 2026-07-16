@@ -3,57 +3,66 @@
 <head>
   <meta charset="utf-8">
   <style>
-    @page { margin: 22px 28px 26px; }
-    body { font-family: DejaVu Sans, sans-serif; color: #172033; font-size: 9px; }
-    h1 { margin: 0 0 4px; font-size: 18px; color: #173b63; }
-    .meta { color: #64748b; margin-bottom: 7px; }
-    .filters { background: #edf3f8; border: 1px solid #cbd8e5; padding: 6px 8px; margin-bottom: 9px; }
-    .filters span { margin-right: 14px; white-space: nowrap; }
-    .record { width: 100%; border-collapse: collapse; margin-bottom: 8px; page-break-inside: avoid; }
-    .record td { border: 1px solid #cfd8e3; padding: 5px 6px; vertical-align: top; }
-    .record .head { background: #173b63; color: white; font-weight: bold; }
-    .label { display: block; color: #52647a; font-size: 7px; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; }
-    .head .label { color: #dce9f5; }
-    .rubros { line-height: 1.35; }
-    .empty { padding: 35px; border: 1px solid #cfd8e3; text-align: center; color: #64748b; }
+    @page { margin: 20px 22px 25px; }
+    body { font-family: DejaVu Sans, sans-serif; color: #172033; font-size: 7px; }
+    h1 { margin: 0 0 3px; font-size: 16px; color: #173b63; }
+    .meta { color: #64748b; margin-bottom: 6px; }
+    .filters { background: #edf3f8; border: 1px solid #cbd8e5; padding: 5px 7px; margin-bottom: 7px; }
+    .filters span { margin-right: 11px; white-space: nowrap; }
+    .warning { background: #fff3cd; border: 1px solid #ffe69c; padding: 5px 7px; margin-bottom: 7px; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    th { background: #173b63; color: white; padding: 4px 3px; text-align: left; font-size: 6.5px; }
+    td { border: 1px solid #d7dee8; padding: 3px; vertical-align: top; overflow-wrap: break-word; }
+    tbody tr:nth-child(even) { background: #f7f9fb; }
+    .center { text-align: center; }
     .page-number:after { content: counter(page); }
-    footer { position: fixed; bottom: -18px; left: 0; right: 0; text-align: right; color: #64748b; font-size: 8px; }
+    footer { position: fixed; bottom: -17px; left: 0; right: 0; text-align: right; color: #64748b; }
   </style>
 </head>
 <body>
   <h1>Reporte de habilitaciones comerciales</h1>
-  <div class="meta">Municipalidad de El Bolsón · Generado el {{ now()->format('d/m/Y H:i') }} · {{ $items->count() }} registros</div>
+  <div class="meta">Municipalidad de El Bolsón - Generado el {{ now()->format('d/m/Y H:i') }} - {{ $total }} registros encontrados</div>
   <div class="filters">
-    @foreach($filters as $label => $value)<span><strong>{{ $label }}:</strong> {{ $value }}</span>@endforeach
+    @foreach($filterLabels as $label => $value)<span><strong>{{ $label }}:</strong> {{ $value }}</span>@endforeach
   </div>
+  @if($truncated)
+    <div class="warning">El PDF muestra los primeros {{ $items->count() }} de {{ $total }} registros. Para obtener el listado completo, descargue el Excel.</div>
+  @endif
 
-  @forelse($items as $item)
-    <table class="record">
+  <table>
+    <thead>
       <tr>
-        <td class="head" style="width: 52%"><span class="label">Titular completo</span>{{ $item['titular'] }}</td>
-        <td class="head" style="width: 16%"><span class="label">HC</span>{{ $item['hc'] }}</td>
-        <td class="head" style="width: 16%"><span class="label">Situación</span>{{ $item['situacion'] }}</td>
-        <td class="head" style="width: 16%"><span class="label">Fecha asociada</span>{{ $item['fecha_asociada'] }}</td>
+        <th style="width:8%">Nombre comercial</th>
+        <th style="width:10%">Titular</th>
+        <th style="width:5%">HC</th>
+        <th style="width:18%">Rubro completo / anexos</th>
+        <th style="width:8%">Trámite</th>
+        <th style="width:6%">Fecha</th>
+        <th style="width:11%">Dirección</th>
+        <th style="width:8%">Teléfono</th>
+        <th style="width:4%">Unid.</th>
+        <th style="width:4%">Plazas</th>
+        <th style="width:7%">Situación</th>
+        <th style="width:6%">Susp. desde</th>
+        <th style="width:6%">Susp. hasta</th>
       </tr>
-      <tr><td colspan="4" class="rubros"><span class="label">Rubro completo (principal y anexos)</span>{{ $item['rubros'] }}</td></tr>
-      <tr>
-        <td colspan="2"><span class="label">Trámite al que corresponde la fecha</span>{{ $item['tramite'] }}</td>
-        <td colspan="2"><span class="label">Dirección</span>{{ $item['direccion'] }}</td>
-      </tr>
-      <tr>
-        <td colspan="2"><span class="label">Teléfono/s</span>{{ $item['telefonos'] }}</td>
-        <td><span class="label">Unidades de alojamiento</span>{{ $item['unidades'] ?? '-' }}</td>
-        <td><span class="label">Plazas de alojamiento</span>{{ $item['plazas'] ?? '-' }}</td>
-      </tr>
-      <tr>
-        <td colspan="2"><span class="label">Suspensión de tasas desde</span>{{ $item['suspension_desde'] }}</td>
-        <td colspan="2"><span class="label">Suspensión de tasas hasta</span>{{ $item['suspension_hasta'] }}</td>
-      </tr>
-    </table>
-  @empty
-    <div class="empty">Sin datos para los filtros seleccionados.</div>
-  @endforelse
-
+    </thead>
+    <tbody>
+      @forelse($items as $item)
+        <tr>
+          <td>{{ $item['nombre_comercial'] }}</td><td>{{ $item['titular'] }}</td><td>{{ $item['hc'] }}</td>
+          <td>{{ $item['rubros'] }}</td><td>{{ $item['tramite'] }}</td><td>{{ $item['fecha_asociada'] }}</td>
+          <td>{{ $item['direccion'] }}</td><td>{{ $item['telefonos'] }}</td>
+          <td class="center">{{ $item['unidades'] ?? '-' }}</td><td class="center">{{ $item['plazas'] ?? '-' }}</td>
+          <td>{{ $item['situacion'] }}</td><td>{{ $item['suspension_desde'] }}</td><td>{{ $item['suspension_hasta'] }}</td>
+        </tr>
+      @empty
+        <tr><td colspan="13" class="center">Sin datos para los filtros seleccionados.</td></tr>
+      @endforelse
+    </tbody>
+  </table>
   <footer>Página <span class="page-number"></span></footer>
 </body>
 </html>

@@ -11,11 +11,15 @@ class ReportesPdfController extends Controller
 {
     public function __invoke(Request $request, ReportesComercioData $reportes)
     {
+        @ini_set('memory_limit', '256M');
         $filters = $this->filters($request);
-        $items = $reportes->items($filters);
+        $total = $reportes->query($filters)->count();
+        $pdfLimit = 150;
+        $items = $reportes->items($filters, $pdfLimit);
+        $truncated = $total > $pdfLimit;
         $filterLabels = $reportes->filterLabels($filters);
 
-        return Pdf::loadView('comercio.reportes-pdf', ['items' => $items, 'filters' => $filterLabels])
+        return Pdf::loadView('comercio.reportes-pdf', compact('items', 'filterLabels', 'total', 'truncated'))
             ->setPaper('a4', 'landscape')
             ->download('reporte_habilitaciones_'.now()->format('Ymd_His').'.pdf');
     }

@@ -18,6 +18,13 @@ class ReportesPdfTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_reportes_no_usa_autoguardado_para_los_filtros(): void
+    {
+        $view = file_get_contents(resource_path('views/livewire/comercio/reportes.blade.php'));
+
+        $this->assertStringContainsString('<section class="content" data-autosave="off">', $view);
+    }
+
     public function test_admin_puede_descargar_pdf_de_reportes(): void
     {
         $user = User::factory()->create(['role' => 'admin']);

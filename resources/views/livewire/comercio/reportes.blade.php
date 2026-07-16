@@ -1,4 +1,4 @@
-<section class="content">
+<section class="content" data-autosave="off">
   <div class="content-header">
     <div class="container-fluid">
       <div class="text-center mb-3">
