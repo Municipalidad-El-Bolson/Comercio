@@ -27,6 +27,7 @@ class UsersManagementTest extends TestCase
             ->set('password_confirmation', 'segura123')
             ->call('save')
             ->assertHasNoErrors()
+            ->assertDispatched('autosave-clear')
             ->assertSet('showForm', false);
 
         $usuario = User::where('email', 'maria@ejemplo.com')->firstOrFail();

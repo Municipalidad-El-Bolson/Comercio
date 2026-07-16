@@ -922,6 +922,7 @@ class Ubicaciones extends AdminComponent
         $this->resetPage();
         $this->reset('state','ubicacion');
         $this->dispatch('hide-form', ['message' => 'Comercio creado correctamente.']);
+        $this->dispatch('autosave-clear');
     }
 
     public function eliminarMovimiento($id)
@@ -1150,6 +1151,7 @@ class Ubicaciones extends AdminComponent
         $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
         $this->resetPage();
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
+        $this->dispatch('autosave-clear');
     }
 
 

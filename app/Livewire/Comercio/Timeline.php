@@ -131,6 +131,7 @@ class Timeline extends Component
         $this->reset('fechaManual', 'obs');
 
         $this->dispatch('toast', type: 'success', message: 'Etapa guardada');
+        $this->dispatch('autosave-clear');
     }
 
     public function getStepsProperty(): \Illuminate\Support\Collection

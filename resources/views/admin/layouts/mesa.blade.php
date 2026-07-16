@@ -37,5 +37,7 @@
   </main>
     {{-- Contenido principal --}}
     @livewireScripts
+    <link rel="stylesheet" href="{{ asset('css/livewire-autosave.css') }}">
+    <script src="{{ asset('js/livewire-autosave.js') }}"></script>
 </body>
 </html>

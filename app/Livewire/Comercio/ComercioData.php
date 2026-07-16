@@ -776,6 +776,7 @@ class ComercioData extends Component
         // ---- 9) UI ----
         $this->dispatch('ubicacion-actualizada', id: $this->ubicacion->id);
         $this->dispatch('hide-form', ['message' => 'Registro actualizado correctamente']);
+        $this->dispatch('autosave-clear');
 
       
         $this->ubicacion = Ubicacion::with([

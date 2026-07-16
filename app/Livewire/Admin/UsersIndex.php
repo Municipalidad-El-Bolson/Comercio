@@ -127,6 +127,7 @@ class UsersIndex extends Component
 
         session()->flash('status', $this->editingId ? 'Usuario actualizado correctamente.' : 'Usuario creado correctamente.');
         $this->showForm = false;
+        $this->dispatch('autosave-clear');
         $this->resetForm();
     }
 

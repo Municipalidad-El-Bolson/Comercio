@@ -158,6 +158,7 @@ class Form extends Component
         $this->fecha = Carbon::today()->format('Y-m-d');
 
         session()->flash('status', ' Notificación enviada correctamente.');
+        $this->dispatch('autosave-clear');
 
         $this->dispatch('$refresh');
     }

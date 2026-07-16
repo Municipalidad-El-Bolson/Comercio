@@ -46,7 +46,8 @@ class MesaEntradaHistorialTest extends TestCase
             ->set('documentacion_nombres.'.$documento->id, 'Libre deuda corregido')
             ->set('observacion', 'Presentó el original para cotejo')
             ->call('submit')
-            ->assertHasNoErrors();
+            ->assertHasNoErrors()
+            ->assertDispatched('autosave-clear');
 
         $registro = MesaEntradaRegistro::firstOrFail();
 
