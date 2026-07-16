@@ -32,6 +32,11 @@ class ComercioData extends Component
     public $rubros = [];
     public array $state = [];
     public string $formKey = '';
+    public string $contactoTelefono = '';
+    public string $contactoPlantilla = 'falta_documentacion';
+    public string $contactoDetalle = '';
+    public string $contactoAsuntoCustom = '';
+    public string $contactoMensajeCustom = '';
     public bool $suspendEstadoHook = false; // <-- lo usás en editaComercio
 
     /** ====== Documentación (legacy para compat) ====== */
@@ -194,6 +199,155 @@ class ComercioData extends Component
             'titulo'         => 'Título de propiedad',
             'cert_ocupacion' => 'Certificado de ocupación',
         ];
+    }
+
+    public function getContactoPlantillasProperty(): array
+    {
+        return [
+            'falta_documentacion' => [
+                'label' => 'Falta de documentacion',
+                'asunto' => 'Falta de documentacion - HC {{hc}}',
+                'mensaje' => "Estimado/a {{titular}}, desde el area de Comercio Municipal le informamos que su expediente/habilitacion comercial {{hc_texto}} presenta documentacion pendiente.\n\nDetalle: {{detalle}}\n\nPor favor, acerquese o comuniquese con el area de Comercio para regularizar la situacion.\n\nMuchas gracias.",
+            ],
+            'coordinar_inspeccion' => [
+                'label' => 'Coordinar inspeccion',
+                'asunto' => 'Coordinar inspeccion - HC {{hc}}',
+                'mensaje' => "Estimado/a {{titular}}, desde el area de Comercio Municipal necesitamos coordinar una inspeccion vinculada a {{comercio_texto}}.\n\nDetalle: {{detalle}}\n\nPor favor, responda este mensaje indicando disponibilidad de dia y horario.\n\nMuchas gracias.",
+            ],
+            'notificacion_deuda' => [
+                'label' => 'Notificacion por deuda',
+                'asunto' => 'Notificacion por deuda - HC {{hc}}',
+                'mensaje' => "Estimado/a {{titular}}, desde el area de Comercio Municipal le informamos que registra una situacion pendiente relacionada con deuda de su habilitacion/comercio {{hc_texto}}.\n\nDetalle: {{detalle}}\n\nSolicitamos regularizar la situacion o acercarse al area correspondiente.\n\nMuchas gracias.",
+            ],
+            'regularizacion_habilitacion' => [
+                'label' => 'Regularizacion de habilitacion comercial',
+                'asunto' => 'Regularizacion de habilitacion comercial - HC {{hc}}',
+                'mensaje' => "Estimado/a {{titular}}, desde el area de Comercio Municipal le solicitamos regularizar la situacion de su habilitacion comercial {{hc_texto}}.\n\nDetalle: {{detalle}}\n\nComercio: {{comercio}}\nRubro: {{rubro}}\nVencimiento: {{vencimiento}}\n\nMuchas gracias.",
+            ],
+            'personalizado' => [
+                'label' => 'Mensaje personalizado',
+                'asunto' => '{{asunto_custom}}',
+                'mensaje' => '{{mensaje_custom}}',
+            ],
+        ];
+    }
+
+    public function getContactoTelefonosProperty(): array
+    {
+        $telefonos = $this->ubicacion?->telefonos?->pluck('telefono')->filter()->values()->all() ?? [];
+
+        if (!empty($this->ubicacion?->telefono)) {
+            $telefonos[] = $this->ubicacion->telefono;
+        }
+
+        return collect($telefonos)
+            ->map(fn ($tel) => trim((string) $tel))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function contactoTitular(): string
+    {
+        $apellido = trim((string) ($this->ubicacion->apellido ?? ''));
+        $nombres = trim((string) ($this->ubicacion->nombres ?? ''));
+        $razon = trim((string) ($this->ubicacion->razon_social ?? ''));
+        $fisica = trim($apellido . ' ' . $nombres);
+
+        return $razon !== '' ? $razon : ($fisica !== '' ? $fisica : 'contribuyente');
+    }
+
+    private function contactoHc(): string
+    {
+        $hc = trim((string) ($this->ubicacion->hc ?? ''));
+        if ($hc === '') {
+            $hab = $this->ubicacion?->habilitaciones?->sortByDesc(fn ($h) => $h->fecha ?? $h->created_at)->first();
+            $hc = trim((string) ($hab->numero ?? ''));
+        }
+
+        return $hc;
+    }
+
+    private function contactoReemplazos(): array
+    {
+        $hc = $this->contactoHc();
+        $comercio = trim((string) ($this->ubicacion->nombre_comercial ?? ''));
+        $rubro = trim((string) (optional($this->ubicacion->rubro)->subrubro ?? ''));
+        $vto = $this->ubicacion->fecha_vto
+            ? Carbon::parse($this->ubicacion->fecha_vto)->format('d/m/Y')
+            : 'sin vencimiento registrado';
+
+        return [
+            '{{titular}}' => $this->contactoTitular(),
+            '{{hc}}' => $hc !== '' ? $hc : 'sin HC',
+            '{{hc_texto}}' => $hc !== '' ? 'HC ' . $hc : 'sin numero de HC registrado',
+            '{{comercio}}' => $comercio !== '' ? $comercio : 'sin nombre de fantasia registrado',
+            '{{comercio_texto}}' => $comercio !== '' ? $comercio : 'su comercio',
+            '{{rubro}}' => $rubro !== '' ? $rubro : 'sin rubro registrado',
+            '{{vencimiento}}' => $vto,
+            '{{detalle}}' => trim($this->contactoDetalle) !== '' ? trim($this->contactoDetalle) : 'Sin detalle adicional.',
+            '{{asunto_custom}}' => trim($this->contactoAsuntoCustom) !== '' ? trim($this->contactoAsuntoCustom) : 'Comunicacion del area de Comercio',
+            '{{mensaje_custom}}' => trim($this->contactoMensajeCustom) !== '' ? trim($this->contactoMensajeCustom) : 'Estimado/a {{titular}}, desde el area de Comercio Municipal nos comunicamos por {{comercio_texto}}.',
+        ];
+    }
+
+    public function getContactoAsuntoProperty(): string
+    {
+        $plantillas = $this->contactoPlantillas;
+        $tpl = $plantillas[$this->contactoPlantilla] ?? $plantillas['falta_documentacion'];
+
+        return strtr($tpl['asunto'], $this->contactoReemplazos());
+    }
+
+    public function getContactoMensajeProperty(): string
+    {
+        $plantillas = $this->contactoPlantillas;
+        $tpl = $plantillas[$this->contactoPlantilla] ?? $plantillas['falta_documentacion'];
+        $mensaje = strtr($tpl['mensaje'], $this->contactoReemplazos());
+
+        return strtr($mensaje, $this->contactoReemplazos());
+    }
+
+    private function normalizarTelefonoWhatsapp(?string $telefono): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $telefono);
+        if ($digits === '') return null;
+
+        $digits = ltrim($digits, '0');
+
+        if (str_starts_with($digits, '549')) {
+            return $digits;
+        }
+
+        if (str_starts_with($digits, '54')) {
+            $resto = substr($digits, 2);
+            return '549' . ltrim($resto, '0');
+        }
+
+        if (str_starts_with($digits, '15')) {
+            $digits = substr($digits, 2);
+        }
+
+        return '549' . $digits;
+    }
+
+    public function getContactoWhatsappUrlProperty(): ?string
+    {
+        $numero = $this->normalizarTelefonoWhatsapp($this->contactoTelefono ?: ($this->contactoTelefonos[0] ?? null));
+        if (!$numero) return null;
+
+        return 'https://wa.me/' . $numero . '?text=' . rawurlencode($this->contactoMensaje);
+    }
+
+    public function getContactoEmailUrlProperty(): ?string
+    {
+        $correo = trim((string) ($this->ubicacion->correo ?? ''));
+        if ($correo === '') return null;
+
+        return 'mailto:' . rawurlencode($correo)
+            . '?subject=' . rawurlencode($this->contactoAsunto)
+            . '&body=' . rawurlencode($this->contactoMensaje);
     }
 
     public function getDocSchemaProperty(): array
@@ -914,6 +1068,7 @@ class ComercioData extends Component
             'rubros_anexos' => [],
         ];
 
+        $this->contactoTelefono = $this->contactoTelefonos[0] ?? '';
         $this->formKey = (string) Str::uuid();
     }
 
@@ -931,6 +1086,9 @@ public function refrescarDatos($id = null): void
 
         $this->state['persona_tipo'] = $this->ubicacion->persona_tipo ?? 'fisica';
         $this->state['estado']       = $this->normalizarEstado($this->ubicacion->estado ?? 'entramite');
+        if ($this->contactoTelefono === '') {
+            $this->contactoTelefono = $this->contactoTelefonos[0] ?? '';
+        }
     }
 }
 

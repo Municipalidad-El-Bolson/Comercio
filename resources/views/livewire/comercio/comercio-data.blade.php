@@ -135,6 +135,26 @@
             <i class="fas fa-arrow-left mr-1"></i> Volver
           </a>
 
+          @if($this->contactoWhatsappUrl)
+            <a href="{{ $this->contactoWhatsappUrl }}" target="_blank" rel="noopener" class="btn btn-success btn-sm">
+              <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+            </a>
+          @else
+            <button type="button" class="btn btn-success btn-sm" disabled title="No hay teléfono cargado">
+              <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+            </button>
+          @endif
+
+          @if($this->contactoEmailUrl)
+            <a href="{{ $this->contactoEmailUrl }}" class="btn btn-outline-primary btn-sm">
+              <i class="far fa-envelope mr-1"></i> Email
+            </a>
+          @else
+            <button type="button" class="btn btn-outline-primary btn-sm" disabled title="No hay correo cargado">
+              <i class="far fa-envelope mr-1"></i> Email
+            </button>
+          @endif
+
           @can('manage-ubicaciones')
           @isset($ubicacion->id)
             <a href="#" wire:click.prevent="editaComercio({{ $ubicacion->id }})" class="btn btn-primary btn-sm">
@@ -158,6 +178,91 @@
 
 
   <div class="container-fluid mt-3">
+
+    {{-- Comunicación asistida --}}
+    <div class="card mb-3 border-success">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <strong><i class="fab fa-whatsapp mr-1 text-success"></i>Comunicación asistida</strong>
+        <span class="text-muted small">WhatsApp abre el mensaje listo para revisar y enviar</span>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3 mb-2">
+            <label class="text-muted small mb-1" for="contactoPlantilla">Asunto / plantilla</label>
+            <select id="contactoPlantilla" class="form-control form-control-sm" wire:model.live="contactoPlantilla">
+              @foreach($this->contactoPlantillas as $key => $tpl)
+                <option value="{{ $key }}">{{ $tpl['label'] }}</option>
+              @endforeach
+            </select>
+          </div>
+
+          <div class="col-md-3 mb-2">
+            <label class="text-muted small mb-1" for="contactoTelefono">Teléfono WhatsApp</label>
+            @if(count($this->contactoTelefonos))
+              <select id="contactoTelefono" class="form-control form-control-sm" wire:model.live="contactoTelefono">
+                @foreach($this->contactoTelefonos as $tel)
+                  <option value="{{ $tel }}">{{ $tel }}</option>
+                @endforeach
+              </select>
+            @else
+              <input id="contactoTelefono" class="form-control form-control-sm" value="Sin teléfono cargado" disabled>
+            @endif
+          </div>
+
+          <div class="col-md-6 mb-2">
+            <label class="text-muted small mb-1" for="contactoDetalle">Detalle para completar el mensaje</label>
+            <input id="contactoDetalle" type="text" class="form-control form-control-sm"
+                   wire:model.live.debounce.300ms="contactoDetalle"
+                   placeholder="Ej.: falta libre deuda municipal / coordinar inspección el viernes / deuda pendiente">
+          </div>
+        </div>
+
+        @if($contactoPlantilla === 'personalizado')
+          <div class="row">
+            <div class="col-md-4 mb-2">
+              <label class="text-muted small mb-1" for="contactoAsuntoCustom">Asunto personalizado</label>
+              <input id="contactoAsuntoCustom" type="text" class="form-control form-control-sm"
+                     wire:model.live.debounce.300ms="contactoAsuntoCustom"
+                     placeholder="Ej.: Citación del área de Comercio">
+            </div>
+            <div class="col-md-8 mb-2">
+              <label class="text-muted small mb-1" for="contactoMensajeCustom">Speech / mensaje personalizado</label>
+              <textarea id="contactoMensajeCustom" class="form-control form-control-sm" rows="2"
+                        wire:model.live.debounce.300ms="contactoMensajeCustom"
+                        placeholder="Podés usar: {{ '{{titular}}' }}, {{ '{{hc}}' }}, {{ '{{comercio}}' }}, {{ '{{rubro}}' }}, {{ '{{vencimiento}}' }}"></textarea>
+            </div>
+          </div>
+        @endif
+
+        <div class="row align-items-end">
+          <div class="col-lg-8 mb-2">
+            <div class="text-muted small">Vista previa</div>
+            <div class="border rounded bg-light p-2 small" style="white-space: pre-line;">{{ $this->contactoMensaje }}</div>
+          </div>
+          <div class="col-lg-4 mb-2 text-lg-right">
+            @if($this->contactoWhatsappUrl)
+              <a class="btn btn-success btn-sm mb-1" href="{{ $this->contactoWhatsappUrl }}" target="_blank" rel="noopener">
+                <i class="fab fa-whatsapp mr-1"></i>Enviar WhatsApp
+              </a>
+            @else
+              <button class="btn btn-success btn-sm mb-1" disabled title="No hay teléfono cargado">
+                <i class="fab fa-whatsapp mr-1"></i>Enviar WhatsApp
+              </button>
+            @endif
+
+            @if($this->contactoEmailUrl)
+              <a class="btn btn-outline-primary btn-sm mb-1" href="{{ $this->contactoEmailUrl }}">
+                <i class="far fa-envelope mr-1"></i>Enviar email
+              </a>
+            @else
+              <button class="btn btn-outline-primary btn-sm mb-1" disabled title="No hay correo cargado">
+                <i class="far fa-envelope mr-1"></i>Enviar email
+              </button>
+            @endif
+          </div>
+        </div>
+      </div>
+    </div>
 
     {{-- TIMELINE (si corresponde) --}}
     @if($ubicacion->habilita_seguimiento)
