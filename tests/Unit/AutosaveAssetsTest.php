@@ -17,6 +17,8 @@ class AutosaveAssetsTest extends TestCase
         $this->assertStringContainsString("el.type === 'password'", $script);
         $this->assertStringContainsString("el.type === 'file'", $script);
         $this->assertStringContainsString('localStorage.setItem', $script);
+        $this->assertStringContainsString('allowedModels.has(model)', $script);
+        $this->assertStringContainsString("key.startsWith('comercio:draft:v1:')", $script);
         $this->assertStringContainsString('Se recuperó un borrador', $script);
     }
 }

@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const PREFIX = 'comercio:draft:v1:';
+    const PREFIX = 'comercio:draft:v2:';
     const timers = new Map();
     let notice;
 
@@ -84,7 +84,9 @@
         root.dataset.autosaveRestored = '1';
         const wire = window.Livewire?.find(root.getAttribute('wire:id'));
         if (!wire || !draft.values) return;
+        const allowedModels = new Set(Object.keys(valuesFor(root)));
         Object.entries(draft.values).forEach(([model, value]) => {
+            if (!allowedModels.has(model)) return;
             try { wire.set(model, value, false); } catch (_) {}
         });
         show('Se recuperó un borrador guardado automáticamente', true);
@@ -106,6 +108,9 @@
     document.addEventListener('autosave-clear', (event) => clearRoot(event.target.closest?.('[wire\\:id]')));
 
     document.addEventListener('livewire:init', () => {
+        Object.keys(localStorage)
+            .filter((key) => key.startsWith('comercio:draft:v1:'))
+            .forEach((key) => localStorage.removeItem(key));
         setTimeout(() => roots().forEach(restore), 350);
         Livewire.hook('morph.updated', ({ el }) => {
             const root = el.closest?.('[wire\\:id]') || (el.matches?.('[wire\\:id]') ? el : null);
