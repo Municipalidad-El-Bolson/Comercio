@@ -24,6 +24,7 @@ class ComercioData extends Component
 
     public Ubicacion $ubicacion;
     public bool $actasAbiertas = false;
+    public bool $comunicacionAbierta = false;
     public bool $showEditModal = false;
     public string $rubroQuery = '';
     public string $anexoQuery = '';

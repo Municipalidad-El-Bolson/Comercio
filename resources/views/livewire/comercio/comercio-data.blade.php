@@ -135,15 +135,11 @@
             <i class="fas fa-arrow-left mr-1"></i> Volver
           </a>
 
-          @if($this->contactoWhatsappUrl)
-            <a href="{{ $this->contactoWhatsappUrl }}" target="_blank" rel="noopener" class="btn btn-success btn-sm">
-              <i class="fab fa-whatsapp mr-1"></i> WhatsApp
-            </a>
-          @else
-            <button type="button" class="btn btn-success btn-sm" disabled title="No hay teléfono cargado">
-              <i class="fab fa-whatsapp mr-1"></i> WhatsApp
-            </button>
-          @endif
+          <button type="button" class="btn btn-success btn-sm"
+                  wire:click="$set('comunicacionAbierta', true)"
+                  onclick="setTimeout(() => document.getElementById('comunicacion-asistida')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)">
+            <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+          </button>
 
           @if($this->contactoEmailUrl)
             <a href="{{ $this->contactoEmailUrl }}" class="btn btn-outline-primary btn-sm">
@@ -180,10 +176,16 @@
   <div class="container-fluid mt-3">
 
     {{-- Comunicación asistida --}}
-    <div class="card mb-3 border-success">
+    @if($comunicacionAbierta)
+    <div id="comunicacion-asistida" class="card mb-3 border-success" wire:key="comunicacion-asistida">
       <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <strong><i class="fab fa-whatsapp mr-1 text-success"></i>Comunicación asistida</strong>
-        <span class="text-muted small">WhatsApp abre el mensaje listo para revisar y enviar</span>
+        <div class="d-flex align-items-center">
+          <span class="text-muted small mr-3">WhatsApp abre el mensaje listo para revisar y enviar</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="$set('comunicacionAbierta', false)" title="Cerrar">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
       </div>
       <div class="card-body">
         <div class="row">
@@ -263,6 +265,7 @@
         </div>
       </div>
     </div>
+    @endif
 
     {{-- TIMELINE (si corresponde) --}}
     @if($ubicacion->habilita_seguimiento)

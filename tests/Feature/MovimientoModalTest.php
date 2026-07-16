@@ -57,5 +57,7 @@ class MovimientoModalTest extends TestCase
         $this->assertStringContainsString('wire:click="mostrarMovimientos(', $view);
         $this->assertStringContainsString('wire:key="acta-perfil-', $view);
         $this->assertStringContainsString('wire:click="$toggle(\'actasAbiertas\')"', $view);
+        $this->assertStringContainsString("wire:click=\"\$set('comunicacionAbierta', true)\"", $view);
+        $this->assertStringContainsString('@if($comunicacionAbierta)', $view);
     }
 }
