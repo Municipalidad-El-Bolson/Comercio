@@ -134,7 +134,6 @@
                         <th>Nombre</th>
                         <th>Estado</th>
                         <th>Rubro</th>
-                        <th>Anexos</th>
                         <th class="text-right">Unidades</th>
                         <th class="text-right">Plazas</th>
                         <th>Vto</th>
@@ -142,22 +141,10 @@
                     </thead>
                     <tbody>
                       @foreach($this->listadoGeneral as $u)
-                        @php
-                          $anexos = $u->rubros
-                            ->when($u->rubro_id, fn($c) => $c->where('id', '!=', $u->rubro_id))
-                            ->pluck('subrubro')->filter()->values()->all();
-                        @endphp
                         <tr>
                           <td>{{ $u->nombre_comercial ?? '-' }}</td>
                           <td>{{ $u->estadoModel->nombre ?? $u->estado }}</td>
                           <td>{{ $u->rubro->subrubro ?? '-' }}</td>
-                          <td>
-                            @forelse($anexos as $a)
-                              <span class="badge badge-secondary mr-1 mb-1">{{ $a }}</span>
-                            @empty
-                              —
-                            @endforelse
-                          </td>
                           <td class="text-right">{{ $u->alojamiento_unidades ?? '-' }}</td>
                           <td class="text-right">{{ $u->alojamiento_plazas ?? '-' }}</td>
                           <td>{{ $u->fecha_vto ? \Illuminate\Support\Carbon::parse($u->fecha_vto)->format('Y-m-d') : '—' }}</td>

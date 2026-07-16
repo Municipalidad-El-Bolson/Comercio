@@ -31,7 +31,7 @@ class ReportesExcelController extends Controller
             echo '<Row ss:Height="26"><Cell ss:MergeAcross="12" ss:StyleID="Title"><Data ss:Type="String">Reporte de habilitaciones comerciales</Data></Cell></Row>';
             echo '<Row><Cell ss:MergeAcross="12" ss:StyleID="Text"><Data ss:Type="String">'.$this->xml($this->labelsText($labels)).'</Data></Cell></Row>';
             echo '<Row ss:StyleID="Header">';
-            foreach (['Nombre comercial', 'Titular completo', 'HC', 'Rubro completo y anexos', 'Trámite', 'Fecha asociada', 'Dirección', 'Teléfono/s', 'Unidades', 'Plazas', 'Situación', 'Suspensión desde', 'Suspensión hasta'] as $heading) {
+            foreach (['Nombre comercial', 'Titular completo', 'HC', 'Rubro principal', 'Trámite', 'Fecha asociada', 'Dirección', 'Teléfono/s', 'Unidades', 'Plazas', 'Situación', 'Suspensión desde', 'Suspensión hasta'] as $heading) {
                 echo $this->stringCell($heading);
             }
             echo '</Row>';

@@ -89,7 +89,7 @@ class ReportesPdfTest extends TestCase
         $this->assertSame('San Martín 123', $item['direccion']);
         $this->assertSame('01/07/2026', $item['suspension_desde']);
         $this->assertSame('31/07/2026', $item['suspension_hasta']);
-        $this->assertStringContainsString('Hostería', $item['rubros']);
+        $this->assertSame('Hostería', $item['rubros']);
     }
 
     public function test_alojamientos_sin_fecha_se_exportan_con_unidades_y_plazas(): void

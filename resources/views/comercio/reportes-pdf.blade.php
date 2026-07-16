@@ -37,7 +37,7 @@
         <th style="width:8%">Nombre comercial</th>
         <th style="width:10%">Titular</th>
         <th style="width:5%">HC</th>
-        <th style="width:18%">Rubro completo / anexos</th>
+        <th style="width:18%">Rubro principal</th>
         <th style="width:8%">Trámite</th>
         <th style="width:6%">Fecha</th>
         <th style="width:11%">Dirección</th>

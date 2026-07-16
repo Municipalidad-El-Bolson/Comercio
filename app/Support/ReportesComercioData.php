@@ -67,19 +67,13 @@ class ReportesComercioData
         $telefonos = $ubicacion->telefonos->pluck('telefono')->push($ubicacion->telefono)
             ->map(fn ($telefono) => trim((string) $telefono))->filter()->unique()->implode(' / ');
 
-        $rubros = $ubicacion->rubros;
-        if ($ubicacion->rubro && ! $rubros->contains('id', $ubicacion->rubro->id)) {
-            $rubros = $rubros->prepend($ubicacion->rubro);
-        }
+        $rubroPrincipal = $ubicacion->rubro ?: $ubicacion->rubros->first();
 
         return [
             'nombre_comercial' => $this->value($ubicacion->nombre_comercial),
             'titular' => $titular ?: '-',
             'hc' => $ubicacion->hc ?: $ubicacion->numero_habilitacion ?: '-',
-            'rubros' => $rubros->map(fn ($rubro) => collect([
-                $rubro->rubro_general, $rubro->mega_rubro, $rubro->rubro_madre, $rubro->subrubro,
-            ])->map(fn ($parte) => trim((string) $parte))->filter()->unique()->implode(' > '))
-                ->filter()->unique()->implode(' | ') ?: '-',
+            'rubros' => $this->value($rubroPrincipal?->subrubro),
             'tramite' => $this->tramiteLabel((string) $estadoBase, (string) $estadoLabel),
             'fecha_asociada' => $this->date($fechaAsociada),
             'fecha_asociada_raw' => $fechaAsociada ? Carbon::parse($fechaAsociada)->toDateString() : null,
