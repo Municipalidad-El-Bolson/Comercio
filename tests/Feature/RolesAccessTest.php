@@ -58,6 +58,7 @@ class RolesAccessTest extends TestCase
 
         Livewire::actingAs($inspector)->test(ComercioData::class, ['ubicacion' => $comercio])
             ->assertSee('Nueva acta')
+            ->assertSee(route('ubicaciones'), false)
             ->assertDontSee('Eliminar definitivamente este comercio');
     }
 

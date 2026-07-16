@@ -131,7 +131,7 @@
 
         <!-- Botonera -->
         <div class="btn-group">
-          <a wire:navigate href="{{ url()->previous() }}" class="btn btn-secondary btn-sm">
+          <a href="{{ route('ubicaciones') }}" class="btn btn-secondary btn-sm">
             <i class="fas fa-arrow-left mr-1"></i> Volver
           </a>
 
