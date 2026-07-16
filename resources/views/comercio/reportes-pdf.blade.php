@@ -42,8 +42,8 @@
       </tr>
       <tr>
         <td colspan="2"><span class="label">Teléfono/s</span>{{ $item['telefonos'] }}</td>
-        <td><span class="label">Unidades de alojamiento</span>{{ $item['unidades'] }}</td>
-        <td><span class="label">Plazas de alojamiento</span>{{ $item['plazas'] }}</td>
+        <td><span class="label">Unidades de alojamiento</span>{{ $item['unidades'] ?? '-' }}</td>
+        <td><span class="label">Plazas de alojamiento</span>{{ $item['plazas'] ?? '-' }}</td>
       </tr>
       <tr>
         <td colspan="2"><span class="label">Suspensión de tasas desde</span>{{ $item['suspension_desde'] }}</td>

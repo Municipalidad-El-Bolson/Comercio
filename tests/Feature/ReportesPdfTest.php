@@ -9,6 +9,7 @@ use App\Models\Rubro;
 use App\Models\Ubicacion;
 use App\Models\UbicacionEstadoHist;
 use App\Models\UbicacionTelefono;
+use App\Support\ReportesComercioData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -39,6 +40,8 @@ class ReportesPdfTest extends TestCase
             ->test(Reportes::class)
             ->set('proximosVtos', '')
             ->assertSet('proximosVtos', null)
+            ->assertSet('desde', null)
+            ->assertSet('hasta', null)
             ->assertOk();
     }
 
@@ -71,9 +74,7 @@ class ReportesPdfTest extends TestCase
             'fecha_alta' => '2026-06-20',
         ])]));
 
-        $controller = app(\App\Http\Controllers\Comercio\ReportesPdfController::class);
-        $method = new \ReflectionMethod($controller, 'formatItem');
-        $item = $method->invoke($controller, $ubicacion);
+        $item = app(ReportesComercioData::class)->formatItem($ubicacion);
 
         $this->assertSame('Pérez Ana María', $item['titular']);
         $this->assertSame('Cambio de Rubro', $item['tramite']);
@@ -82,5 +83,43 @@ class ReportesPdfTest extends TestCase
         $this->assertSame('01/07/2026', $item['suspension_desde']);
         $this->assertSame('31/07/2026', $item['suspension_hasta']);
         $this->assertStringContainsString('Hostería', $item['rubros']);
+    }
+
+    public function test_alojamientos_sin_fecha_se_exportan_con_unidades_y_plazas(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $rubro = (new Rubro())->forceFill([
+            'rubro_general' => 'ALOJAMIENTO DE ALQUILER TURISTICO',
+            'mega_rubro' => 'SERVICIOS',
+            'rubro_madre' => 'ALOJAMIENTO TURISTICO',
+            'subrubro' => 'CABANA',
+        ]);
+        $rubro->save();
+
+        $ubicacion = Ubicacion::create([
+            'persona_tipo' => 'fisica', 'apellido' => 'Lopez', 'nombres' => 'Maria',
+            'dni_cuit' => '12345678',
+            'rubro_id' => $rubro->id, 'estado' => '021', 'estado_base' => '021',
+            'alojamiento_unidades' => 6, 'alojamiento_plazas' => 18,
+        ]);
+        $ubicacion->rubros()->sync([$rubro->id]);
+
+        $items = app(ReportesComercioData::class)->items([
+            'rubro_general' => 'ALOJAMIENTO DE ALQUILER TURISTICO',
+        ]);
+
+        $this->assertCount(1, $items);
+        $this->assertNull($items->first()['fecha_asociada_raw']);
+        $this->assertSame(6, $items->first()['unidades']);
+        $this->assertSame(18, $items->first()['plazas']);
+
+        $response = $this->withoutMiddleware(SingleSession::class)->actingAs($user)
+            ->get(route('reportes.excel', ['rubroGeneral' => 'ALOJAMIENTO DE ALQUILER TURISTICO']));
+
+        $response->assertOk()->assertHeader('content-type', 'application/vnd.ms-excel; charset=UTF-8');
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('CABANA', $content);
+        $this->assertStringContainsString('ss:Type="Number">6', $content);
+        $this->assertStringContainsString('ss:Type="Number">18', $content);
     }
 }

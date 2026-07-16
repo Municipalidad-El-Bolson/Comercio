@@ -17,29 +17,16 @@
               <select class="form-control form-control-sm shadow-sm"
                       wire:model.live="rubroGeneral">
                   <option value="">-- Todos los rubros --</option>
-                  <option value="ALOJAMIENTO DE ALQUILER TURISTICO">Alojamiento de alquiler turistico</option>
-                  <option value="GASTRONOMIA">Gastronomía</option>
-                  <option value="CENTRO DE ESTETICA Y SPA">Centro de esterica y spa</option>
-                  <option value="LAVADEROS DE AUTOS">Lavaderos de autos</option>
-                  <option value="LUBRICENTROS">Lubricentros</option>
-                  <option value="TALLER DEL AUTOMOTOR">Taller del automotor</option>
-                  <option value="SALUD">Salud</option>
-                  <option value="GIMNASIOS">Gimnasios</option>
-                  <option value="ALQUILER DE CANCHAS">Alquiler de canchas</option>
-                  <option value="VENTA DE ARTESANIAS Y PRODUCTOS REGIONALES">Venta de artesanias y productos regionales</option>
-                  <option value="SALA DE ELABORACION">Sala de elaboracion</option>
-                  <option value="COCINA DOMICILIARIA">Cocina domiciliaria</option>
-                  <option value="SERVICIOS">Servicios</option>
-                  <option value="COMERCIO">Comercio</option>
-                  <option value="AGRO / PRODUCCION">Agro/Produccion</option>
-                  <option value="OTROS">Otros</option>
+                  @foreach($rubroGenerales as $general)
+                    <option value="{{ $general }}">{{ $general }}</option>
+                  @endforeach
               </select>
             </div>
 
             {{-- Rubro específico con TomSelect --}}
-            <div class="d-flex flex-column" style="min-width:250px;" wire:ignore>
+            <div class="d-flex flex-column" style="min-width:250px;">
               <label class="text-muted small mb-1">Rubro (específico)</label>
-              <select id="select-rubro-filtro" class="form-control form-control-sm shadow-sm">
+              <select id="select-rubro-filtro" class="form-control form-control-sm shadow-sm" wire:model.live="rubro_id">
                 <option value="">-- Todos --</option>
                 @foreach($rubroOpts as $op)
                   <option value="{{ $op['id'] }}">{{ $op['subrubro'] }}</option>
@@ -94,21 +81,30 @@
             </div>
 
           </div>
-        </br>
           <hr>
-          </br>
+          @php
+            $exportParams = [
+              'rubro_id' => $rubro_id,
+              'rubroGeneral' => $rubroGeneral,
+              'estado' => $estado,
+              'desde' => $desde,
+              'hasta' => $hasta,
+              'proximos_vtos' => $proximosVtos,
+              'solo_clausurados' => $solo_clausurados ? 1 : 0,
+            ];
+          @endphp
           <a class="btn btn-outline-danger btn-sm shadow-sm"
-             href="{{ route('reportes.pdf', [
-                'rubro_id' => $rubro_id,
-                'rubroGeneral' => $rubroGeneral,
-                'estado' => $estado,
-                'desde' => $desde,
-                'hasta' => $hasta,
-                'proximos_vtos' => $this->proximosVtos,
-                'solo_clausurados' => $solo_clausurados ? 1 : 0,
-             ]) }}">
+             href="{{ route('reportes.pdf', $exportParams) }}">
             <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
           </a>
+          <a class="btn btn-outline-success btn-sm shadow-sm ml-2"
+             href="{{ route('reportes.excel', $exportParams) }}">
+            <i class="fas fa-file-excel mr-1"></i> Descargar Excel
+          </a>
+          <button type="button" class="btn btn-outline-secondary btn-sm shadow-sm ml-2" wire:click="limpiarFiltros">
+            <i class="fas fa-eraser mr-1"></i> Limpiar filtros
+          </button>
+          <div class="text-muted small mt-2">Las fechas y próximos vencimientos sólo filtran cuando se seleccionan.</div>
 
         </div>
       </div>
@@ -139,6 +135,8 @@
                         <th>Estado</th>
                         <th>Rubro</th>
                         <th>Anexos</th>
+                        <th class="text-right">Unidades</th>
+                        <th class="text-right">Plazas</th>
                         <th>Vto</th>
                       </tr>
                     </thead>
@@ -160,6 +158,8 @@
                               —
                             @endforelse
                           </td>
+                          <td class="text-right">{{ $u->alojamiento_unidades ?? '-' }}</td>
+                          <td class="text-right">{{ $u->alojamiento_plazas ?? '-' }}</td>
                           <td>{{ $u->fecha_vto ? \Illuminate\Support\Carbon::parse($u->fecha_vto)->format('Y-m-d') : '—' }}</td>
                         </tr>
                       @endforeach
@@ -292,7 +292,7 @@
   </div>
 </section>
 
-@push('scripts')
+{{-- Integración TomSelect retirada: el select nativo mantiene estable el filtro en Livewire 3.
 <script>
   // TomSelect para el filtro de Rubro
   function initRubroFiltroOnce() {
@@ -328,7 +328,7 @@
     initRubroFiltroOnce();
   });
 </script>
-@endpush
+--}}
 @push('styles')
 <style>
 

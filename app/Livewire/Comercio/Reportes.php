@@ -4,6 +4,7 @@ namespace App\Livewire\Comercio;
 
 use App\Models\Rubro;
 use App\Models\Ubicacion;
+use App\Support\ReportesComercioData;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -20,17 +21,19 @@ class Reportes extends Component
     public ?string $estado = null;
     public ?string $desde = null;
     public ?string $hasta = null;
-    public ?int $proximosVtos = 30;
+    public ?int $proximosVtos = null;
 
     public array $rubroOpts = [];
+    public array $rubroGenerales = [];
 
     public function mount(): void
     {
         abort_unless(Gate::allows('access-admin'), 403);
 
         $this->rubroOpts = Rubro::orderBy('subrubro')->get(['id', 'subrubro'])->toArray();
-        $this->desde = Carbon::now()->startOfYear()->toDateString();
-        $this->hasta = Carbon::now()->toDateString();
+        $this->rubroGenerales = Rubro::query()->whereNotNull('rubro_general')
+            ->where('rubro_general', '!=', '')->distinct()->orderBy('rubro_general')
+            ->pluck('rubro_general')->values()->all();
     }
 
     public function updatedProximosVtos($value): void
@@ -42,11 +45,27 @@ class Reportes extends Component
 
     private function base()
     {
-        return Ubicacion::query()
-            ->when($this->rubro_id, fn ($q) => $q->where('rubro_id', $this->rubro_id))
-            ->when($this->estado, fn ($q) => $q->where('estado', $this->estado))
-            ->when($this->solo_clausurados, fn ($q) => $q->where('situacion', 'clausurado'))
-            ->when($this->rubroGeneral, fn ($q) => $q->whereHas('rubro', fn ($r) => $r->where('rubro_general', $this->rubroGeneral)));
+        return app(ReportesComercioData::class)->query($this->filters());
+    }
+
+    public function limpiarFiltros(): void
+    {
+        $this->reset(['solo_clausurados', 'rubro_id', 'rubroGeneral', 'estado', 'desde', 'hasta', 'proximosVtos']);
+        $this->resetPage();
+        $this->dispatch('autosave-clear');
+    }
+
+    private function filters(): array
+    {
+        return [
+            'rubro_id' => $this->rubro_id,
+            'rubro_general' => $this->rubroGeneral,
+            'estado' => $this->estado,
+            'desde' => $this->desde,
+            'hasta' => $this->hasta,
+            'proximos_vtos' => $this->proximosVtos,
+            'solo_clausurados' => $this->solo_clausurados,
+        ];
     }
 
     public function getListadoGeneralProperty()

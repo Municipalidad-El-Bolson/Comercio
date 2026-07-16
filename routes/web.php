@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Storage;
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Comercio\ReportesPdfController;
+use App\Http\Controllers\Comercio\ReportesExcelController;
 use App\Http\Controllers\Comercio\ComercioHistorialExportController;
 
 use App\Livewire\Comercio\Ubicaciones;
@@ -75,6 +76,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/historial', Historial::class)->name('historial');
         Route::get('/reportes', Reportes::class)->name('reportes');
         Route::get('/reportes/pdf', ReportesPdfController::class)->name('reportes.pdf');
+        Route::get('/reportes/excel', ReportesExcelController::class)->name('reportes.excel');
         Route::redirect('/register-user', '/usuarios')->name('register-user');
         Route::get('/usuarios', UsersIndex::class)->name('users.index');
     });
