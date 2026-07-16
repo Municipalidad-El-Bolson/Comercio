@@ -229,7 +229,7 @@
               <label class="text-muted small mb-1" for="contactoMensajeCustom">Speech / mensaje personalizado</label>
               <textarea id="contactoMensajeCustom" class="form-control form-control-sm" rows="2"
                         wire:model.live.debounce.300ms="contactoMensajeCustom"
-                        placeholder="Podés usar: {{ '{{titular}}' }}, {{ '{{hc}}' }}, {{ '{{comercio}}' }}, {{ '{{rubro}}' }}, {{ '{{vencimiento}}' }}"></textarea>
+                        placeholder="Podés usar: &#123;&#123;titular&#125;&#125;, &#123;&#123;hc&#125;&#125;, &#123;&#123;comercio&#125;&#125;, &#123;&#123;rubro&#125;&#125;, &#123;&#123;vencimiento&#125;&#125;"></textarea>
             </div>
           </div>
         @endif

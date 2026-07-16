@@ -525,6 +525,8 @@ class ComercioData extends Component
             'state.fecha_alta' => ['nullable','date'],
             'state.fecha_baja' => ['nullable','date'],
             'state.fecha_vto'  => ['nullable','date'],
+            'state.suspension_tasas_desde' => ['nullable','date'],
+            'state.suspension_tasas_hasta' => ['nullable','date','after_or_equal:state.suspension_tasas_desde'],
 
             'state.observaciones' => ['nullable','string','max:500'],
         ];
@@ -619,6 +621,8 @@ class ComercioData extends Component
         $this->state['fecha_alta'] = $toYmd($this->ubicacion->fecha_alta);
         $this->state['fecha_baja'] = $toYmd($this->ubicacion->fecha_baja);
         $this->state['fecha_vto']  = $toYmd($this->ubicacion->fecha_vto);
+        $this->state['suspension_tasas_desde'] = $toYmd($this->ubicacion->suspension_tasas_desde);
+        $this->state['suspension_tasas_hasta'] = $toYmd($this->ubicacion->suspension_tasas_hasta);
 
         // Rubro principal / anexos
         $principal = (int)($this->ubicacion->rubro_id ?? 0) ?: null;
@@ -763,6 +767,8 @@ class ComercioData extends Component
             'fecha_alta'            => 'nullable|date',
             'fecha_baja'            => 'nullable|date',
             'fecha_vto'             => 'nullable|date',
+            'suspension_tasas_desde' => 'nullable|date',
+            'suspension_tasas_hasta' => 'nullable|date|after_or_equal:suspension_tasas_desde',
             'documentos'            => 'array',
             'es_clausurado'         => 'boolean',
             'telefonos'             => 'array|min:1',
@@ -1189,6 +1195,8 @@ public function refrescarDatos($id = null): void
             'fecha_alta'         => null,
             'fecha_baja'         => null,
             'fecha_vto'          => null,
+            'suspension_tasas_desde' => null,
+            'suspension_tasas_hasta' => null,
             'rubro_id'           => null,
             'dni_cuit'           => '',
             'apellido'           => '',

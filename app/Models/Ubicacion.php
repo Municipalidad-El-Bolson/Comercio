@@ -53,6 +53,8 @@ class Ubicacion extends Model
 
         'alojamiento_unidades',
         'alojamiento_plazas',
+        'suspension_tasas_desde',
+        'suspension_tasas_hasta',
 
         'numero_disposicion',
         'numero_habilitacion',
@@ -75,6 +77,8 @@ class Ubicacion extends Model
 
         'alojamiento_unidades' => 'integer',
         'alojamiento_plazas'   => 'integer',
+        'suspension_tasas_desde' => 'date',
+        'suspension_tasas_hasta' => 'date',
 
         'camping_fogones'         => 'integer',
         'camping_dormis'          => 'integer',

@@ -358,6 +358,21 @@
           </div>
         </div>
 
+        <div class="form-row">
+          <div class="form-group col-md-6 mb-2">
+            <label class="mb-1" for="suspension_tasas_desde">Suspensión de tasas desde</label>
+            <input type="date" id="suspension_tasas_desde" wire:model.defer="state.suspension_tasas_desde"
+                   class="form-control form-control-sm @error('state.suspension_tasas_desde') is-invalid @enderror">
+            @error('state.suspension_tasas_desde') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          </div>
+          <div class="form-group col-md-6 mb-2">
+            <label class="mb-1" for="suspension_tasas_hasta">Suspensión de tasas hasta</label>
+            <input type="date" id="suspension_tasas_hasta" wire:model.defer="state.suspension_tasas_hasta"
+                   class="form-control form-control-sm @error('state.suspension_tasas_hasta') is-invalid @enderror">
+            @error('state.suspension_tasas_hasta') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          </div>
+        </div>
+
         {{-- Fechas por estado base --}}
         <div class="form-row">
           @if($base === '021')

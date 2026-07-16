@@ -349,6 +349,8 @@ class Ubicaciones extends AdminComponent
             'fecha_alta'           => null,
             'fecha_baja'           => null,
             'fecha_vto'            => null,
+            'suspension_tasas_desde' => null,
+            'suspension_tasas_hasta' => null,
             'rubro_id'             => null,
             'dni_cuit'             => '',
             'apellido'             => '',
@@ -498,6 +500,8 @@ class Ubicaciones extends AdminComponent
             'fecha_alta'           => $fmt($this->ubicacion->fecha_alta),
             'fecha_baja'           => $fmt($this->ubicacion->fecha_baja),
             'fecha_vto'            => $fmt($this->ubicacion->fecha_vto),
+            'suspension_tasas_desde' => $fmt($this->ubicacion->suspension_tasas_desde),
+            'suspension_tasas_hasta' => $fmt($this->ubicacion->suspension_tasas_hasta),
 
             // helpers de número único
             'numero_disposicion'   => (string) optional($this->ubicacion->disposiciones->sortByDesc(fn($d)=>$fmt($d->fecha) ?: $d->created_at)->first())->numero ?: '',
@@ -611,6 +615,8 @@ class Ubicaciones extends AdminComponent
             'state.fecha_alta' => ['nullable','date'],
             'state.fecha_baja' => ['nullable','date'],
             'state.fecha_vto'  => ['nullable','date'],
+            'state.suspension_tasas_desde' => ['nullable','date'],
+            'state.suspension_tasas_hasta' => ['nullable','date','after_or_equal:state.suspension_tasas_desde'],
 
             // 👉 CUIL/DNI OPCIONAL
             'state.dni_cuit'  => ['nullable','string','max:20'],
