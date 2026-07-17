@@ -353,10 +353,6 @@ class ComercioData extends Component
 
     public function abrirComunicacion(): void
     {
-        if (!$this->contactoWhatsappUrl) {
-            return;
-        }
-
         $this->comunicacionAbierta = true;
         $this->dispatch('comunicacion-abierta');
     }
