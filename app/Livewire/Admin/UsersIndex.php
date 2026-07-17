@@ -18,8 +18,10 @@ class UsersIndex extends Component
 {
     use WithPagination, AuthorizesRequests;
 
+    protected $paginationTheme = 'bootstrap';
+
     public string $search = '';
-    public int $perPage = 10;
+    public int $perPage = 15;
     public string $sortField = 'name';
     public string $sortDir = 'asc';
 

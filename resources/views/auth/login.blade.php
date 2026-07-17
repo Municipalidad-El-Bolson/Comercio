@@ -1,88 +1,21 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <title>Login</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  {{-- Bootstrap 5 --}}
+  <meta charset="utf-8"><title>Comercio Municipal · Ingresar</title><meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <style>
-    body { background:#f6f7fb; }
-    .login-card { max-width: 380px; }
+    :root{--navy:#112b46;--blue:#286da8;--teal:#268b8b}*{box-sizing:border-box}body{min-height:100vh;margin:0;background:radial-gradient(circle at 15% 15%,rgba(57,151,166,.22),transparent 32%),radial-gradient(circle at 88% 82%,rgba(40,109,168,.2),transparent 33%),linear-gradient(135deg,#071827,#153c5e);font-family:Inter,system-ui,-apple-system,sans-serif}.login-shell{width:min(940px,calc(100% - 2rem));overflow:hidden;border:1px solid rgba(255,255,255,.16);border-radius:24px;background:#fff;box-shadow:0 32px 85px rgba(0,0,0,.34)}.login-brand{position:relative;min-height:530px;padding:3rem;color:#fff;background:linear-gradient(145deg,rgba(17,43,70,.96),rgba(36,95,145,.92)),url('{{ asset('images/MEB.webp') }}') center/cover}.login-brand:after{content:"";position:absolute;inset:auto -80px -100px auto;width:260px;height:260px;border:45px solid rgba(255,255,255,.07);border-radius:50%}.brand-logo{display:inline-flex;padding:.7rem 1rem;border-radius:16px;background:#fff;box-shadow:0 12px 28px rgba(0,0,0,.2)}.brand-logo img{width:155px;max-height:60px;object-fit:contain}.login-brand h1{margin-top:4.5rem;font-size:2.25rem;font-weight:850;letter-spacing:-.04em}.login-brand p{max-width:360px;color:rgba(255,255,255,.74)}.login-form{padding:3rem}.login-form h2{color:var(--navy);font-weight:850;letter-spacing:-.03em}.login-form .form-label{color:#5e7286;font-size:.78rem;font-weight:750}.input-icon{position:relative}.input-icon i{position:absolute;left:14px;top:50%;z-index:2;color:#7990a3;transform:translateY(-50%)}.input-icon .form-control{height:48px;padding-left:42px;border:1px solid #cad8e4;border-radius:11px;background:#f9fcfe}.input-icon .form-control:focus{border-color:#70a7d1;box-shadow:0 0 0 4px rgba(40,109,168,.11)}.login-button{height:48px;border:0;border-radius:11px;background:linear-gradient(135deg,var(--blue),var(--teal));font-weight:800;box-shadow:0 10px 22px rgba(40,109,168,.25)}@media(max-width:767.98px){.login-brand{min-height:auto;padding:1.5rem}.login-brand h1,.login-brand p{display:none}.login-form{padding:2rem 1.35rem}}
   </style>
 </head>
-<body class="d-flex align-items-center justify-content-center min-vh-100">
-
-  <main class="container">
-    <div class="row justify-content-center">
-      <div class="col-12 d-flex justify-content-center">
-
-        <div class="card login-card shadow-sm border-0 w-100">
-          <div class="card-body p-4">
-
-            <div class="text-center mb-3">
-              <h1 class="h4 mb-0">Ingresar</h1>
-            </div>
-
-            {{-- Estado / Errores --}}
-            @if (session('status'))
-              <div class="alert alert-success py-2 mb-3">
-                {{ session('status') }}
-              </div>
-            @endif
-
-            @if ($errors->any())
-              <div class="alert alert-danger py-2 mb-3">
-                {{ $errors->first() }}
-              </div>
-            @endif
-
-            <form method="POST" action="{{ route('login.post') }}" autocomplete="off" novalidate class="row g-3">
-              @csrf
-
-              <div class="col-12">
-                <label for="email" class="form-label fw-medium">Email</label>
-                <input id="email" type="email" name="email"
-                       value="{{ old('email') }}"
-                       class="form-control form-control-sm @error('email') is-invalid @enderror"
-                       placeholder="correo@ejemplo.com" required autofocus>
-                @error('email')
-                  <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-              </div>
-
-              <div class="col-12">
-                <label for="password" class="form-label fw-medium">Contraseña</label>
-                <input id="password" type="password" name="password"
-                       class="form-control form-control-sm @error('password') is-invalid @enderror"
-                       placeholder="••••••••" required>
-                @error('password')
-                  <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-              </div>
-
-              <div class="col-12 d-flex justify-content-between align-items-center">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" value="1" id="remember" name="remember"
-                         {{ old('remember') ? 'checked' : '' }}>
-                  <label class="form-check-label" for="remember">Recordarme</label>
-                </div>
-              </div>
-
-              <div class="col-12">
-                <button type="submit" class="btn btn-primary w-100">
-                  Entrar
-                </button>
-              </div>
-            </form>
-
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </main>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<body class="d-flex align-items-center justify-content-center py-4">
+  <main class="login-shell"><div class="row g-0"><div class="col-md-6 login-brand"><div class="brand-logo"><img src="{{ asset('images/MEB.webp') }}" alt="Municipalidad de El Bolsón"></div><h1>Gestión de Comercio</h1><p>Accedé al sistema municipal para consultar, administrar y dar seguimiento a los comercios de El Bolsón.</p></div><div class="col-md-6 d-flex align-items-center"><div class="login-form w-100"><div class="mb-4"><div class="text-uppercase small text-primary fw-bold mb-2">Acceso seguro</div><h2 class="mb-2">Bienvenido</h2><p class="text-muted mb-0">Ingresá tus datos para continuar.</p></div>
+  @if(session('status'))<div class="alert alert-success py-2">{{ session('status') }}</div>@endif
+  @if($errors->any())<div class="alert alert-danger py-2"><i class="fas fa-circle-exclamation me-2"></i>{{ $errors->first() }}</div>@endif
+  <form method="POST" action="{{ route('login.post') }}" autocomplete="off" novalidate>@csrf
+    <div class="mb-3"><label for="email" class="form-label">CORREO ELECTRÓNICO</label><div class="input-icon"><i class="fas fa-envelope"></i><input id="email" type="email" name="email" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror" placeholder="correo@municipio.gob.ar" required autofocus></div></div>
+    <div class="mb-3"><label for="password" class="form-label">CONTRASEÑA</label><div class="input-icon"><i class="fas fa-lock"></i><input id="password" type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="Ingresá tu contraseña" required></div></div>
+    <div class="form-check mb-4"><input class="form-check-input" type="checkbox" value="1" id="remember" name="remember" {{ old('remember') ? 'checked' : '' }}><label class="form-check-label text-muted" for="remember">Mantener sesión iniciada</label></div>
+    <button type="submit" class="btn btn-primary login-button w-100"><i class="fas fa-arrow-right-to-bracket me-2"></i>Ingresar al sistema</button>
+  </form></div></div></div></main>
+</body></html>

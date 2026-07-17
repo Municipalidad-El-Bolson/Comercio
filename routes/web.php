@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Comercio\ReportesPdfController;
 use App\Http\Controllers\Comercio\ReportesExcelController;
 use App\Http\Controllers\Comercio\ComercioHistorialExportController;
+use App\Http\Controllers\Comercio\AuditoriaExcelController;
 
 use App\Livewire\Comercio\Ubicaciones;
 use App\Livewire\Comercio\ComercioMapa;
@@ -34,8 +35,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/panel', function () {
         $u = auth()->user();
         return match ($u->role) {
-            'admin'            => redirect()->route('users.index'),
-            'writer', 'reader' => redirect()->route('mapas'),
+            'admin', 'writer', 'reader' => redirect()->route('mapas'),
             'mesa'             => redirect()->route('mesa.form'),
             default            => redirect()->route('login'),
         };
@@ -74,6 +74,7 @@ Route::middleware('auth')->group(function () {
     /** Solo Admin */
     Route::middleware('role:admin')->group(function () {
         Route::get('/historial', Historial::class)->name('historial');
+        Route::get('/historial/excel', AuditoriaExcelController::class)->name('historial.excel');
         Route::get('/reportes', Reportes::class)->name('reportes');
         Route::get('/reportes/pdf', ReportesPdfController::class)->name('reportes.pdf');
         Route::get('/reportes/excel', ReportesExcelController::class)->name('reportes.excel');

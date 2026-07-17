@@ -25,6 +25,8 @@ class Ubicaciones extends AdminComponent
     use WithPagination;
     use HandlesEstados;
 
+    protected $paginationTheme = 'bootstrap';
+
     public $searchTerm = '';
     public $rubroGeneral = '';
     public $state = ['tipo_hab' => 'prev', 'documentos' => []];

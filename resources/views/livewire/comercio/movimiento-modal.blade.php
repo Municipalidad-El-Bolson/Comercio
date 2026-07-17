@@ -1,3 +1,4 @@
+<div class="acta-editor-component">
 <div wire:ignore.self class="modal fade acta-editor-modal" id="modalMovimientos" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content"><!-- ← modal-content DEBE ser un div -->
@@ -222,3 +223,4 @@ window.addEventListener('mostrar-modal-movimientos', () => {
   .acta-editor-modal .btn { border-radius:8px; font-weight:700; }
   @media (max-width:767.98px) { .acta-editor-modal .modal-dialog { margin:.5rem; } .acta-editor-modal .modal-body { padding:1rem !important; } }
 </style>
+</div>

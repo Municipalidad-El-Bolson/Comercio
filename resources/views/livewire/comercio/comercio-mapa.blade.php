@@ -23,11 +23,11 @@
           <div class="card-header d-flex align-items-center justify-content-between py-2">
             <strong class="mb-0"><i class="fas fa-sliders-h mr-2"></i>Filtros del mapa</strong>
             <button id="btnToggleFilters" type="button" class="btn btn-sm btn-outline-secondary">
-              <i id="icoToggleFilters" class="fas fa-chevron-up"></i>
+              <i id="icoToggleFilters" class="fas fa-chevron-down"></i>
             </button>
           </div>
 
-          <div class="card-body py-2" id="filtros-body">
+          <div class="card-body py-2" id="filtros-body" style="display:none;opacity:0">
             <div class="mb-2">
               <div class="form-row">
                 <div class="form-group col-md-3 mb-2">
@@ -226,6 +226,11 @@
       @this.set('selectedRubroId', this.value || null);
     });
 
+    setTimeout(() => {
+      document.getElementById('map')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      try { map.resize(); } catch {}
+    }, 350);
+
 
   });
 
@@ -242,7 +247,7 @@
     if(!body||!btn||!ico) return;
     if(btn._bound) return; btn._bound = true;
 
-    let collapsed = true; try{ if(localStorage.getItem(KEY)==='0') collapsed=false }catch{}
+    let collapsed = true;
     const apply = (v)=>{
       body.style.display = v ? 'none' : '';
       ico.classList.toggle('fa-chevron-up', !v);

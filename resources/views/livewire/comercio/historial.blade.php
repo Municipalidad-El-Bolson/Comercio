@@ -1,8 +1,9 @@
 <section class="content modern-admin-page">
   <div class="content-header">
     <div class="container-fluid">
-      <div class="text-center mb-3">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
           <h1 class="m-0">Auditoría</h1>
+          <a class="btn btn-light" href="{{ route('historial.excel', compact('userName','objeto','accion','desde','hasta')) }}"><i class="fas fa-file-excel mr-1 text-success"></i>Exportar Excel</a>
       </div>
     </div>
   </div>

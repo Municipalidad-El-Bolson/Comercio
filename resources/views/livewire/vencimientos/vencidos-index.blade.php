@@ -32,16 +32,16 @@
                 </div>
             </div>
 
-            <div class="mt-2 mt-md-0 text-md-end d-flex gap-2">
+            <div class="mt-2 mt-md-0 admin-action-buttons">
 
                 <a href="{{ route('comercio.data', $it['id']) }}" 
-                  class="btn btn-sm btn-outline-primary">
-                  Ver comercio
+                  class="btn btn-sm btn-soft-primary">
+                  <i class="fas fa-store mr-1"></i>Ver comercio
                 </a>
 
-                <button class="btn btn-sm btn-outline-danger"
+                <button class="btn btn-sm btn-soft-danger"
                         wire:click="deleteItem({{ $it['id'] }})">
-                    Borrar
+                    <i class="fas fa-trash-alt mr-1"></i>Borrar
                 </button>
 
             </div>

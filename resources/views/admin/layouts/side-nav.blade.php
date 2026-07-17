@@ -121,7 +121,8 @@
 <style>
     .modern-sidebar { background: linear-gradient(180deg, #112b46 0%, #0b1f34 58%, #071827 100%) !important; }
     .modern-sidebar .brand-link { display:flex; flex-direction:column; align-items:center; gap:.45rem; padding:1.05rem .8rem .9rem; border-bottom:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.025); }
-    .modern-sidebar .brand-emblem { display:flex; align-items:center; justify-content:center; width:176px; min-height:58px; padding:.35rem .65rem; border-radius:14px; background:rgba(255,255,255,.96); box-shadow:0 10px 24px rgba(0,0,0,.18); }
+    .modern-sidebar .brand-emblem { position:relative; display:flex; align-items:center; justify-content:center; width:184px; min-height:64px; padding:.45rem .75rem; border:1px solid rgba(255,255,255,.72); border-radius:18px; background:linear-gradient(145deg,#fff,#edf5f9); box-shadow:0 14px 30px rgba(0,0,0,.24); }
+    .modern-sidebar .brand-emblem::after { content:""; position:absolute; inset:auto 18px -5px; height:4px; border-radius:4px; background:linear-gradient(90deg,#286da8,#25a28e); }
     .modern-sidebar .brand-emblem img { width:145px; max-height:54px; object-fit:contain; }
     .modern-sidebar .brand-caption { color:#c9d9e8; font-size:.71rem; font-weight:700; letter-spacing:.11em; text-transform:uppercase; }
     .modern-sidebar .sidebar { min-height:calc(100vh - 111px); padding:.65rem .55rem 1rem; }
