@@ -1,5 +1,5 @@
 
-<div class="container-fluid pt-4">
+<div class="container-fluid pt-4 modern-admin-page">
   <div class="row justify-content-center">
     <div class="col-12 col-lg-10">
 
@@ -130,4 +130,3 @@
 
 </style>
 @endpush
-

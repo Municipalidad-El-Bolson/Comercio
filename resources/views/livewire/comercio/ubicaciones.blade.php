@@ -1,4 +1,4 @@
-<div class="container-fluid px-1 px-md-3">
+<div class="container-fluid px-1 px-md-3 modern-admin-page">
     <x-confirmation-alert />
     <x-loading-indicator />
     @can('manage-ubicaciones')

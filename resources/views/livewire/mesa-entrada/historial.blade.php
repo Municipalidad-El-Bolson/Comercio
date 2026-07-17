@@ -1,4 +1,4 @@
-<div class="container-fluid pt-4">
+<div class="container-fluid pt-4 modern-admin-page">
   <div class="mb-3">
     <a href="{{ auth()->user()?->role === 'mesa' ? route('mesa.form') : route('mesa.inbox') }}" class="btn btn-outline-primary">
       ← {{ auth()->user()?->role === 'mesa' ? 'Volver a cargar documentación' : 'Volver a Mesa de entrada' }}

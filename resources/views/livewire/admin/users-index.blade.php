@@ -1,5 +1,5 @@
-<div class="container-fluid py-4">
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+<div class="container-fluid py-4 modern-admin-page">
+  <div class="content-header d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
     <div><h1 class="h2 mb-1">Usuarios</h1><p class="text-muted mb-0">Administrá accesos y permisos del sistema.</p></div>
     <button type="button" class="btn btn-primary" wire:click="create"><i class="fas fa-user-plus me-1"></i> Nuevo usuario</button>
   </div>

@@ -1,4 +1,4 @@
-<div class="container-fluid px-3">
+<div class="container-fluid px-3 modern-admin-page">
   <div class="content-header px-0">
     <h1 class="mb-3">Seguimiento de actas</h1>
     <input type="search" class="form-control" style="max-width:420px"

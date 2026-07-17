@@ -1,0 +1,99 @@
+.modern-admin-page {
+    --ui-navy: #17385f;
+    --ui-blue: #286da8;
+    --ui-green: #17845f;
+    --ui-ink: #20344b;
+    --ui-muted: #6f7f91;
+    --ui-line: #dce6ef;
+    max-width: 1480px;
+    margin: 0 auto;
+    padding-top: 1rem !important;
+    padding-bottom: 1.5rem;
+    color: var(--ui-ink);
+}
+.modern-admin-page .content-header {
+    margin-bottom: 1rem !important;
+    padding: 1.2rem 1.35rem !important;
+    border: 0 !important;
+    border-radius: 1rem;
+    background: linear-gradient(125deg, #17385f 0%, #245f91 66%, #268b8b 125%) !important;
+    color: #fff;
+    box-shadow: 0 14px 32px rgba(23, 56, 95, .16);
+}
+.modern-admin-page .content-header h1,
+.modern-admin-page > .d-flex:first-child h1,
+.modern-admin-page > div:first-child h1 {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    color: inherit;
+    font-size: clamp(1.55rem, 3vw, 2rem) !important;
+    font-weight: 800;
+    letter-spacing: -.035em;
+}
+.modern-admin-page .content-header .text-muted,
+.modern-admin-page .content-header small { color: rgba(255,255,255,.74) !important; }
+.modern-admin-page .content-header .btn { border-color: rgba(255,255,255,.55); background: #fff; color: var(--ui-navy); font-weight: 700; }
+.modern-admin-page > .d-flex:first-child,
+.modern-admin-page > div:first-child:not(.row):not(.content-header) {
+    margin-bottom: 1rem;
+}
+.modern-admin-page .card {
+    overflow: hidden;
+    border: 1px solid var(--ui-line) !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 6px 20px rgba(30,58,86,.07) !important;
+}
+.modern-admin-page .card-header,
+.modern-admin-page .card-footer {
+    border-color: var(--ui-line) !important;
+    background: linear-gradient(135deg,#fbfdff,#eef5fa) !important;
+}
+.modern-admin-page .card-header { min-height: 52px; padding: .8rem 1rem; color: var(--ui-navy); font-weight: 700; }
+.modern-admin-page .form-label,
+.modern-admin-page label.text-muted.small {
+    color: #60758a !important;
+    font-size: .7rem !important;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.modern-admin-page .form-control,
+.modern-admin-page .form-select,
+.modern-admin-page .input-group-text {
+    min-height: 38px;
+    border-color: #cad8e4;
+    border-radius: .55rem;
+    background: #fbfdff;
+}
+.modern-admin-page .input-group .input-group-text { border-radius: .55rem 0 0 .55rem; }
+.modern-admin-page .input-group .form-control { border-radius: 0 .55rem .55rem 0; }
+.modern-admin-page .form-control:focus,
+.modern-admin-page .form-select:focus { border-color: #70a7d1; box-shadow: 0 0 0 3px rgba(40,109,168,.1); }
+.modern-admin-page .btn { border-radius: .58rem; font-weight: 700; }
+.modern-admin-page .btn-primary { border-color: var(--ui-blue); background: var(--ui-blue); }
+.modern-admin-page .table { margin-bottom: 0; }
+.modern-admin-page .table thead th {
+    padding: .75rem;
+    border-top: 0;
+    border-bottom: 1px solid var(--ui-line);
+    background: #edf4f9 !important;
+    color: #526a80;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.modern-admin-page .table tbody td { padding: .72rem; border-color: #edf1f5; color: #31485f; vertical-align: middle; }
+.modern-admin-page .table tbody tr:hover,
+.modern-admin-page .list-group-item:hover { background: #f1f7fb !important; }
+.modern-admin-page .list-group-item { padding: 1rem 1.1rem; border-color: #e6edf3; border-left: 4px solid transparent; }
+.modern-admin-page .list-group-item:hover { border-left-color: var(--ui-blue); }
+.modern-admin-page .badge { padding: .45em .68em; border-radius: 999px; font-weight: 700; }
+@media (max-width: 767.98px) {
+    .modern-admin-page { padding: .65rem .5rem 1rem !important; }
+    .modern-admin-page .content-header { padding: 1rem !important; }
+    .modern-admin-page .content-header > .d-flex { align-items: flex-start !important; flex-direction: column; gap: .75rem; }
+    .modern-admin-page .content-header .btn { width: 100%; }
+    .modern-admin-page .card { border-radius: .8rem !important; }
+}

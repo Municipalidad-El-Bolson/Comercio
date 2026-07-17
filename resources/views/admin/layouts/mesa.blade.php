@@ -38,6 +38,7 @@
     {{-- Contenido principal --}}
     @livewireScripts
     <link rel="stylesheet" href="{{ asset('css/livewire-autosave.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/modern-admin.css') }}">
     <script src="{{ asset('js/livewire-autosave.js') }}"></script>
 </body>
 </html>
