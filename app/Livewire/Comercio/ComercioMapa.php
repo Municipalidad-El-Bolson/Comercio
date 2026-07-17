@@ -43,7 +43,11 @@ class ComercioMapa extends AdminComponent
 
     public bool $solo_clausurados = false;
 
-    public array $ubicaciones = [];
+    /**
+     * Datos efímeros para dibujar el mapa. No deben formar parte del snapshot
+     * público de Livewire porque duplican miles de puntos en cada respuesta.
+     */
+    protected array $ubicaciones = [];
     public $state = ['tipo_hab' => 'prev', 'documentos' => [], 'baja_temporaria' => false];
     public $showEditModal = false;
     public string $formKey = '';
@@ -408,12 +412,16 @@ class ComercioMapa extends AdminComponent
 
         $this->nomenOpts = $this->leerNomenclaturas();
 
-        $this->emitUbicaciones();
+        // En la primera carga los puntos ya viajan en la vista. No se despacha
+        // además el mismo arreglo como evento porque duplicaría el payload.
+        $this->ubicaciones = $this->queryUbicaciones()->toArray();
 
         $this->anexoOpts = $this->rubroOpts;
         $this->docDefaults = array_fill_keys(array_merge($this->docKeysGeneral, $this->docKeysJuridica), false);
         $this->state['documentos'] = $this->state['documentos'] ?? [];
-        $this->formKey = (string) \Illuminate\Support\Str::uuid();
+        // El formulario completo se monta bajo demanda al crear desde el mapa.
+        // Evita incorporarlo (y duplicar sus catálogos) en la carga inicial.
+        $this->formKey = '';
     }
 
     private function leerNomenclaturas(): array

@@ -1,5 +1,7 @@
 <div id="comercio-mapa-root"><!-- ÚNICO ROOT -->
-@include('livewire.comercio.form')
+@if($formKey !== '')
+  @include('livewire.comercio.form')
+@endif
   <section class="content">
     <div class="content-header">
       <div class="container-fluid">
