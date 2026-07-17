@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 
 class AutosaveAssetsTest extends TestCase
 {
-    public function test_layouts_cargan_autoguardado_y_excluye_passwords_y_archivos(): void
+    public function test_autoguardado_ofrece_el_borrador_sin_restaurarlo_automaticamente(): void
     {
         $app = file_get_contents(__DIR__.'/../../resources/views/admin/layouts/app.blade.php');
         $mesa = file_get_contents(__DIR__.'/../../resources/views/admin/layouts/mesa.blade.php');
@@ -19,6 +19,8 @@ class AutosaveAssetsTest extends TestCase
         $this->assertStringContainsString('localStorage.setItem', $script);
         $this->assertStringContainsString('allowedModels.has(model)', $script);
         $this->assertStringContainsString("key.startsWith('comercio:draft:v1:')", $script);
-        $this->assertStringContainsString('Se recuperó un borrador', $script);
+        $this->assertStringContainsString('roots().forEach(offerRestore)', $script);
+        $this->assertStringContainsString('Recuperar borrador', $script);
+        $this->assertStringNotContainsString('roots().forEach(restore)', $script);
     }
 }
