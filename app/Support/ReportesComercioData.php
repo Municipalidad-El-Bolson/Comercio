@@ -38,6 +38,7 @@ class ReportesComercioData
                     : $query->where('estado', $estado);
             })
             ->when($filters['solo_clausurados'] ?? false, fn ($query) => $query->where('situacion', 'clausurado'))
+            ->when($filters['solo_baja_temporaria'] ?? false, fn ($query) => $query->where('baja_temporaria', true))
             ->when($filters['desde'] ?? null, fn ($query, $desde) => $this->whereFechaAsociada($query, '>=', $desde))
             ->when($filters['hasta'] ?? null, fn ($query, $hasta) => $this->whereFechaAsociada($query, '<=', $hasta))
             ->when($filters['proximos_vtos'] ?? null, fn ($query, $dias) => $query->whereBetween('fecha_vto', [
@@ -85,7 +86,10 @@ class ReportesComercioData
             'telefonos' => $telefonos ?: '-',
             'unidades' => $ubicacion->alojamiento_unidades,
             'plazas' => $ubicacion->alojamiento_plazas,
-            'situacion' => Str::headline((string) ($ubicacion->situacion ?: 'sin informar')),
+            'situacion' => collect([
+                Str::headline((string) ($ubicacion->situacion ?: 'sin informar')),
+                $ubicacion->baja_temporaria ? 'Baja temporaria' : null,
+            ])->filter()->implode(' / '),
             'suspension_desde' => $this->date($ubicacion->suspension_tasas_desde),
             'suspension_hasta' => $this->date($ubicacion->suspension_tasas_hasta),
             'suspension_desde_raw' => $ubicacion->suspension_tasas_desde?->toDateString(),
@@ -112,6 +116,7 @@ class ReportesComercioData
                 ? $filters['proximos_vtos'].' días'
                 : 'Sin filtro',
             'Sólo clausurados' => ($filters['solo_clausurados'] ?? false) ? 'Sí' : 'No',
+            'Sólo baja temporaria' => ($filters['solo_baja_temporaria'] ?? false) ? 'Sí' : 'No',
         ];
     }
 

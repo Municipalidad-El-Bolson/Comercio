@@ -35,6 +35,7 @@ class ReportesPdfController extends Controller
             'proximos_vtos' => $request->filled('proximos_vtos')
                 ? max(1, min((int) $request->integer('proximos_vtos'), 365)) : null,
             'solo_clausurados' => $request->boolean('solo_clausurados'),
+            'solo_baja_temporaria' => $request->boolean('solo_baja_temporaria'),
         ];
     }
 }

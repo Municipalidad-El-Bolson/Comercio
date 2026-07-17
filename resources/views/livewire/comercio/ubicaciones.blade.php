@@ -167,7 +167,7 @@
 
                                 <tr onclick="window.location='{{ route('comercio.data', $ubicacion) }}'"
                                     style="cursor:pointer;"
-                                    @if($ubicacion->situacion === 'clausurado') class="table-secondary text-muted" @endif
+                                    @if($ubicacion->situacion === 'clausurado' || $ubicacion->baja_temporaria) class="table-secondary text-muted" @endif
                                 >
                                     {{-- Comercio --}}
                                     <td>
@@ -180,6 +180,9 @@
                                                     {{ $ubicacion->nombre_comercial ?? '-' }}
                                                     @if($ubicacion->situacion === 'clausurado')
                                                         <span class="badge badge-danger ml-2">Clausurado</span>
+                                                    @endif
+                                                    @if($ubicacion->baja_temporaria)
+                                                        <span class="badge badge-secondary ml-2">Baja temporaria</span>
                                                     @endif
                                                 </div>
                                                 <div class="small text-muted text-truncate">
@@ -374,4 +377,3 @@
 
 </style>
 @endpush
-

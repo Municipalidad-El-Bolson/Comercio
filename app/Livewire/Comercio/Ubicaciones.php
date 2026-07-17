@@ -373,6 +373,7 @@ class Ubicaciones extends AdminComponent
             'cambio_tipo'          => '',
             'documentos'           => $this->docDefaults,
             'es_clausurado'        => false,
+            'baja_temporaria'      => false,
 
             'alojamiento_unidades' => null,
             'alojamiento_plazas'   => null,
@@ -508,6 +509,7 @@ class Ubicaciones extends AdminComponent
             'numero_habilitacion'  => (string) optional($this->ubicacion->habilitaciones->sortByDesc(fn($h)=>$fmt($h->fecha) ?: $h->created_at)->first())->numero ?: '',
 
             'es_clausurado'        => ($this->ubicacion->situacion === 'clausurado'),
+            'baja_temporaria'      => (bool) $this->ubicacion->baja_temporaria,
 
             'alojamiento_unidades' => $this->ubicacion->alojamiento_unidades,
             'alojamiento_plazas'   => $this->ubicacion->alojamiento_plazas,
@@ -623,6 +625,7 @@ class Ubicaciones extends AdminComponent
 
             // opcionales comunes (no rompen si no existen en el state)
             'state.observaciones' => ['nullable','string','max:500'],
+            'state.baja_temporaria' => ['boolean'],
         ];
     }
     private function mensajes(): array
@@ -989,6 +992,7 @@ class Ubicaciones extends AdminComponent
             'state.fecha_baja' => ['nullable','date'],
             'state.fecha_vto'  => ['nullable','date'],
             'state.observaciones' => ['nullable','string','max:500'],
+            'state.baja_temporaria' => ['boolean'],
 
             // Alojamiento
             'state.alojamiento_unidades' => ['nullable', 'integer', 'min:0'],

@@ -44,7 +44,7 @@ class ComercioMapa extends AdminComponent
     public bool $solo_clausurados = false;
 
     public array $ubicaciones = [];
-    public $state = ['tipo_hab' => 'prev', 'documentos' => []];
+    public $state = ['tipo_hab' => 'prev', 'documentos' => [], 'baja_temporaria' => false];
     public $showEditModal = false;
     public string $formKey = '';
 
@@ -198,6 +198,7 @@ class ComercioMapa extends AdminComponent
             'telefono'           => '',
             'monto_pagar'        => null,
             'observaciones'      => '',
+            'baja_temporaria'    => false,
             'cambio_tipo'        => '',
             'telefonos'          => [''],
             'rubros_anexos'      => [],
@@ -364,6 +365,7 @@ class ComercioMapa extends AdminComponent
             'telefono'           => '',
             'monto_pagar'        => null,
             'observaciones'      => '',
+            'baja_temporaria'    => false,
             'telefonos'          => [''],
             'rubros_anexos'      => [],
             'disposiciones'      => [['numero'=>'','fecha'=>null]],
@@ -584,6 +586,7 @@ class ComercioMapa extends AdminComponent
             'numero_habilitacion'  => '',
             'monto_pagar'          => null,
             'observaciones'        => '',
+            'baja_temporaria'      => false,
             'cambio_tipo'          => '',
             'telefonos'            => [''],
             'rubros_anexos'        => [],
@@ -715,6 +718,7 @@ class ComercioMapa extends AdminComponent
             'state.observaciones'    => ['nullable','string','max:500'],
             'state.documentos'       => ['array'],
             'state.es_clausurado'    => ['boolean'],
+            'state.baja_temporaria'  => ['boolean'],
             'state.alojamiento_unidades' => ['nullable','integer','min:0'],
             'state.alojamiento_plazas'   => ['nullable','integer','min:0'],
 

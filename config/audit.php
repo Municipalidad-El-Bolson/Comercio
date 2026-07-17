@@ -51,6 +51,7 @@ return [
             'estado_label'          => 'Etiqueta de estado',
             'estado'                => 'Estado',
             'situacion'             => 'Situación',
+            'baja_temporaria'       => 'Baja temporaria',
             'tipo_hab'              => 'Tipo de habilitación',
             'fecha_alta'            => 'Fecha de alta',
             'fecha_baja'            => 'Fecha de baja',

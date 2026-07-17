@@ -48,6 +48,35 @@ class ReportesPdfTest extends TestCase
         $this->assertSame(['baja', 'baja_oficio', 'sin_efecto'], $ids);
     }
 
+    public function test_filtro_baja_temporaria_solo_incluye_los_marcados(): void
+    {
+        $rubro = (new Rubro())->forceFill([
+            'mega_rubro' => 'COMERCIO', 'rubro_madre' => 'COMERCIO', 'subrubro' => 'PRUEBA TEMPORARIA',
+        ]);
+        $rubro->save();
+
+        foreach ([true, false] as $index => $temporaria) {
+            Ubicacion::create([
+                'persona_tipo' => 'fisica', 'apellido' => 'Titular', 'nombres' => (string) $index,
+                'dni_cuit' => '2000000'.$index, 'rubro_id' => $rubro->id, 'estado' => 'baja',
+                'estado_base' => 'baja', 'situacion' => 'baja', 'baja_temporaria' => $temporaria,
+            ]);
+        }
+
+        $items = app(ReportesComercioData::class)->query(['solo_baja_temporaria' => true])->get();
+
+        $this->assertCount(1, $items);
+        $this->assertTrue($items->first()->baja_temporaria);
+    }
+
+    public function test_reporte_envia_el_filtro_baja_temporaria_a_pdf_y_excel(): void
+    {
+        $view = file_get_contents(resource_path('views/livewire/comercio/reportes.blade.php'));
+
+        $this->assertStringContainsString('wire:model.live="solo_baja_temporaria"', $view);
+        $this->assertStringContainsString("'solo_baja_temporaria' => \$solo_baja_temporaria ? 1 : 0", $view);
+    }
+
     public function test_admin_puede_descargar_pdf_de_reportes(): void
     {
         $user = User::factory()->create(['role' => 'admin']);

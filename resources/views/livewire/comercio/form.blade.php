@@ -425,6 +425,10 @@
               <input type="checkbox" class="form-check-input" id="chkClausurado" wire:model="state.es_clausurado">
               <label class="form-check-label" for="chkClausurado">Clausurado</label>
             </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" class="form-check-input" id="chkBajaTemporaria" wire:model="state.baja_temporaria">
+              <label class="form-check-label" for="chkBajaTemporaria">Baja temporaria</label>
+            </div>
           </div>
         </div>
 

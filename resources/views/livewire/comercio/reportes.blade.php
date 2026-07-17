@@ -81,6 +81,14 @@
               </div>
             </div>
 
+            <div class="d-flex flex-column" style="min-width:190px;">
+              <label class="text-muted small mb-1 invisible">-</label>
+              <div class="form-check">
+                <input id="chk-baja-temporaria" type="checkbox" class="form-check-input" wire:model.live="solo_baja_temporaria">
+                <label for="chk-baja-temporaria" class="form-check-label">Sólo baja temporaria</label>
+              </div>
+            </div>
+
           </div>
           <hr>
           @php
@@ -92,6 +100,7 @@
               'hasta' => $hasta,
               'proximos_vtos' => $proximosVtos,
               'solo_clausurados' => $solo_clausurados ? 1 : 0,
+              'solo_baja_temporaria' => $solo_baja_temporaria ? 1 : 0,
             ];
           @endphp
           <a class="btn btn-outline-danger btn-sm shadow-sm"

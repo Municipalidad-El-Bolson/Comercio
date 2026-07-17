@@ -44,6 +44,7 @@ class Ubicacion extends Model
         'estado_label',
         'estado',         
         'situacion',     
+        'baja_temporaria',
         'tipo_hab',      
 
         'fecha_alta',
@@ -74,6 +75,7 @@ class Ubicacion extends Model
         'estado'       => 'string',
         'estado_base'  => 'string',
         'estado_label' => 'string',
+        'baja_temporaria' => 'boolean',
 
         'alojamiento_unidades' => 'integer',
         'alojamiento_plazas'   => 'integer',

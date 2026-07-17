@@ -16,6 +16,7 @@ class Reportes extends Component
     use WithPagination;
 
     public bool $solo_clausurados = false;
+    public bool $solo_baja_temporaria = false;
     public ?int $rubro_id = null;
     public ?string $rubroGeneral = null;
     public ?string $estado = null;
@@ -50,7 +51,7 @@ class Reportes extends Component
 
     public function limpiarFiltros(): void
     {
-        $this->reset(['solo_clausurados', 'rubro_id', 'rubroGeneral', 'estado', 'desde', 'hasta', 'proximosVtos']);
+        $this->reset(['solo_clausurados', 'solo_baja_temporaria', 'rubro_id', 'rubroGeneral', 'estado', 'desde', 'hasta', 'proximosVtos']);
         $this->resetPage();
         $this->dispatch('autosave-clear');
     }
@@ -65,6 +66,7 @@ class Reportes extends Component
             'hasta' => $this->hasta,
             'proximos_vtos' => $this->proximosVtos,
             'solo_clausurados' => $this->solo_clausurados,
+            'solo_baja_temporaria' => $this->solo_baja_temporaria,
         ];
     }
 

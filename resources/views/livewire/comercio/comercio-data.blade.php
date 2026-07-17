@@ -97,6 +97,9 @@
             @if($ubicacion->situacion === 'clausurado')
               <span class="badge badge-danger align-middle ml-2">Clausurado</span>
             @endif
+            @if($ubicacion->baja_temporaria)
+              <span class="badge badge-secondary align-middle ml-2">Baja temporaria</span>
+            @endif
           </h1>
 
           <div class="text-muted">

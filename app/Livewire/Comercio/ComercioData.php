@@ -530,6 +530,7 @@ class ComercioData extends Component
             'state.suspension_tasas_hasta' => ['nullable','date','after_or_equal:state.suspension_tasas_desde'],
 
             'state.observaciones' => ['nullable','string','max:500'],
+            'state.baja_temporaria' => ['boolean'],
         ];
     }
 
@@ -772,6 +773,7 @@ class ComercioData extends Component
             'suspension_tasas_hasta' => 'nullable|date|after_or_equal:suspension_tasas_desde',
             'documentos'            => 'array',
             'es_clausurado'         => 'boolean',
+            'baja_temporaria'       => 'boolean',
             'telefonos'             => 'array|min:1',
             'telefonos.*'           => ['nullable','regex:/^[\d\s()+\-]{6,20}$/'],
             'disposiciones'           => 'array',
@@ -1213,6 +1215,7 @@ public function refrescarDatos($id = null): void
             'telefono'           => '',
             'monto_pagar'        => null,
             'observaciones'      => '',
+            'baja_temporaria'    => false,
             'telefonos'          => [''],
             'rubros_anexos'      => [],
             'alojamiento_unidades' => null,
