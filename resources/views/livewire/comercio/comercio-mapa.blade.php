@@ -1,13 +1,17 @@
-<div id="comercio-mapa-root"><!-- ÚNICO ROOT -->
+<div id="comercio-mapa-root" class="commerce-map-page"><!-- ÚNICO ROOT -->
 @if($formKey !== '')
   @include('livewire.comercio.form')
 @endif
   <section class="content">
-    <div class="content-header">
+    <div class="content-header map-page-header">
       <div class="container-fluid">
-        <div class="row mb-2">
-          <div class="col-sm-6"><h1 class="m-0 pb-2 border-bottom" style="font-size:2.50rem;">Mapa comercios</h1></div>
-          <div class="col-sm-6 text-right">
+        <div class="map-page-hero mb-3">
+          <div>
+            <div class="map-page-eyebrow"><i class="fas fa-location-dot mr-1"></i> Comercio municipal</div>
+            <h1 class="map-page-title">Mapa de comercios</h1>
+            <p class="map-page-subtitle mb-0">Explorá ubicaciones, aplicá filtros y consultá cada comercio desde el mapa.</p>
+          </div>
+          <div class="map-page-actions">
             <button id="btnAddMode" type="button" class="btn btn-sm btn-primary">
               <i class="fas fa-map-pin mr-1"></i> Agregar comercio
             </button>
@@ -15,9 +19,9 @@
         </div>
 
         {{-- Filtros --}}
-        <div class="card mb-3" id="filtros-card">
+        <div class="card map-filter-card mb-3" id="filtros-card">
           <div class="card-header d-flex align-items-center justify-content-between py-2">
-            <strong class="mb-0">Filtros</strong>
+            <strong class="mb-0"><i class="fas fa-sliders-h mr-2"></i>Filtros del mapa</strong>
             <button id="btnToggleFilters" type="button" class="btn btn-sm btn-outline-secondary">
               <i id="icoToggleFilters" class="fas fa-chevron-up"></i>
             </button>
@@ -144,9 +148,13 @@
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-body">
-            <div id="map" wire:ignore style="height:520px;width:100%;min-width:200px;"></div>
+        <div class="card map-shell-card">
+          <div class="card-header map-shell-header d-flex align-items-center justify-content-between">
+            <strong><i class="fas fa-map-marked-alt mr-2"></i>Ubicaciones comerciales</strong>
+            <span class="map-result-count"><i class="fas fa-store mr-1"></i>{{ count($ubicaciones) }} comercios</span>
+          </div>
+          <div class="card-body map-shell-body">
+            <div id="map" wire:ignore></div>
           </div>
         </div>
 
@@ -591,62 +599,62 @@
 <style>
 
   /* ---------- General ---------- */
-  .card {
+  .commerce-map-page .card {
     border-radius: 0.7rem !important;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     border: 1px solid #e2e2e2 !important;
   }
 
-  .card-header {
+  .commerce-map-page .card-header {
     font-weight: 600;
     font-size: 0.95rem;
     background: #f7f9fb !important;
     border-bottom: 1px solid #e5e5e5 !important;
   }
 
-  .card-body {
+  .commerce-map-page .card-body {
     background: #ffffff;
     padding-top: 1.15rem !important;
   }
 
-  .titulo-comercio {
+  .commerce-map-page .titulo-comercio {
     font-size: 1.9rem !important;
     font-weight: 800 !important;
     letter-spacing: -0.5px;
   }
 
   /* ---------- Etiquetas / Categorías ---------- */
-  .badge {
+  .commerce-map-page .badge {
     padding: 0.45em 0.65em !important;
     font-size: 0.75rem !important;
     font-weight: 600 !important;
     border-radius: 0.35rem !important;
   }
 
-  .badge-light { 
+  .commerce-map-page .badge-light {
     background: #f2f2f2 !important; 
     color: #555 !important; 
   }
 
-  .badge-success { background-color: #2ecc71 !important; }
-  .badge-info    { background-color: #3498db !important; }
-  .badge-warning { background-color: #f1c40f !important; color:#333 !important; }
-  .badge-danger  { background-color: #e74c3c !important; }
+  .commerce-map-page .badge-success { background-color: #2ecc71 !important; }
+  .commerce-map-page .badge-info    { background-color: #3498db !important; }
+  .commerce-map-page .badge-warning { background-color: #f1c40f !important; color:#333 !important; }
+  .commerce-map-page .badge-danger  { background-color: #e74c3c !important; }
 
   /* ---------- Títulos pequeños ---------- */
-  .text-muted.small {
+  .commerce-map-page .text-muted.small {
     font-size: 0.72rem !important;
     letter-spacing: 0.3px;
     text-transform: uppercase;
   }
 
-  .font-weight-bold {
+  .commerce-map-page .font-weight-bold {
     font-size: 0.92rem;
   }
 
   /* ---------- Encabezado general ---------- */
-  .content-header {
+  .commerce-map-page .content-header {
     border-bottom: 1px solid #e5e5e5;
     background: linear-gradient(to right, #ffffff, #fafafa);
     padding-bottom: 1rem;
@@ -654,54 +662,195 @@
   }
 
   /* ---------- Botonera derecha ---------- */
-  .btn-group .btn {
+  .commerce-map-page .btn-group .btn {
     border-radius: 0.4rem !important;
     font-size: 0.78rem;
   }
 
-  .btn-primary {
+  .commerce-map-page .btn-primary {
     background: #4a6cf7 !important;
     border-color: #4a6cf7 !important;
   }
 
-  .btn-danger {
+  .commerce-map-page .btn-danger {
     background: #e74c3c !important;
     border-color: #e74c3c !important;
   }
 
-  .btn-secondary {
+  .commerce-map-page .btn-secondary {
     background: #bdc3c7 !important;
     border-color: #bdc3c7 !important;
   }
 
   /* ---------- Separadores ---------- */
-  hr.my-2 {
+  .commerce-map-page hr.my-2 {
     border-top: 1px solid #ddd !important;
   }
 
   /* ---------- Tablas ---------- */
-  table.table {
+  .commerce-map-page table.table {
     border-radius: 0.5rem !important;
     overflow: hidden;
   }
 
-  .table thead th {
+  .commerce-map-page .table thead th {
     background: #f7f9fb !important;
     font-weight: 600 !important;
   }
 
-  .table tbody tr td {
+  .commerce-map-page .table tbody tr td {
     font-size: 0.82rem !important;
   }
 
   /* ---------- Badges de documentación ---------- */
-  .docs-box {
+  .commerce-map-page .docs-box {
     transition: 0.2s;
   }
 
-  .docs-box:hover {
+  .commerce-map-page .docs-box:hover {
     transform: translateY(-2px);
     box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+
+  .commerce-map-page {
+    --map-navy: #17385f;
+    --map-blue: #286da8;
+    --map-green: #17845f;
+    --map-ink: #20344b;
+    --map-muted: #6f7f91;
+    --map-line: #dce6ef;
+    color: var(--map-ink);
+  }
+  .commerce-map-page .content { padding-bottom: 1.5rem; }
+  .commerce-map-page .map-page-header {
+    padding: 1rem 0 0;
+    border: 0;
+    background: transparent;
+  }
+  .commerce-map-page .map-page-hero {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.35rem 1.55rem;
+    border-radius: 1rem;
+    background: linear-gradient(125deg,#17385f 0%,#245f91 64%,#268b8b 125%);
+    color: #fff;
+    box-shadow: 0 16px 35px rgba(23,56,95,.18);
+  }
+  .commerce-map-page .map-page-hero::after {
+    content: '';
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    top: -145px;
+    right: -55px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.08);
+    pointer-events: none;
+  }
+  .commerce-map-page .map-page-eyebrow {
+    margin-bottom: .3rem;
+    color: #bfe2f3;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+  }
+  .commerce-map-page .map-page-title {
+    margin: 0 0 .25rem;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.12;
+    letter-spacing: -.035em;
+  }
+  .commerce-map-page .map-page-subtitle { color: rgba(255,255,255,.76); font-size: .9rem; }
+  .commerce-map-page .map-page-actions { position: relative; z-index: 1; margin-left: auto; }
+  .commerce-map-page .map-page-actions .btn {
+    min-height: 40px;
+    padding: .45rem .9rem;
+    border: 1px solid rgba(255,255,255,.55) !important;
+    border-radius: .65rem !important;
+    background: #fff !important;
+    color: var(--map-navy) !important;
+    font-weight: 700;
+    box-shadow: 0 5px 14px rgba(8,30,50,.15);
+  }
+  .commerce-map-page .map-page-actions .btn:hover { transform: translateY(-1px); }
+  .commerce-map-page .card {
+    border: 1px solid var(--map-line) !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 6px 20px rgba(30,58,86,.07);
+  }
+  .commerce-map-page .card-header {
+    min-height: 52px;
+    padding: .75rem 1rem !important;
+    border-bottom: 1px solid var(--map-line) !important;
+    background: linear-gradient(135deg,#f9fbfd,#eef5fa) !important;
+    color: var(--map-navy);
+    font-weight: 700;
+  }
+  .commerce-map-page .map-filter-card .card-body { padding: 1rem 1.1rem .35rem !important; }
+  .commerce-map-page .map-filter-card label {
+    color: #5f7184;
+    font-size: .72rem;
+    font-weight: 750;
+    letter-spacing: .025em;
+  }
+  .commerce-map-page .map-filter-card .form-control,
+  .commerce-map-page .map-filter-card .ts-control {
+    min-height: 36px;
+    border-color: #cedbe6;
+    border-radius: .55rem;
+    background: #fbfdff;
+  }
+  .commerce-map-page .map-filter-card .form-control:focus,
+  .commerce-map-page .map-filter-card .ts-control.focus {
+    border-color: #74a9d2;
+    box-shadow: 0 0 0 3px rgba(40,109,168,.1);
+  }
+  .commerce-map-page #btnToggleFilters {
+    width: 34px;
+    height: 34px;
+    margin-left: auto;
+    border-radius: .6rem;
+  }
+  .commerce-map-page .map-result-count {
+    padding: .42rem .72rem;
+    border-radius: 999px;
+    background: #dcecf7;
+    color: #245f91;
+    font-size: .74rem;
+    font-weight: 800;
+  }
+  .commerce-map-page .map-shell-body { padding: .55rem !important; background: #eaf1f6; }
+  .commerce-map-page #map {
+    width: 100%;
+    min-width: 200px;
+    height: min(68vh, 680px);
+    min-height: 520px;
+    overflow: hidden;
+    border: 1px solid #cbd9e4;
+    border-radius: .72rem;
+  }
+  .commerce-map-page .mapboxgl-ctrl-group {
+    overflow: hidden;
+    border: 1px solid #d6e1e9;
+    border-radius: .65rem;
+    box-shadow: 0 5px 15px rgba(30,58,86,.13);
+  }
+  .commerce-map-page .mapboxgl-popup-content { border: 1px solid #dce6ef; }
+  .commerce-map-page .popup-title { background: linear-gradient(120deg,#245f91,#268b8b); }
+  @media (max-width: 767.98px) {
+    .commerce-map-page .map-page-hero { align-items: flex-start; flex-direction: column; padding: 1.15rem; }
+    .commerce-map-page .map-page-title { font-size: 1.55rem; }
+    .commerce-map-page .map-page-actions { width: 100%; }
+    .commerce-map-page .map-page-actions .btn { width: 100%; }
+    .commerce-map-page #map { height: 62vh; min-height: 430px; }
+    .commerce-map-page .map-shell-header { align-items: flex-start !important; gap: .6rem; flex-wrap: wrap; }
+    .commerce-map-page .map-result-count { margin-left: auto; }
   }
 
 </style>
