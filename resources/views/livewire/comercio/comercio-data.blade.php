@@ -283,10 +283,10 @@
 
     {{-- TIMELINE (si corresponde) --}}
     @if($ubicacion->habilita_seguimiento)
-      <livewire:comercio.timeline
-        :ubicacion-id="$ubicacion->id"
-        :created-at="$ubicacion->created_at"
-        wire:key="timeline-comercio-{{ $ubicacion->id }}" />
+      @livewire('comercio.timeline', [
+        'ubicacionId' => $ubicacion->id,
+        'createdAt' => $ubicacion->created_at,
+      ], key('timeline-comercio-'.$ubicacion->id))
     @endif
 
     {{-- GRID PRINCIPAL --}}
