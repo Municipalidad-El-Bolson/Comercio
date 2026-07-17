@@ -120,11 +120,15 @@
                   </datalist>
                 </div>
 
-                <div class="form-group col-md-3 mb-2">
+                <div class="form-group col-md-4 mb-2">
                   <label class="mb-1 d-block">Situación</label>
-                  <div class="form-check">
+                  <div class="form-check form-check-inline">
                     <input id="chk-claus" type="checkbox" class="form-check-input" wire:model.live="solo_clausurados">
                     <label for="chk-claus" class="form-check-label">Sólo clausurados</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input id="chk-baja-temporal" type="checkbox" class="form-check-input" wire:model.live="solo_bajas_temporarias">
+                    <label for="chk-baja-temporal" class="form-check-label">Baja temporaria</label>
                   </div>
                 </div>
 
@@ -143,6 +147,15 @@
                     <label class="form-check-label" for="toggleCpu">CPU</label>
                   </div>
                 </div>
+
+                <div class="form-group col-md-4 mb-2 d-flex align-items-end justify-content-md-end">
+                  <button type="button" class="btn btn-outline-secondary btn-sm map-clear-filters"
+                          wire:click="limpiarFiltrosMapa" wire:loading.attr="disabled" wire:target="limpiarFiltrosMapa">
+                    <i class="fas fa-eraser mr-1"></i>
+                    <span wire:loading.remove wire:target="limpiarFiltrosMapa">Limpiar filtros</span>
+                    <span wire:loading wire:target="limpiarFiltrosMapa">Limpiando…</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -155,6 +168,13 @@
           </div>
           <div class="card-body map-shell-body">
             <div id="map" wire:ignore></div>
+            <div class="map-legend" aria-label="Referencias del mapa">
+              <span><i class="map-dot dot-active"></i>021/90</span>
+              <span><i class="map-dot dot-irregular"></i>032/01</span>
+              <span><i class="map-dot dot-040"></i>040/25</span>
+              <span><i class="map-dot dot-closed"></i>Clausurado</span>
+              <span><i class="map-dot dot-temporary"></i>Baja temporaria</span>
+            </div>
           </div>
         </div>
 
@@ -196,6 +216,8 @@
     center: [-71.53, -41.9645],
     zoom: 14
   });
+  map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+  map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
 
   document.addEventListener('DOMContentLoaded', function () {
     const sel = document.getElementById('select-map-rubro');
@@ -363,6 +385,8 @@
           nomen: r.nomen ?? '',
           barrio: r.barrio ?? '-',
           estado: r.estado ?? '-',
+          situacion: r.situacion ?? '',
+          baja_temporaria: r.baja_temporaria ? 1 : 0,
           rubro: r?.rubro?.subrubro ?? ''
         }
       });
@@ -424,7 +448,21 @@
   map.on('load', () => {
     map.addSource('comercios-src', { type:'geojson', data: toGeo(@json($ubicaciones)) });
     map.addLayer({ id:'comercios-points', type:'circle', source:'comercios-src',
-      paint:{ 'circle-color':'#1e90ff','circle-radius':7,'circle-stroke-color':'#fff','circle-stroke-width':2 }});
+      paint:{
+        'circle-color': [
+          'case',
+          ['==', ['get', 'baja_temporaria'], 1], '#7b8794',
+          ['==', ['get', 'situacion'], 'clausurado'], '#d94b51',
+          ['in', ['get', 'estado'], ['literal', ['baja','baja_oficio','sin_efecto']]], '#5f6f7f',
+          ['==', ['get', 'estado'], '040'], '#277fb5',
+          ['==', ['get', 'estado'], 'irregular'], '#e6a31a',
+          '#17845f'
+        ],
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 4.5, 14, 7, 17, 10],
+        'circle-stroke-color':'#fff',
+        'circle-stroke-width':2,
+        'circle-opacity':.94
+      }});
     map.on('click','comercios-points',(e)=>{if(addMode) return;
       const f = e.features[0];
       const p = f.properties;
@@ -507,6 +545,15 @@
               fitToFeaturesBounds({ type:'FeatureCollection', features: feats });
           }
       }
+  });
+
+  window.addEventListener('mapFiltersCleared', () => {
+    const rubro = document.getElementById('select-map-rubro');
+    if (rubro?.tomselect) rubro.tomselect.clear(true);
+    else if (rubro) rubro.value = '';
+
+    const hl = map.getSource('catastro-hl-src');
+    if (hl) hl.setData({ type:'FeatureCollection', features:[] });
   });
 
 
@@ -814,6 +861,20 @@
     border-color: #74a9d2;
     box-shadow: 0 0 0 3px rgba(40,109,168,.1);
   }
+  .commerce-map-page .map-clear-filters {
+    min-height: 36px;
+    padding: .42rem .85rem;
+    border-color: #c4d2de;
+    border-radius: .58rem;
+    background: #fff;
+    color: #50667b;
+    font-weight: 700;
+  }
+  .commerce-map-page .map-clear-filters:hover {
+    border-color: var(--map-blue);
+    background: var(--map-blue);
+    color: #fff;
+  }
   .commerce-map-page #btnToggleFilters {
     width: 34px;
     height: 34px;
@@ -828,7 +889,7 @@
     font-size: .74rem;
     font-weight: 800;
   }
-  .commerce-map-page .map-shell-body { padding: .55rem !important; background: #eaf1f6; }
+  .commerce-map-page .map-shell-body { position: relative; padding: .55rem !important; background: #eaf1f6; }
   .commerce-map-page #map {
     width: 100%;
     min-width: 200px;
@@ -846,6 +907,36 @@
   }
   .commerce-map-page .mapboxgl-popup-content { border: 1px solid #dce6ef; }
   .commerce-map-page .popup-title { background: linear-gradient(120deg,#245f91,#268b8b); }
+  .commerce-map-page .map-legend {
+    position: absolute;
+    z-index: 2;
+    left: 1rem;
+    bottom: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .38rem .7rem;
+    max-width: calc(100% - 2rem);
+    padding: .5rem .7rem;
+    border: 1px solid rgba(213,225,234,.95);
+    border-radius: .65rem;
+    background: rgba(255,255,255,.92);
+    color: #42586d;
+    font-size: .68rem;
+    font-weight: 750;
+    box-shadow: 0 6px 18px rgba(25,51,75,.13);
+    backdrop-filter: blur(6px);
+  }
+  .commerce-map-page .map-legend span { display: inline-flex; align-items: center; white-space: nowrap; }
+  .commerce-map-page .map-dot {
+    width: 9px; height: 9px; margin-right: .3rem;
+    border: 1.5px solid #fff; border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(36,62,82,.14);
+  }
+  .commerce-map-page .dot-active { background: #17845f; }
+  .commerce-map-page .dot-irregular { background: #e6a31a; }
+  .commerce-map-page .dot-040 { background: #277fb5; }
+  .commerce-map-page .dot-closed { background: #d94b51; }
+  .commerce-map-page .dot-temporary { background: #7b8794; }
   @media (max-width: 767.98px) {
     .commerce-map-page .map-page-hero { align-items: flex-start; flex-direction: column; padding: 1.15rem; }
     .commerce-map-page .map-page-title { font-size: 1.55rem; }

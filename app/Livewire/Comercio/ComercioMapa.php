@@ -42,6 +42,7 @@ class ComercioMapa extends AdminComponent
     public string $selectedEstado = '';
 
     public bool $solo_clausurados = false;
+    public bool $solo_bajas_temporarias = false;
 
     /**
      * Datos efímeros para dibujar el mapa. No deben formar parte del snapshot
@@ -467,6 +468,19 @@ class ComercioMapa extends AdminComponent
     public function updatedSelectedEstado()  { $this->emitUbicaciones(); }
     public function updatedSelectedNomen()   { $this->emitUbicaciones(); }
     public function updatedSoloClausurados() { $this->emitUbicaciones(); } 
+    public function updatedSoloBajasTemporarias() { $this->emitUbicaciones(); }
+
+    public function limpiarFiltrosMapa(): void
+    {
+        $this->reset([
+            'rubroGeneral', 'fantasiaQuery', 'fantasiaSuggestions',
+            'selectedRubroId', 'selectedNomen', 'selectedBarrio',
+            'selectedEstado', 'solo_clausurados', 'solo_bajas_temporarias',
+        ]);
+
+        $this->emitUbicaciones();
+        $this->dispatch('mapFiltersCleared');
+    }
 
     private function queryUbicaciones()
     {
@@ -483,6 +497,7 @@ class ComercioMapa extends AdminComponent
             ->when($this->selectedBarrio !== '', fn($q)=> $q->where('barrio', $this->selectedBarrio))
             ->when($this->selectedEstado !== '', fn($q)=> $q->where('estado', $this->selectedEstado))
             ->when($this->solo_clausurados, fn($q)=> $q->where('situacion', 'clausurado'))
+            ->when($this->solo_bajas_temporarias, fn($q)=> $q->where('baja_temporaria', true))
             ->when($fantasia !== '', function($q) use ($fantasia) {
                 $t = '%'.$fantasia.'%';
                 $q->where('nombre_comercial','like',$t);
@@ -490,7 +505,7 @@ class ComercioMapa extends AdminComponent
             ->orderByRaw("COALESCE(NULLIF(nombre_comercial,''), razon_social) asc")
             ->get([
                 'id','razon_social','nombre_comercial','domicilio_comercio',
-                'lat','lng','rubro_id','barrio','estado','situacion', 
+                'lat','lng','rubro_id','barrio','estado','situacion','baja_temporaria',
                 \DB::raw('nomenclatura as nomen'),
             ])
             ->map(function ($u) {
@@ -504,6 +519,7 @@ class ComercioMapa extends AdminComponent
                     'barrio'            => $u->barrio,
                     'estado'            => $u->estado,
                     'situacion'         => $u->situacion, 
+                    'baja_temporaria'   => (bool) $u->baja_temporaria,
                     'nomen'             => $u->nomen,
                     'rubro'             => [
                         'id'       => $u->rubro?->id,
