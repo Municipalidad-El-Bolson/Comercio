@@ -86,7 +86,7 @@
 
 
   <div class="container-fluid mt-3">
-  <div class="card mb-4 border-secondary">
+  <div class="card commerce-hero-card mb-4 border-secondary">
     <div class="card-body">
 
       <div class="commerce-hero-layout">
@@ -925,6 +925,139 @@
     }
   }
 
+  /* Segunda capa visual: perfil administrativo */
+  .commerce-profile {
+    --profile-navy: #17385f;
+    --profile-blue: #286da8;
+    --profile-sky: #eaf4fb;
+    --profile-green: #17845f;
+    --profile-ink: #20344b;
+    --profile-muted: #6f7f91;
+    --profile-line: #dce6ef;
+    max-width: 1480px;
+    color: var(--profile-ink);
+    padding-top: .25rem;
+  }
+  .commerce-profile > .container-fluid { padding-left: 0; padding-right: 0; }
+  .commerce-profile .card {
+    border: 1px solid var(--profile-line) !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 5px 18px rgba(30,58,86,.065);
+    transition: box-shadow .2s ease, transform .2s ease;
+  }
+  .commerce-profile .card:hover { box-shadow: 0 10px 28px rgba(30,58,86,.105); }
+  .commerce-profile .card-header {
+    min-height: 54px;
+    padding: .85rem 1.1rem;
+    border-bottom: 1px solid var(--profile-line) !important;
+    background: linear-gradient(135deg,#f9fbfd,#eef5fa) !important;
+    color: var(--profile-navy);
+    font-size: .95rem;
+    font-weight: 700;
+  }
+  .commerce-profile .card-header strong > i {
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-right: .45rem !important;
+    border-radius: .55rem;
+    background: #dcecf7;
+    color: var(--profile-blue);
+  }
+  .commerce-profile .card-body { padding: 1.15rem 1.2rem !important; }
+  .commerce-profile .commerce-hero-card {
+    position: relative;
+    border: 0 !important;
+    background: linear-gradient(125deg,#17385f 0%,#245f91 64%,#268b8b 125%);
+    box-shadow: 0 16px 35px rgba(23,56,95,.2);
+  }
+  .commerce-profile .commerce-hero-card::after {
+    content: ''; position: absolute; width: 270px; height: 270px;
+    right: -85px; top: -150px; border-radius: 50%;
+    background: rgba(255,255,255,.075); pointer-events: none;
+  }
+  .commerce-profile .commerce-hero-card .card-body {
+    position: relative; z-index: 1;
+    padding: 1.5rem 1.6rem !important;
+    background: transparent; color: #fff;
+  }
+  .commerce-profile .commerce-hero-card .text-muted { color: rgba(255,255,255,.76) !important; }
+  .commerce-profile .titulo-comercio {
+    margin-bottom: .45rem !important; color: #fff;
+    font-size: 2rem !important; line-height: 1.15;
+    letter-spacing: -.035em;
+  }
+  .commerce-profile .badge {
+    padding: .48em .72em !important;
+    border-radius: 999px !important;
+    font-size: .73rem !important;
+    font-weight: 700 !important;
+  }
+  .commerce-profile .commerce-hero-card .badge-light {
+    border: 1px solid rgba(255,255,255,.25);
+    background: rgba(255,255,255,.13) !important;
+    color: #fff !important;
+  }
+  .commerce-profile .text-muted.small {
+    color: var(--profile-muted) !important;
+    font-size: .68rem !important; font-weight: 700;
+    letter-spacing: .055em; text-transform: uppercase;
+  }
+  .commerce-profile .font-weight-bold { color: #253d57; font-size: .93rem; line-height: 1.45; }
+  .commerce-profile .commerce-actions { gap: .55rem; }
+  .commerce-profile .commerce-actions .btn {
+    min-height: 38px; padding: .42rem .75rem;
+    border-color: rgba(255,255,255,.3) !important;
+    border-radius: .65rem !important;
+    background: rgba(255,255,255,.11) !important;
+    color: #fff !important; font-weight: 700;
+    box-shadow: 0 4px 10px rgba(9,31,52,.12);
+  }
+  .commerce-profile .commerce-actions .btn:hover:not(:disabled) {
+    border-color: #fff !important; background: #fff !important;
+    color: var(--profile-navy) !important; transform: translateY(-1px);
+  }
+  .commerce-profile .commerce-actions .btn-success:not(:disabled) {
+    border-color: #47cfa1 !important; background: #168763 !important;
+  }
+  .commerce-profile .commerce-actions .btn-primary {
+    border-color: #b8dfff !important; background: #fff !important;
+    color: var(--profile-navy) !important;
+  }
+  .commerce-profile .commerce-actions .btn-danger:not(:disabled) {
+    border-color: rgba(255,190,190,.65) !important;
+    background: rgba(161,42,51,.72) !important;
+  }
+  .commerce-profile .commerce-actions .btn:disabled { opacity: .48; box-shadow: none; }
+  .commerce-profile .btn:not(.commerce-actions .btn) { border-radius: .58rem; font-weight: 600; }
+  .commerce-profile .table-responsive { border: 1px solid var(--profile-line); border-radius: .8rem; }
+  .commerce-profile table.table { margin-bottom: 0; }
+  .commerce-profile .table thead th {
+    padding: .7rem; border-top: 0;
+    border-bottom: 1px solid var(--profile-line) !important;
+    background: #edf4f9 !important; color: #526a80;
+    font-size: .7rem; font-weight: 800 !important;
+    letter-spacing: .04em; text-transform: uppercase;
+  }
+  .commerce-profile .table tbody td {
+    padding: .7rem; border-color: #edf1f5;
+    color: #31485f; font-size: .82rem !important; vertical-align: middle;
+  }
+  .commerce-profile .table tbody tr:hover { background: var(--profile-sky); }
+  .commerce-profile #comunicacion-asistida {
+    border-color: #acdcca !important;
+    box-shadow: 0 12px 30px rgba(23,132,95,.12);
+  }
+  .commerce-profile #comunicacion-asistida .card-header {
+    background: linear-gradient(135deg,#edfaf5,#ddf4ea) !important;
+    color: #126849;
+  }
+  @media (max-width: 991.98px) {
+    .commerce-profile .commerce-hero-card .card-body { padding: 1.25rem !important; }
+  }
+  @media (max-width: 575.98px) {
+    .commerce-profile .card-header { align-items: flex-start !important; gap: .65rem; flex-wrap: wrap; }
+    .commerce-profile .card-body { padding: 1rem !important; }
+  }
 </style>
 @endpush
 
