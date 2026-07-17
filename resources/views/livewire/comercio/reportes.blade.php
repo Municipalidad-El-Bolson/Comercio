@@ -1,4 +1,5 @@
-<section class="content modern-admin-page" data-autosave="off">
+<section class="content" data-autosave="off">
+<div class="modern-admin-page">
   <div class="content-header">
     <div class="container-fluid">
       <div class="text-center mb-3">
@@ -260,37 +261,28 @@
           </div>
         </div>
 
-        {{-- Próximos a vencer --}}
+        {{-- Gráfico de comercios por rubro --}}
         <div class="col-lg-6">
           <div class="card border-secondary">
-            <div class="card-header">Habilitaciones próximas a vencer ({{ $this->proximosVtos ? $this->proximosVtos.' días' : 'Todos' }})</div>
-            <div class="card-body p-0">
-              <div class="table-responsive">
-                <table class="table table-sm table-striped mb-0">
-                  <thead class="thead-light">
-                    <tr>
-                      <th>Nombre</th>
-                      <th>Rubro</th>
-                      <th>Vencimiento</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @foreach($this->proximosAVencer as $u)
-                      <tr>
-                        <td>{{ $u->nombre_comercial ?? '-' }}</td>
-                        <td>{{ $u->rubro->subrubro ?? '-' }}</td>
-                        <td>{{ $u->fecha_vto ? \Illuminate\Support\Carbon::parse($u->fecha_vto)->format('Y-m-d') : '—' }}</td>
-                      </tr>
-                    @endforeach
-                  </tbody>
-                </table>
+            <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div><strong>Gráficos</strong><small class="d-block text-muted">Distribución de comercios por rubro</small></div>
+              <div class="d-flex gap-2">
+                <a class="btn btn-outline-danger btn-sm" href="{{ route('reportes.pdf', array_merge($exportParams, ['grafico_rubros' => 1])) }}"><i class="fas fa-file-pdf mr-1"></i> PDF</a>
+                <a class="btn btn-outline-success btn-sm" href="{{ route('reportes.excel', array_merge($exportParams, ['grafico_rubros' => 1])) }}"><i class="fas fa-file-excel mr-1"></i> Excel</a>
               </div>
+            </div>
+            <div class="card-body">
+              @include('comercio.partials.rubros-pie', [
+                'chartItems' => $this->porRubro['items'],
+                'chartTotal' => $this->porRubro['total'],
+              ])
             </div>
           </div>
         </div>
       </div> {{-- row mt-3 --}}
     </div>
   </div>
+</div>
 </section>
 
 {{-- Integración TomSelect retirada: el select nativo mantiene estable el filtro en Livewire 3.
@@ -446,6 +438,18 @@
     transform: translateY(-2px);
     box-shadow: 0 2px 6px rgba(0,0,0,0.12);
   }
+
+  .rubros-pie-layout { display:grid; grid-template-columns:minmax(210px,.85fr) minmax(220px,1.15fr); gap:1rem; align-items:center; }
+  .rubros-pie-chart svg { display:block; width:100%; max-width:290px; margin:auto; filter:drop-shadow(0 8px 12px rgba(23,56,95,.12)); }
+  .rubros-pie-chart .pie-total { fill:#17385f; font-size:22px; font-weight:800; }
+  .rubros-pie-chart .pie-caption { fill:#718399; font-size:10px; }
+  .rubros-pie-legend { max-height:300px; overflow:auto; padding-right:.25rem; }
+  .pie-legend-row { display:grid; grid-template-columns:10px minmax(0,1fr) 34px 54px; gap:.45rem; align-items:center; padding:.38rem .2rem; border-bottom:1px solid #edf1f5; font-size:.75rem; }
+  .pie-legend-color { width:10px; height:10px; border-radius:3px; }
+  .pie-legend-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pie-legend-row strong,.pie-legend-row small { text-align:right; }
+  .pie-legend-row small { color:#718399; }
+  @media(max-width:767.98px) { .rubros-pie-layout { grid-template-columns:1fr; } .rubros-pie-legend { max-height:230px; } }
 
 </style>
 @endpush

@@ -12,6 +12,14 @@ class ReportesExcelController extends Controller
     public function __invoke(Request $request, ReportesComercioData $reportes): StreamedResponse
     {
         $filters = ReportesPdfController::filters($request);
+
+        if ($request->boolean('grafico_rubros')) {
+            $chart = ReportesPdfController::rubrosChart($reportes, $filters);
+            $labels = $reportes->filterLabels($filters);
+
+            return $this->chartDownload($chart, $labels);
+        }
+
         $items = $reportes->items($filters);
         $labels = $reportes->filterLabels($filters);
 
@@ -53,6 +61,26 @@ class ReportesExcelController extends Controller
         }, 'reporte_habilitaciones_'.now()->format('Ymd_His').'.xls', [
             'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
         ]);
+    }
+
+    private function chartDownload(array $chart, array $labels): StreamedResponse
+    {
+        return response()->streamDownload(function () use ($chart, $labels) {
+            echo '<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?>';
+            echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles>';
+            echo '<Style ss:ID="Title"><Font ss:Bold="1" ss:Size="16" ss:Color="#FFFFFF"/><Interior ss:Color="#173B63" ss:Pattern="Solid"/></Style>';
+            echo '<Style ss:ID="Header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2F6597" ss:Pattern="Solid"/></Style>';
+            echo '<Style ss:ID="Percent"><NumberFormat ss:Format="0.00%"/></Style></Styles><Worksheet ss:Name="Comercios por rubro"><Table>';
+            echo '<Column ss:Width="310"/><Column ss:Width="90"/><Column ss:Width="100"/>';
+            echo '<Row ss:Height="26"><Cell ss:MergeAcross="2" ss:StyleID="Title"><Data ss:Type="String">Gráfico de comercios por rubro</Data></Cell></Row>';
+            echo '<Row><Cell ss:MergeAcross="2"><Data ss:Type="String">'.$this->xml($this->labelsText($labels)).'</Data></Cell></Row>';
+            echo '<Row ss:StyleID="Header"><Cell><Data ss:Type="String">Rubro</Data></Cell><Cell><Data ss:Type="String">Cantidad</Data></Cell><Cell><Data ss:Type="String">Porcentaje</Data></Cell></Row>';
+            foreach ($chart['items'] as $item) {
+                echo '<Row>'.$this->stringCell($item['rubro']).'<Cell><Data ss:Type="Number">'.$item['cantidad'].'</Data></Cell><Cell ss:StyleID="Percent"><Data ss:Type="Number">'.($item['porcentaje'] / 100).'</Data></Cell></Row>';
+            }
+            echo '<Row><Cell><Data ss:Type="String">TOTAL</Data></Cell><Cell><Data ss:Type="Number">'.$chart['total'].'</Data></Cell><Cell ss:StyleID="Percent"><Data ss:Type="Number">1</Data></Cell></Row>';
+            echo '</Table></Worksheet></Workbook>';
+        }, 'grafico_comercios_por_rubro_'.now()->format('Ymd_His').'.xls', ['Content-Type' => 'application/vnd.ms-excel; charset=UTF-8']);
     }
 
     private function stringCell($value): string

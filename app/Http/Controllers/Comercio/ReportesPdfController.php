@@ -13,6 +13,16 @@ class ReportesPdfController extends Controller
     {
         @ini_set('memory_limit', '256M');
         $filters = $this->filters($request);
+
+        if ($request->boolean('grafico_rubros')) {
+            $chart = self::rubrosChart($reportes, $filters);
+            $filterLabels = $reportes->filterLabels($filters);
+
+            return Pdf::loadView('comercio.reportes-grafico-pdf', compact('chart', 'filterLabels'))
+                ->setPaper('a4', 'landscape')
+                ->download('grafico_comercios_por_rubro_'.now()->format('Ymd_His').'.pdf');
+        }
+
         $total = $reportes->query($filters)->count();
         $pdfLimit = 150;
         $items = $reportes->items($filters, $pdfLimit);
@@ -36,6 +46,29 @@ class ReportesPdfController extends Controller
                 ? max(1, min((int) $request->integer('proximos_vtos'), 365)) : null,
             'solo_clausurados' => $request->boolean('solo_clausurados'),
             'solo_baja_temporaria' => $request->boolean('solo_baja_temporaria'),
+        ];
+    }
+
+    public static function rubrosChart(ReportesComercioData $reportes, array $filters): array
+    {
+        $rows = $reportes->query($filters)
+            ->join('rubros', 'rubros.id', '=', 'ubicaciones.rubro_id')
+            ->groupBy('rubros.id', 'rubros.subrubro')
+            ->orderByDesc('cantidad')
+            ->get([
+                'rubros.id',
+                'rubros.subrubro',
+                \Illuminate\Support\Facades\DB::raw('COUNT(*) as cantidad'),
+            ]);
+        $total = (int) $rows->sum('cantidad');
+
+        return [
+            'total' => $total,
+            'items' => $rows->map(fn ($row) => [
+                'rubro' => (string) $row->subrubro,
+                'cantidad' => (int) $row->cantidad,
+                'porcentaje' => $total ? round(((int) $row->cantidad * 100) / $total, 2) : 0,
+            ])->values()->all(),
         ];
     }
 }
