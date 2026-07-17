@@ -1,4 +1,4 @@
-<div class="container">
+<div class="commerce-profile container-fluid px-2 px-md-3 px-xl-4 pb-4">
 <livewire:comercio.movimiento-modal wire:key="movimiento-modal-comercio-{{ $ubicacion->id }}" />
 {{-- HEADER / HERO --}}
 @php
@@ -90,8 +90,8 @@
   <div class="card mb-4 border-secondary">
     <div class="card-body">
 
-      <div class="d-flex align-items-start justify-content-between">
-        <div>
+      <div class="commerce-hero-layout">
+        <div class="commerce-identity">
           <h1 class="m-0 titulo-comercio">
             {{ $ubicacion->nombre_comercial ?: '—' }}
             @if($ubicacion->situacion === 'clausurado')
@@ -133,16 +133,18 @@
         </div>
 
         <!-- Botonera -->
-        <div class="btn-group">
+        <div class="commerce-actions" role="group" aria-label="Acciones del comercio">
           <a href="{{ route('ubicaciones') }}" class="btn btn-secondary btn-sm">
             <i class="fas fa-arrow-left mr-1"></i> Volver
           </a>
 
           @if($this->contactoWhatsappUrl)
             <button type="button" class="btn btn-success btn-sm"
-                    wire:click="$set('comunicacionAbierta', true)"
-                    onclick="setTimeout(() => document.getElementById('comunicacion-asistida')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)">
-              <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+                    wire:click="abrirComunicacion"
+                    wire:loading.attr="disabled" wire:target="abrirComunicacion">
+              <i class="fab fa-whatsapp mr-1"></i>
+              <span wire:loading.remove wire:target="abrirComunicacion">WhatsApp</span>
+              <span wire:loading wire:target="abrirComunicacion">Abriendo…</span>
             </button>
           @else
             <button type="button" class="btn btn-success btn-sm" disabled title="No hay teléfono cargado">
@@ -162,14 +164,17 @@
 
           @can('manage-ubicaciones')
           @isset($ubicacion->id)
-            <a href="#" wire:click.prevent="editaComercio({{ $ubicacion->id }})" class="btn btn-primary btn-sm">
+            <button type="button" wire:click="editaComercio({{ $ubicacion->id }})"
+                    wire:loading.attr="disabled" wire:target="editaComercio"
+                    class="btn btn-primary btn-sm">
               <i class="fa fa-edit mr-1"></i> Editar
-            </a>
+            </button>
           @endisset
           @endcan
 
           @can('manage-ubicaciones')
             <button type="button" class="btn btn-danger btn-sm"
+              wire:loading.attr="disabled" wire:target="deleteComercio"
               x-on:click.prevent="if (confirm('¿Eliminar definitivamente este comercio? Esta acción no se puede deshacer.')) { $wire.deleteComercio() }">
               <i class="fa fa-trash mr-1"></i> Eliminar
             </button>
@@ -187,11 +192,11 @@
     {{-- Comunicación asistida --}}
     @if($comunicacionAbierta)
     <div id="comunicacion-asistida" class="card mb-3 border-success" wire:key="comunicacion-asistida">
-      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <div class="card-header bg-light communication-header">
         <strong><i class="fab fa-whatsapp mr-1 text-success"></i>Comunicación asistida</strong>
-        <div class="d-flex align-items-center">
+        <div class="communication-heading-actions">
           <span class="text-muted small mr-3">WhatsApp abre el mensaje listo para revisar y enviar</span>
-          <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="$set('comunicacionAbierta', false)" title="Cerrar">
+          <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="$set('comunicacionAbierta', false)" title="Cerrar comunicación" aria-label="Cerrar comunicación">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -278,7 +283,10 @@
 
     {{-- TIMELINE (si corresponde) --}}
     @if($ubicacion->habilita_seguimiento)
-      <livewire:comercio.timeline :ubicacion-id="$ubicacion->id" :created-at="$ubicacion->created_at" />
+      <livewire:comercio.timeline
+        :ubicacion-id="$ubicacion->id"
+        :created-at="$ubicacion->created_at"
+        wire:key="timeline-comercio-{{ $ubicacion->id }}" />
     @endif
 
     {{-- GRID PRINCIPAL --}}
@@ -722,62 +730,62 @@
 <style>
 
   /* ---------- General ---------- */
-  .card {
+  .commerce-profile .card {
     border-radius: 0.7rem !important;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     border: 1px solid #e2e2e2 !important;
   }
 
-  .card-header {
+  .commerce-profile .card-header {
     font-weight: 600;
     font-size: 0.95rem;
     background: #f7f9fb !important;
     border-bottom: 1px solid #e5e5e5 !important;
   }
 
-  .card-body {
+  .commerce-profile .card-body {
     background: #ffffff;
     padding-top: 1.15rem !important;
   }
 
-  .titulo-comercio {
+  .commerce-profile .titulo-comercio {
     font-size: 1.9rem !important;
     font-weight: 800 !important;
     letter-spacing: -0.5px;
   }
 
   /* ---------- Etiquetas / Categorías ---------- */
-  .badge {
+  .commerce-profile .badge {
     padding: 0.45em 0.65em !important;
     font-size: 0.75rem !important;
     font-weight: 600 !important;
     border-radius: 0.35rem !important;
   }
 
-  .badge-light { 
+  .commerce-profile .badge-light {
     background: #f2f2f2 !important; 
     color: #555 !important; 
   }
 
-  .badge-success { background-color: #2ecc71 !important; }
-  .badge-info    { background-color: #3498db !important; }
-  .badge-warning { background-color: #f1c40f !important; color:#333 !important; }
-  .badge-danger  { background-color: #e74c3c !important; }
+  .commerce-profile .badge-success { background-color: #2d9d68 !important; }
+  .commerce-profile .badge-info    { background-color: #2d7db3 !important; }
+  .commerce-profile .badge-warning { background-color: #f0bf3a !important; color:#302700 !important; }
+  .commerce-profile .badge-danger  { background-color: #d84a4a !important; }
 
   /* ---------- Títulos pequeños ---------- */
-  .text-muted.small {
+  .commerce-profile .text-muted.small {
     font-size: 0.72rem !important;
     letter-spacing: 0.3px;
     text-transform: uppercase;
   }
 
-  .font-weight-bold {
+  .commerce-profile .font-weight-bold {
     font-size: 0.92rem;
   }
 
   /* ---------- Encabezado general ---------- */
-  .content-header {
+  .commerce-profile .content-header {
     border-bottom: 1px solid #e5e5e5;
     background: linear-gradient(to right, #ffffff, #fafafa);
     padding-bottom: 1rem;
@@ -785,55 +793,145 @@
   }
 
   /* ---------- Botonera derecha ---------- */
-  .btn-group .btn {
+  .commerce-profile .commerce-actions .btn {
     border-radius: 0.4rem !important;
     font-size: 0.78rem;
   }
 
-  .btn-primary {
+  .commerce-profile .btn-primary {
     background: #4a6cf7 !important;
     border-color: #4a6cf7 !important;
   }
 
-  .btn-danger {
+  .commerce-profile .btn-danger {
     background: #e74c3c !important;
     border-color: #e74c3c !important;
   }
 
-  .btn-secondary {
-    background: #bdc3c7 !important;
-    border-color: #bdc3c7 !important;
+  .commerce-profile .btn-secondary {
+    background: #657383 !important;
+    border-color: #657383 !important;
   }
 
   /* ---------- Separadores ---------- */
-  hr.my-2 {
+  .commerce-profile hr.my-2 {
     border-top: 1px solid #ddd !important;
   }
 
   /* ---------- Tablas ---------- */
-  table.table {
+  .commerce-profile table.table {
     border-radius: 0.5rem !important;
     overflow: hidden;
   }
 
-  .table thead th {
+  .commerce-profile .table thead th {
     background: #f7f9fb !important;
     font-weight: 600 !important;
   }
 
-  .table tbody tr td {
+  .commerce-profile .table tbody tr td {
     font-size: 0.82rem !important;
   }
 
   /* ---------- Badges de documentación ---------- */
-  .docs-box {
+  .commerce-profile .docs-box {
     transition: 0.2s;
   }
 
-  .docs-box:hover {
+  .commerce-profile .docs-box:hover {
     transform: translateY(-2px);
     box-shadow: 0 2px 6px rgba(0,0,0,0.12);
   }
 
+  .commerce-profile {
+    max-width: 1540px;
+    margin: 0 auto;
+    color: #253244;
+  }
+
+  .commerce-profile .commerce-hero-layout {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+
+  .commerce-profile .commerce-identity {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .commerce-profile .commerce-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .45rem;
+    flex: 0 1 470px;
+  }
+
+  .commerce-profile .commerce-actions .btn {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(31, 45, 61, .12);
+  }
+
+  .commerce-profile .communication-header,
+  .commerce-profile .communication-heading-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+  }
+
+  .commerce-profile .card {
+    transition: box-shadow .18s ease, transform .18s ease;
+  }
+
+  .commerce-profile .card:hover {
+    box-shadow: 0 5px 18px rgba(37, 50, 68, .09);
+  }
+
+  @media (max-width: 991.98px) {
+    .commerce-profile .commerce-hero-layout {
+      flex-direction: column;
+    }
+    .commerce-profile .commerce-actions {
+      width: 100%;
+      flex-basis: auto;
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .commerce-profile .titulo-comercio {
+      font-size: 1.5rem !important;
+    }
+    .commerce-profile .commerce-actions .btn {
+      flex: 1 1 calc(50% - .45rem);
+    }
+    .commerce-profile .communication-header,
+    .commerce-profile .communication-heading-actions {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+    .commerce-profile .communication-heading-actions .text-muted {
+      margin-right: 0 !important;
+    }
+  }
+
 </style>
+@endpush
+
+@push('scripts')
+<script>
+  document.addEventListener('livewire:init', () => {
+    Livewire.on('comunicacion-abierta', () => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.getElementById('comunicacion-asistida')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }));
+    });
+  });
+</script>
 @endpush

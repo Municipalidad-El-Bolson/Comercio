@@ -351,6 +351,16 @@ class ComercioData extends Component
             . '&body=' . rawurlencode($this->contactoMensaje);
     }
 
+    public function abrirComunicacion(): void
+    {
+        if (!$this->contactoWhatsappUrl) {
+            return;
+        }
+
+        $this->comunicacionAbierta = true;
+        $this->dispatch('comunicacion-abierta');
+    }
+
     public function getDocSchemaProperty(): array
     {
         $estado = $this->normalizarEstado($this->state['estado'] ?? 'entramite');

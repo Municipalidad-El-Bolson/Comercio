@@ -1,58 +1,56 @@
-<div>
-    <div class="card mb-3">
-        {{-- Header --}}
+<div class="expediente-panel">
+    <div class="card mb-3 border-secondary">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <strong>Seguimiento del expediente</strong>
-
-            <div class="ml-auto">
-                <button class="btn btn-sm btn-outline-secondary" wire:click="$toggle('colapsado')">
-                    {{ $colapsado ? 'Expandir' : 'Minimizar' }}
-                </button>
-            </div>
+            <strong><i class="fas fa-route mr-2 text-primary"></i>Seguimiento del expediente</strong>
+            <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="$toggle('colapsado')">
+                <i class="fas {{ $colapsado ? 'fa-chevron-down' : 'fa-chevron-up' }} mr-1"></i>
+                {{ $colapsado ? 'Expandir' : 'Minimizar' }}
+            </button>
         </div>
 
-        {{-- Contenido colapsable --}}
         <div class="{{ $colapsado ? 'd-none' : '' }}">
             <div class="card-body pb-3">
                 @if($observacionesMesa->isNotEmpty())
                     <div class="alert alert-warning py-2">
-                        <div class="font-weight-bold mb-1"><i class="fas fa-comment-alt mr-1"></i>Observaciones ingresadas por Mesa de entrada</div>
+                        <div class="font-weight-bold mb-1"><i class="fas fa-comment-alt mr-1"></i>Observaciones de Mesa de entrada</div>
                         @foreach($observacionesMesa as $observacionMesa)
                             <div class="small mb-1"><strong>Expediente Nº {{ $observacionMesa->nro_ingreso }}</strong> ({{ $observacionMesa->fecha?->format('d/m/Y') }}): {{ $observacionMesa->observacion }}</div>
                         @endforeach
                     </div>
                 @endif
-                {{-- Controles --}}
+
                 @can('manage-ubicaciones')
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                    <select class="form-control form-control-sm mr-2" style="max-width:320px" wire:model.live="etapaActual">
-                        @foreach ($etapas as $key => $meta)
-                            <option value="{{ $key }}">{{ $meta['title'] }}</option>
-                        @endforeach
-                    </select>
-
-                     <input type="date"
-                            class="form-control form-control-sm mr-2"
-                            style="max-width:220px"
-                            wire:model.defer="fechaManual" />
-
-                    <input type="text"
-                            class="form-control form-control-sm mr-2"
-                            style="max-width:360px"
-                            placeholder="Observación (opcional)"
-                            wire:model.defer="obs" />
-
-                    <button class="btn btn-success btn-sm" wire:click="guardarEtapa">
-                        Guardar
+                <div class="expediente-controls mb-3">
+                    <div class="expediente-field expediente-stage">
+                        <label for="expediente-etapa">Nueva etapa</label>
+                        <select id="expediente-etapa" class="form-control form-control-sm" wire:model.live="etapaActual">
+                            @foreach ($etapas as $key => $meta)
+                                <option value="{{ $key }}">{{ $meta['title'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="expediente-field expediente-date">
+                        <label for="expediente-fecha">Fecha</label>
+                        <input id="expediente-fecha" type="date" class="form-control form-control-sm" wire:model.defer="fechaManual">
+                    </div>
+                    <div class="expediente-field expediente-note">
+                        <label for="expediente-obs">Observación</label>
+                        <input id="expediente-obs" type="text" class="form-control form-control-sm"
+                               placeholder="Detalle opcional del avance" wire:model.defer="obs">
+                    </div>
+                    <button type="button" class="btn btn-success btn-sm expediente-save"
+                            wire:click="guardarEtapa" wire:loading.attr="disabled" wire:target="guardarEtapa">
+                        <i class="fas fa-save mr-1"></i>
+                        <span wire:loading.remove wire:target="guardarEtapa">Guardar avance</span>
+                        <span wire:loading wire:target="guardarEtapa">Guardando…</span>
                     </button>
                 </div>
                 @endcan
 
-                {{-- Timeline --}}
-                <div class="timeline-wrap">
+                <div class="timeline-wrap" aria-label="Etapas del expediente">
                     @foreach ($steps as $step)
                         <div class="step {{ $step['status'] }} {{ $step['is_last'] ? 'last' : '' }}">
-                            <div class="dot">
+                            <div class="dot" aria-hidden="true">
                                 @if ($step['status'] === 'done')
                                     <i class="fas fa-check"></i>
                                 @elseif($step['status'] === 'current')
@@ -61,17 +59,10 @@
                                     <i class="far fa-circle"></i>
                                 @endif
                             </div>
-
-                            {{-- Solo título, descripción como tooltip --}}
-                            <div class="label {{ $step['status'] === 'current' ? 'font-weight-bold' : '' }}"
-                                title="{{ $step['tooltip'] }}">
-                                <span class="wrap-2">{{ $step['title'] }}</span>
+                            <div class="label {{ $step['status'] === 'current' ? 'font-weight-bold' : '' }}" title="{{ $step['tooltip'] }}">
+                                <span>{{ $step['title'] }}</span>
                             </div>
-
-
-                            <div class="date text-muted">
-                                {{ $step['fecha_str'] }}
-                            </div>
+                            <div class="date text-muted">{{ $step['fecha_str'] }}</div>
                         </div>
                     @endforeach
                 </div>
@@ -79,21 +70,15 @@
                 <hr class="my-3">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="mb-0"><i class="fas fa-history mr-1"></i>Historial del expediente</h6>
-                    <button type="button" class="btn btn-sm btn-outline-secondary"
-                            wire:click="$toggle('historialColapsado')">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="$toggle('historialColapsado')">
+                        <i class="fas {{ $historialColapsado ? 'fa-chevron-down' : 'fa-chevron-up' }} mr-1"></i>
                         {{ $historialColapsado ? 'Expandir' : 'Minimizar' }}
                     </button>
                 </div>
                 <div class="table-responsive {{ $historialColapsado ? 'd-none' : '' }}">
                     <table class="table table-sm table-striped table-bordered mb-0">
                         <thead class="thead-light">
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Desde</th>
-                                <th>Hacia</th>
-                                <th>Usuario</th>
-                                <th>Observaciones</th>
-                            </tr>
+                            <tr><th>Fecha</th><th>Desde</th><th>Hacia</th><th>Usuario</th><th>Observaciones</th></tr>
                         </thead>
                         <tbody>
                             @forelse($historial as $registro)
@@ -105,233 +90,16 @@
                                     <td>{{ $registro->observacion ?: '—' }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="5" class="text-muted text-center">Todavía no hay avances registrados.</td></tr>
+                                <tr><td colspan="5" class="text-muted text-center py-3">Todavía no hay avances registrados.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
-
-        {{-- Estilos timeline (idénticos a los tuyos) --}}
-        <style>
-            .timeline-wrap { position: relative; display: flex; align-items: flex-start; padding: 24px 8px 0 8px; }
-            .timeline-wrap .step { position: relative; flex: 1 1 0; text-align: center; }
-            .timeline-wrap .step:not(.last)::after { content: ""; position: absolute; top: 18px; left: calc(50% + 18px); right: -50%; height: 2px; background: #e2e3e5; transform: translateY(-50%); z-index: 0; }
-            .timeline-wrap .step.done:not(.last)::after,
-            .timeline-wrap .step.current:not(.last)::after { background: #28a745; }
-            .timeline-wrap .dot { width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #f8f9fa; border: 2px solid #ced4da; color: #6c757d; margin: 0 auto; position: relative; z-index: 2; }
-            .timeline-wrap .step.done .dot { background: #e9f7ec; border-color: #28a745; color: #28a745; }
-            .timeline-wrap .step.current .dot { background: #28a745; border-color: #28a745; color: #fff; }
-            .timeline-wrap .label { margin-top: 8px; font-size: .95rem; white-space: nowrap; }
-            .timeline-wrap .date { font-size: .8rem; margin-top: 4px; }
-            .timeline-wrap .step.last::after { display: none; }
-            @media (max-width: 600px) {
-                .timeline-wrap { flex-direction: column !important; align-items: stretch !important; padding: 16px 0 0 0 !important; }
-                .timeline-wrap .step { text-align: left !important; margin-bottom: 32px; }
-                .timeline-wrap .step .dot { margin: 0 0 0 8px; }
-                .timeline-wrap .step:not(.last)::after { content: ""; position: absolute; left: 34px; top: 36px; width: 2px; height: 32px; background: #e2e3e5; z-index: 0; right: auto; bottom: auto; transform: none; }
-                .timeline-wrap .step.done:not(.last)::after,
-                .timeline-wrap .step.current:not(.last)::after { background: #28a745; }
-                .timeline-wrap .step.last::after { display: none; }
-            }
-        </style>
-        <style>
-            .timeline-wrap .label .truncate {
-                display: inline-block;
-                max-width: 180px;          /* ajustá según tu layout */
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                vertical-align: bottom;
-            }
-            /* si querés, podés aumentar el ancho en pantallas grandes */
-            @media (min-width: 1400px) {
-                .timeline-wrap .label .truncate { max-width: 220px; }
-            }
-        </style>
-        <style>
-            /* === Layout base === */
-            .timeline-wrap {
-                --step-width: 180px;       /* ancho uniforme por paso */
-                --dot-size: 36px;
-                position: relative;
-                display: flex;
-                align-items: flex-start;
-                padding: 24px 8px 0 8px;
-                gap: 0;                    /* líneas quedan continuas */
-                overflow-x: auto;          /* si no entra, scrollea horizontal */
-                -webkit-overflow-scrolling: touch;
-            }
-
-            .timeline-wrap .step {
-                position: relative;
-                flex: 0 0 var(--step-width);  /* TODOS los steps mismo ancho */
-                text-align: center;
-            }
-
-            /* línea de fondo */
-            .timeline-wrap .step:not(.last)::after {
-                content: "";
-                position: absolute;
-                top: calc(var(--dot-size)/2);
-                left: calc(50% + var(--dot-size)/2);
-                right: -50%;
-                height: 2px;
-                background: #e2e3e5;
-                transform: translateY(-50%);
-                z-index: 0;
-            }
-            .timeline-wrap .step.done:not(.last)::after,
-            .timeline-wrap .step.current:not(.last)::after { background: #28a745; }
-
-            /* DOT */
-            .timeline-wrap .dot {
-                width: var(--dot-size);
-                height: var(--dot-size);
-                border-radius: 50%;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                background: #f8f9fa;
-                border: 2px solid #ced4da;
-                color: #6c757d;
-                margin: 0 auto;
-                position: relative;
-                z-index: 2;
-            }
-            .timeline-wrap .step.done .dot   { background:#e9f7ec; border-color:#28a745; color:#28a745; }
-            .timeline-wrap .step.current .dot{ background:#28a745; border-color:#28a745; color:#fff; }
-
-            /* Título con 2 líneas como máximo */
-            .timeline-wrap .label {
-                margin-top: 8px;
-                font-size: .95rem;
-                line-height: 1.1rem;
-                padding: 0 6px; /* un poco de aire lateral */
-            }
-            .timeline-wrap .label .wrap-2 {
-                display: -webkit-box;
-                -webkit-line-clamp: 2;      /* <= 2 líneas */
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: normal;         /* permite salto */
-                word-break: break-word;      /* corta palabras largas si hace falta */
-            }
-
-            .timeline-wrap .date { font-size: .8rem; margin-top: 4px; }
-            .timeline-wrap .step.last::after { display: none; }
-
-            /* Responsive: podés ajustar ancho por paso según viewport */
-            @media (min-width: 1400px) { .timeline-wrap { --step-width: 200px; } }
-            @media (max-width: 768px)  { .timeline-wrap { --step-width: 160px; } }
-            @media (max-width: 600px)  { .timeline-wrap { --step-width: 140px; } }
-        </style>
-        <style>
-            .timeline-wrap {
-                --min-step: 180px;          /* ancho mínimo por step */
-                --dot-size: 36px;
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(var(--min-step), 1fr));
-                gap: 0;                     /* mantené 0 para que la línea se vea continua */
-                align-items: start;
-                padding: 24px 8px 0 8px;
-            }
-            .timeline-wrap .step { position: relative; text-align: center; }
-
-            /* Las líneas horizontales entre grid-celdas son más difíciles:
-                este enfoque dibuja cada tramo dentro de su celda hasta la mitad */
-            .timeline-wrap .step:not(.last)::after {
-                content: "";
-                position: absolute;
-                top: calc(var(--dot-size)/2);
-                left: calc(50% + var(--dot-size)/2);
-                right: 0;
-                height: 2px;
-                background: #e2e3e5;
-                transform: translateY(-50%);
-                z-index: 0;
-            }
-            .timeline-wrap .step.done:not(.last)::after,
-            .timeline-wrap .step.current:not(.last)::after { background: #28a745; }
-            .timeline-wrap {
-                --step-width: 140px;     /* ancho fijo para cada paso */
-                --dot-size: 36px;
-                display: flex;
-                align-items: flex-start;
-                padding: 24px 8px 0 8px;
-                overflow-x: auto;        /* scroll si no entran todos */
-                -webkit-overflow-scrolling: touch;
-            }
-
-            .timeline-wrap .step {
-                flex: 0 0 var(--step-width);
-                text-align: center;
-                position: relative;
-            }
-
-            /* línea entre pasos */
-            .timeline-wrap .step:not(.last)::after {
-                content: "";
-                position: absolute;
-                top: calc(var(--dot-size) / 2);
-                left: calc(50% + var(--dot-size) / 2);
-                right: -50%;
-                height: 2px;
-                background: #e2e3e5;
-                transform: translateY(-50%);
-                z-index: 0;
-            }
-            .timeline-wrap .step.done:not(.last)::after,
-            .timeline-wrap .step.current:not(.last)::after {
-                background: #28a745;
-            }
-
-            /* DOT */
-            .timeline-wrap .dot {
-                width: var(--dot-size);
-                height: var(--dot-size);
-                border-radius: 50%;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                background: #f8f9fa;
-                border: 2px solid #ced4da;
-                color: #6c757d;
-                margin: 0 auto;
-                position: relative;
-                z-index: 2;
-            }
-            .timeline-wrap .step.done .dot   { background:#e9f7ec; border-color:#28a745; color:#28a745; }
-            .timeline-wrap .step.current .dot{ background:#28a745; border-color:#28a745; color:#fff; }
-
-            /* Títulos en dos renglones */
-            .timeline-wrap .label {
-                margin-top: 8px;
-                font-size: .90rem;
-                line-height: 1.1rem;
-                padding: 0 4px;
-            }
-            .timeline-wrap .label .wrap-2 {
-                display: -webkit-box;
-                -webkit-line-clamp: 2;   /* máximo 2 líneas */
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: normal;
-                word-break: break-word;  /* corta palabras largas */
-            }
-
-            /* Fecha */
-            .timeline-wrap .date {
-                font-size: .75rem;
-                margin-top: 4px;
-            }
-            .timeline-wrap .step.last::after { display: none; }
-
-            /* dot, label, date y wrap-2 = igual que en la variante A */
-        </style>
-        
     </div>
+
+    <style>
+        .expediente-panel .expediente-controls{display:flex;align-items:flex-end;gap:.65rem;padding:.85rem;border:1px solid #e2e8f0;border-radius:.65rem;background:#f8fafc}.expediente-panel .expediente-field label{display:block;margin-bottom:.25rem;color:#64748b;font-size:.72rem;font-weight:700;letter-spacing:.025em;text-transform:uppercase}.expediente-panel .expediente-stage{flex:1 1 240px}.expediente-panel .expediente-date{flex:0 1 180px}.expediente-panel .expediente-note{flex:2 1 320px}.expediente-panel .expediente-save{flex:0 0 auto;height:31px}.expediente-panel .timeline-wrap{--step-width:145px;--dot-size:36px;display:flex;align-items:flex-start;padding:24px 8px 8px;overflow-x:auto;-webkit-overflow-scrolling:touch}.expediente-panel .timeline-wrap .step{position:relative;flex:0 0 var(--step-width);text-align:center}.expediente-panel .timeline-wrap .step:not(.last)::after{content:"";position:absolute;top:calc(var(--dot-size)/2);left:calc(50% + var(--dot-size)/2);right:-50%;height:2px;background:#dce3ea;transform:translateY(-50%);z-index:0}.expediente-panel .timeline-wrap .step.done:not(.last)::after,.expediente-panel .timeline-wrap .step.current:not(.last)::after{background:#28a745}.expediente-panel .timeline-wrap .dot{position:relative;z-index:2;width:var(--dot-size);height:var(--dot-size);margin:0 auto;border:2px solid #cbd5e1;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#f8fafc;color:#64748b}.expediente-panel .timeline-wrap .step.done .dot{border-color:#28a745;background:#e8f7ed;color:#22863a}.expediente-panel .timeline-wrap .step.current .dot{border-color:#2673b8;background:#2673b8;color:#fff;box-shadow:0 0 0 4px rgba(38,115,184,.12)}.expediente-panel .timeline-wrap .label{margin-top:8px;padding:0 5px;font-size:.86rem;line-height:1.05rem}.expediente-panel .timeline-wrap .label span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.expediente-panel .timeline-wrap .date{margin-top:4px;font-size:.75rem}.expediente-panel .timeline-wrap .step.last::after{display:none}@media(min-width:1400px){.expediente-panel .timeline-wrap{--step-width:160px}}@media(max-width:767.98px){.expediente-panel .expediente-controls{align-items:stretch;flex-direction:column}.expediente-panel .expediente-stage,.expediente-panel .expediente-date,.expediente-panel .expediente-note{width:100%;flex-basis:auto}.expediente-panel .expediente-save{width:100%}.expediente-panel .timeline-wrap{--step-width:135px}}
+    </style>
 </div>

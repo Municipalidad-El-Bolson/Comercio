@@ -14,7 +14,7 @@
                 <li class="nav-item">
                     <a href="{{ route('mesa.inbox') }}"
                        class="nav-link d-flex align-items-center justify-content-between {{ request()->routeIs('mesa.inbox') ? 'active' : '' }}">
-                        <span><i class="fas fa-inbox me-2"></i> Mesa de entrada</span>
+                        <span class="nav-label"><i class="fas fa-inbox nav-icon"></i><span>Mesa de entrada</span></span>
                         @livewire('notifications.bell-mesa')
                     </a>
                 </li>
@@ -31,7 +31,7 @@
                 <li class="nav-item">
                 <a href="{{ route('prox_vto.index') }}"
                     class="nav-link d-flex align-items-center justify-content-between {{ request()->routeIs('prox_vto.index') ? 'active' : '' }}">
-                    <span><i class="fas fa-hourglass-half me-2"></i> Próximos a vencer</span>
+                    <span class="nav-label"><i class="fas fa-hourglass-half nav-icon"></i><span>Próximos a vencer</span></span>
                     @livewire('notifications.bell-prox-vto')
                 </a>
                 </li>
@@ -40,7 +40,7 @@
                 <li class="nav-item">
                 <a href="{{ route('vto.index') }}"
                     class="nav-link d-flex align-items-center justify-content-between {{ request()->routeIs('vto.index') ? 'active' : '' }}">
-                    <span><i class="fas fa-calendar-times me-2"></i> Vencidos</span>
+                    <span class="nav-label"><i class="fas fa-calendar-times nav-icon"></i><span>Vencidos</span></span>
                     @livewire('notifications.bell-vencidos')
                 </a>
                 </li>
@@ -141,5 +141,46 @@
     .nav-sidebar .nav-link:hover {
         background-color: rgba(0, 123, 255, 0.7);
         color: #fff;
+    }
+
+    .nav-sidebar .nav-link {
+        min-height: 42px;
+    }
+    .nav-sidebar .nav-label {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        flex: 1 1 auto;
+    }
+    .nav-sidebar .nav-label > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .sidebar-notification {
+        position: relative;
+        flex: 0 0 34px;
+        width: 34px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+    .sidebar-notification-count {
+        position: absolute;
+        top: -3px;
+        right: -2px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        border-radius: 9px;
+        background: #dc3545;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 18px;
+        text-align: center;
+        box-shadow: 0 0 0 2px #343a40;
     }
 </style>
