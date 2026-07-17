@@ -151,16 +151,6 @@
             </button>
           @endif
 
-          @if($this->contactoEmailUrl)
-            <a href="{{ $this->contactoEmailUrl }}" class="btn btn-outline-primary btn-sm">
-              <i class="far fa-envelope mr-1"></i> Email
-            </a>
-          @else
-            <button type="button" class="btn btn-outline-primary btn-sm" disabled title="No hay correo cargado">
-              <i class="far fa-envelope mr-1"></i> Email
-            </button>
-          @endif
-
           @can('manage-ubicaciones')
           @isset($ubicacion->id)
             <button type="button" wire:click="editaComercio({{ $ubicacion->id }})"
@@ -265,15 +255,6 @@
               </button>
             @endif
 
-            @if($this->contactoEmailUrl)
-              <a class="btn btn-outline-primary btn-sm mb-1" href="{{ $this->contactoEmailUrl }}">
-                <i class="far fa-envelope mr-1"></i>Enviar email
-              </a>
-            @else
-              <button class="btn btn-outline-primary btn-sm mb-1" disabled title="No hay correo cargado">
-                <i class="far fa-envelope mr-1"></i>Enviar email
-              </button>
-            @endif
           </div>
         </div>
       </div>
