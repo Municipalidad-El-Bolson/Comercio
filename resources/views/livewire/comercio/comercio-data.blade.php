@@ -1051,12 +1051,33 @@
     background: linear-gradient(135deg,#edfaf5,#ddf4ea) !important;
     color: #126849;
   }
+  .commerce-profile .card-header > .btn:last-child,
+  .commerce-profile .card-header > div:last-child:not(:first-child),
+  .commerce-profile .communication-heading-actions,
+  .commerce-profile .expediente-panel .card-body > .d-flex > .btn:last-child {
+    margin-left: auto !important;
+  }
+  .commerce-profile .card-header > div:last-child:not(:first-child),
+  .commerce-profile .communication-heading-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .4rem;
+  }
   @media (max-width: 991.98px) {
     .commerce-profile .commerce-hero-card .card-body { padding: 1.25rem !important; }
   }
   @media (max-width: 575.98px) {
     .commerce-profile .card-header { align-items: flex-start !important; gap: .65rem; flex-wrap: wrap; }
     .commerce-profile .card-body { padding: 1rem !important; }
+    .commerce-profile .card-header > .btn:last-child,
+    .commerce-profile .card-header > div:last-child:not(:first-child),
+    .commerce-profile .communication-heading-actions {
+      width: auto;
+      max-width: 100%;
+      margin-left: auto !important;
+      justify-content: flex-end;
+    }
   }
 </style>
 @endpush
