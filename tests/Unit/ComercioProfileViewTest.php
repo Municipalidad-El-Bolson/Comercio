@@ -16,6 +16,8 @@ class ComercioProfileViewTest extends TestCase
         $this->assertStringNotContainsString("\n  .card {", $view);
         $this->assertStringContainsString('wire:click="abrirComunicacion"', $view);
         $this->assertStringContainsString("key('timeline-comercio-'", $view);
+        $this->assertStringContainsString('wire:key="timeline-shell-', $view);
+        $this->assertStringContainsString('wire:key="movimiento-modal-shell-', $view);
         $this->assertStringContainsString('wire:click="editaComercio(', $view);
         $this->assertStringContainsString('wire:click="mostrarMovimientos(', $view);
         $this->assertStringContainsString('public function abrirComunicacion(): void', $component);

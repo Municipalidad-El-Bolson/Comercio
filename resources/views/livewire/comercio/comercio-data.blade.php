@@ -1,5 +1,7 @@
 <div class="commerce-profile container-fluid px-2 px-md-3 px-xl-4 pb-4">
-<livewire:comercio.movimiento-modal wire:key="movimiento-modal-comercio-{{ $ubicacion->id }}" />
+<div wire:ignore wire:key="movimiento-modal-shell-{{ $ubicacion->id }}">
+  <livewire:comercio.movimiento-modal wire:key="movimiento-modal-comercio-{{ $ubicacion->id }}" />
+</div>
 {{-- HEADER / HERO --}}
 @php
   $esJuridica  = ($ubicacion->getRawOriginal('persona_tipo') ?? $ubicacion->persona_tipo ?? 'fisica') === 'juridica';
@@ -283,10 +285,12 @@
 
     {{-- TIMELINE (si corresponde) --}}
     @if($ubicacion->habilita_seguimiento)
-      @livewire('comercio.timeline', [
-        'ubicacionId' => $ubicacion->id,
-        'createdAt' => $ubicacion->created_at,
-      ], key('timeline-comercio-'.$ubicacion->id))
+      <div wire:ignore wire:key="timeline-shell-{{ $ubicacion->id }}">
+        @livewire('comercio.timeline', [
+          'ubicacionId' => $ubicacion->id,
+          'createdAt' => $ubicacion->created_at,
+        ], key('timeline-comercio-'.$ubicacion->id))
+      </div>
     @endif
 
     {{-- GRID PRINCIPAL --}}
