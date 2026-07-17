@@ -1,7 +1,4 @@
 <div class="commerce-profile container-fluid px-2 px-md-3 px-xl-4 pb-4">
-<div wire:ignore wire:key="movimiento-modal-shell-{{ $ubicacion->id }}">
-  <livewire:comercio.movimiento-modal wire:key="movimiento-modal-comercio-{{ $ubicacion->id }}" />
-</div>
 {{-- HEADER / HERO --}}
 @php
   $esJuridica  = ($ubicacion->getRawOriginal('persona_tipo') ?? $ubicacion->persona_tipo ?? 'fisica') === 'juridica';
@@ -728,6 +725,9 @@
 
   </div> {{-- /container-fluid --}}
   @include('livewire.comercio.form')
+  <div wire:ignore wire:key="movimiento-modal-shell-{{ $ubicacion->id }}">
+    <livewire:comercio.movimiento-modal wire:key="movimiento-modal-comercio-{{ $ubicacion->id }}" />
+  </div>
 </div>
 
 @push('styles')
