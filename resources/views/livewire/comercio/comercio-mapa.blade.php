@@ -44,7 +44,7 @@
                   <label class="mb-1">Estado</label>
                   <select class="form-control form-control-sm" wire:model.live="selectedEstado">
                     <option value="">-- Todos --</option>
-                    @foreach(\App\Livewire\Comercio\Ubicaciones::estadoLabels() as $value => $label)
+                    @foreach($estados as $value => $label)
                       <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                   </select>
@@ -376,10 +376,13 @@
 
   // Mapeo de estados internos a etiquetas visibles
   const estadoLabels = {
-    entramite: "021 - En trámite",
-    vigente:   "Alta",
-    irregular: "032 - Irregular",
-    baja:      "Baja"
+    entramite:   "021/90",
+    vigente:     "021/90",
+    irregular:   "032/01",
+    "040":       "040/25",
+    baja:        "Baja",
+    baja_oficio: "Baja de oficio",
+    sin_efecto:  "Expediente sin efecto"
   };
 
   function popupHTML(p) {
