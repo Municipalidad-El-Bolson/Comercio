@@ -88,7 +88,7 @@
                             <th class="text-sm" >Comercio</th>
                             <th class="text-sm" style="width:120px">Nº Hab.</th>
                             <th class="text-sm" style="width:140px">DNI / CUIT</th>
-                            <th class="text-sm" >Rubro</th>
+                            <th class="text-sm" style="width:180px">Rubro principal</th>
                             <th class="text-sm" >Domicilio</th>
                             <th class="text-sm" style="width:120px">Estado</th>
                             <th class="text-sm text-center" style="width:120px">Subir Actas</th>
@@ -209,8 +209,11 @@
                                     </td>
 
                                     {{-- Rubro --}}
-                                    <td class="text-sm">
-                                        {{ data_get($ubicacion, 'rubro.subrubro', '—') }}
+                                    <td class="text-sm" style="max-width:180px">
+                                        <span class="d-block text-truncate font-weight-semibold"
+                                              title="{{ data_get($ubicacion, 'rubro.rubro_general') ?: data_get($ubicacion, 'rubro.mega_rubro') ?: data_get($ubicacion, 'rubro.rubro_madre') ?: data_get($ubicacion, 'rubro.subrubro', '—') }}">
+                                            {{ data_get($ubicacion, 'rubro.rubro_general') ?: data_get($ubicacion, 'rubro.mega_rubro') ?: data_get($ubicacion, 'rubro.rubro_madre') ?: data_get($ubicacion, 'rubro.subrubro', '—') }}
+                                        </span>
                                     </td>
 
                                     {{-- Domicilio --}}

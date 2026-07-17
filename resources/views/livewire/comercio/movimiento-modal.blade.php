@@ -1,13 +1,21 @@
-<div wire:ignore.self class="modal fade" id="modalMovimientos" tabindex="-1" aria-hidden="true">
+<div wire:ignore.self class="modal fade acta-editor-modal" id="modalMovimientos" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content"><!-- ← modal-content DEBE ser un div -->
       <form wire:submit.prevent="guardarMovimiento" enctype="multipart/form-data">
-        <div class="modal-header bg-secondary text-white py-2">
-          <h6 class="modal-title mb-0">Movimientos de {{ $ubicacion->razon_social ?? '' }}</h6>
+        <div class="modal-header acta-editor-header">
+          <div>
+            <div class="acta-editor-eyebrow">Inspecciones y documentación</div>
+            <h5 class="modal-title mb-0">{{ $movimientoIdEdit ? 'Editar acta' : 'Actas del comercio' }}</h5>
+            <div class="acta-editor-commerce">{{ $ubicacion->nombre_comercial ?: ($ubicacion->razon_social ?? 'Comercio') }}</div>
+          </div>
           <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
         </div>
 
-        <div class="modal-body p-2"><!-- ← FALTABA ESTA APERTURA -->
+        <div class="modal-body p-3"><!-- ← FALTABA ESTA APERTURA -->
+          <div class="acta-editor-section-title">
+            <span class="acta-editor-section-icon"><i class="fas fa-file-signature"></i></span>
+            <div><strong>{{ $movimientoIdEdit ? 'Datos del acta seleccionada' : 'Cargar una nueva acta' }}</strong><small>Completá la información y adjuntá el archivo si corresponde.</small></div>
+          </div>
           {{-- Form --}}
           <div class="form-group mb-2">
             <label class="mb-1">Título</label>
@@ -44,7 +52,7 @@
             </div>
           </div>
 
-          <div class="form-group mb-2 border border-warning rounded p-2 bg-light">
+          <div class="form-group mb-3 acta-deadline-box">
             <label class="mb-1 font-weight-bold">
               <i class="fas fa-calendar-alt mr-1 text-warning"></i>Vencimiento del acta (opcional)
             </label>
@@ -92,11 +100,15 @@
             @error('archivo') <small class="text-danger">{{ $message }}</small> @enderror
           </div>
 
-          <hr class="my-2">
+          <hr class="my-3">
 
           {{-- Tabla --}}
-          <h6 class="mb-2">Historial de movimientos</h6>
-          <table class="table table-sm table-bordered mb-0">
+          <div class="acta-editor-section-title mb-2">
+            <span class="acta-editor-section-icon"><i class="fas fa-history"></i></span>
+            <div><strong>Historial de actas</strong><small>Actas registradas anteriormente para este comercio.</small></div>
+          </div>
+          <div class="table-responsive acta-history-table">
+          <table class="table table-sm table-hover mb-0">
             <thead class="thead-light">
               <tr>
                 <th class="text-sm">Título</th>
@@ -157,6 +169,7 @@
               @endforelse
             </tbody>
           </table>
+          </div>
         </div><!-- ← CIERRE modal-body -->
 
         <div class="modal-footer py-2 px-3">
@@ -188,3 +201,24 @@ window.addEventListener('mostrar-modal-movimientos', () => {
   $('#modalMovimientos').modal('show');
 });
 </script>
+
+<style>
+  .acta-editor-modal .modal-content { overflow:hidden; border:0; border-radius:16px; box-shadow:0 24px 70px rgba(14,39,64,.3); }
+  .acta-editor-modal .acta-editor-header { align-items:flex-start; padding:1rem 1.25rem; border:0; background:linear-gradient(125deg,#17385f,#245f91 70%,#268b8b); color:#fff; }
+  .acta-editor-modal .acta-editor-eyebrow { margin-bottom:.2rem; color:rgba(255,255,255,.72); font-size:.67rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+  .acta-editor-modal .modal-title { font-weight:800; letter-spacing:-.02em; }
+  .acta-editor-modal .acta-editor-commerce { margin-top:.2rem; color:rgba(255,255,255,.82); font-size:.82rem; }
+  .acta-editor-modal .acta-editor-section-title { display:flex; align-items:center; gap:.65rem; margin-bottom:1rem; color:#17385f; }
+  .acta-editor-modal .acta-editor-section-title small { display:block; margin-top:.1rem; color:#738498; font-size:.72rem; font-weight:500; }
+  .acta-editor-modal .acta-editor-section-icon { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; flex:0 0 34px; border-radius:9px; background:#eaf3f9; color:#286da8; }
+  .acta-editor-modal label { color:#60758a; font-size:.72rem; font-weight:800; letter-spacing:.03em; }
+  .acta-editor-modal .form-control { min-height:38px; border-color:#cad8e4; border-radius:8px; background:#fbfdff; }
+  .acta-editor-modal textarea.form-control { min-height:72px; }
+  .acta-editor-modal .form-control:focus { border-color:#70a7d1; box-shadow:0 0 0 3px rgba(40,109,168,.1); }
+  .acta-editor-modal .acta-deadline-box { padding:.8rem 1rem; border:1px solid #efd69b; border-radius:10px; background:#fffaf0; }
+  .acta-editor-modal .acta-history-table { border:1px solid #dce6ef; border-radius:10px; }
+  .acta-editor-modal .acta-history-table thead th { border-top:0; border-bottom:1px solid #dce6ef; background:#edf4f9; color:#526a80; font-size:.68rem; font-weight:800; text-transform:uppercase; }
+  .acta-editor-modal .modal-footer { border-top:1px solid #dce6ef; background:#f7fafc; }
+  .acta-editor-modal .btn { border-radius:8px; font-weight:700; }
+  @media (max-width:767.98px) { .acta-editor-modal .modal-dialog { margin:.5rem; } .acta-editor-modal .modal-body { padding:1rem !important; } }
+</style>

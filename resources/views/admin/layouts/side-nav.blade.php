@@ -140,6 +140,6 @@
     .modern-sidebar .sidebar-logout { padding-top:.6rem; border-top:1px solid rgba(255,255,255,.08); }
     .modern-sidebar .sidebar-logout button { color:#ffcbcb; background:rgba(217,70,70,.11); }
     .modern-sidebar .sidebar-logout button:hover { color:#fff; background:rgba(217,70,70,.3); }
-    .sidebar-notification { position:relative; flex:0 0 34px; width:34px; height:28px; display:inline-flex; align-items:center; justify-content:center; pointer-events:none; }
+    .sidebar-notification { position:relative; flex: 0 0 34px; width:34px; height:28px; display:inline-flex; align-items:center; justify-content:center; pointer-events: none; }
     .sidebar-notification-count { position:absolute; top:-3px; right:-2px; min-width:18px; height:18px; padding:0 4px; border-radius:9px; background:#e64646; color:#fff; font-size:10px; font-weight:800; line-height:18px; text-align:center; box-shadow:0 0 0 2px #102942; }
 </style>
