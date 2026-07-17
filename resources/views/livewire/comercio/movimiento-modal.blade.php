@@ -6,7 +6,7 @@
           <div>
             <div class="acta-editor-eyebrow">Inspecciones y documentación</div>
             <h5 class="modal-title mb-0">{{ $movimientoIdEdit ? 'Editar acta' : 'Actas del comercio' }}</h5>
-            <div class="acta-editor-commerce">{{ $ubicacion->nombre_comercial ?: ($ubicacion->razon_social ?? 'Comercio') }}</div>
+            <div class="acta-editor-commerce">{{ $ubicacion?->nombre_comercial ?: ($ubicacion?->razon_social ?? 'Comercio') }}</div>
           </div>
           <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
         </div>
