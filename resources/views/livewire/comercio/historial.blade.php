@@ -2,8 +2,12 @@
   <div class="content-header">
     <div class="container-fluid">
       <div class="text-center mb-3">
-          <h1 class="m-0 pb-2 border-bottom" style="font-size:2.50rem;">Auditoria</h1>
+          <h1 class="m-0">Auditoría</h1>
       </div>
+    </div>
+  </div>
+
+  <div class="container-fluid">
 
       <form wire:submit.prevent="filtrar">
         <div class="row g-2 mb-3 align-items-end">

@@ -1,9 +1,13 @@
-<section class="content" data-autosave="off">
+<section class="content modern-admin-page" data-autosave="off">
   <div class="content-header">
     <div class="container-fluid">
       <div class="text-center mb-3">
-          <h1 class="m-0 pb-2 border-bottom" style="font-size:2.50rem;">Reportes</h1>
+          <h1 class="m-0">Reportes</h1>
       </div>
+    </div>
+  </div>
+
+  <div class="container-fluid">
 
       {{-- Filtros --}}
       <div class="card card-outline card-secondary mb-3">
