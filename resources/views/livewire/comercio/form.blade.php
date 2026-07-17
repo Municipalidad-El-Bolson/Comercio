@@ -1,13 +1,19 @@
-<div class="modal fade" id="form" tabindex="-1" role="dialog" aria-hidden="true" wire:ignore.self>
-  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
+<div class="modal fade commerce-form-modal" id="form" tabindex="-1" role="dialog" aria-hidden="true" wire:ignore.self>
+  <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable" role="document">
     <form autocomplete="off"
           wire:submit.prevent="{{ $showEditModal ? 'updateComercio' : 'createCliente' }}"
-          class="modal-content"
+          class="modal-content commerce-form-content"
           wire:key="form-{{ $formKey ?? 'x' }}">
 
-      <div class="modal-header bg-primary text-white py-2">
-        <h6 class="modal-title mb-0">{{ $showEditModal ? 'Editar Comercio' : 'Nuevo Comercio' }}</h6>
-        <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+      <div class="modal-header commerce-form-header">
+        <div class="commerce-form-heading">
+          <span class="commerce-form-heading-icon"><i class="fas {{ $showEditModal ? 'fa-pen' : 'fa-store' }}"></i></span>
+          <div>
+            <h5 class="modal-title mb-1">{{ $showEditModal ? 'Editar comercio' : 'Nuevo comercio' }}</h5>
+            <div class="commerce-form-subtitle">{{ $showEditModal ? 'Actualizá los datos del expediente comercial.' : 'Completá la información para registrar el comercio.' }}</div>
+          </div>
+        </div>
+        <button type="button" class="close commerce-form-close" data-dismiss="modal" aria-label="Cerrar"><span>&times;</span></button>
       </div>
 
       @if ($errors->any())
@@ -20,7 +26,7 @@
         </div>
       @endif
 
-      <div class="modal-body p-2">
+      <div class="modal-body commerce-form-body">
         {{-- Tipo de Persona + DNI/CUIT + Fantasía --}}
         <div class="form-row">
           <div class="form-group col-md-4 mb-2">
@@ -448,7 +454,7 @@
               : (method_exists($this, 'getDocSchemaProperty') ? $this->docSchema : ['items' => [], 'uso_inmueble' => ['show' => false]]);
         @endphp
 
-        <div class="border rounded p-2 mt-2">
+        <div class="commerce-documentation-panel mt-2">
           <div class="d-flex align-items-center justify-content-between mb-2">
             <h6 class="mb-0">Documentación</h6>
             <div class="btn-group btn-group-sm">
@@ -509,7 +515,7 @@
         </div>
       </div>
 
-      <div class="modal-footer py-2 px-3">
+      <div class="modal-footer commerce-form-footer">
         <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">
           <i class="fa fa-times mr-1"></i> Cerrar
         </button>
@@ -632,9 +638,179 @@ document.addEventListener('livewire:init', () => {
 @endpush
 
 <style>
-  @media (max-width: 576px) {
-    .modal-dialog { max-width: 98vw !important; margin: 1.75rem auto; }
-    .modal-content { padding: 0.5rem; }
+  .commerce-form-modal {
+    --form-navy: #17385f;
+    --form-blue: #286da8;
+    --form-green: #17845f;
+    --form-ink: #243b53;
+    --form-muted: #6b7d8f;
+    --form-line: #dce6ef;
   }
-  .modal.show .modal-dialog { margin-top: 3.5rem; }
+  .commerce-form-modal .modal-dialog { max-width: 1120px; margin-top: 2.4rem; }
+  .commerce-form-modal .commerce-form-content {
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    border-radius: 1rem;
+    background: #f3f7fa;
+    box-shadow: 0 24px 65px rgba(15,39,64,.28);
+  }
+  .commerce-form-modal .commerce-form-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 82px;
+    padding: 1rem 1.35rem;
+    border: 0;
+    background: linear-gradient(125deg,#17385f 0%,#245f91 65%,#268b8b 125%);
+    color: #fff;
+  }
+  .commerce-form-modal .commerce-form-header::after {
+    content: '';
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    right: -55px;
+    top: -125px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.08);
+    pointer-events: none;
+  }
+  .commerce-form-modal .commerce-form-heading {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+  }
+  .commerce-form-modal .commerce-form-heading-icon {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: .8rem;
+    background: rgba(255,255,255,.12);
+    font-size: 1.05rem;
+  }
+  .commerce-form-modal .modal-title {
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -.015em;
+  }
+  .commerce-form-modal .commerce-form-subtitle { color: rgba(255,255,255,.73); font-size: .78rem; }
+  .commerce-form-modal .commerce-form-close {
+    position: relative;
+    z-index: 2;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: .65rem;
+    color: #fff;
+    background: rgba(255,255,255,.1);
+    opacity: 1;
+    text-shadow: none;
+  }
+  .commerce-form-modal .commerce-form-close:hover { background: #fff; color: var(--form-navy); }
+  .commerce-form-modal .commerce-form-body {
+    padding: 1rem 1.1rem !important;
+    background: #f3f7fa;
+  }
+  .commerce-form-modal .commerce-form-body > .form-row,
+  .commerce-form-modal .commerce-form-body > .form-group {
+    margin-right: 0;
+    margin-bottom: .75rem !important;
+    margin-left: 0;
+    padding: .75rem .65rem .15rem;
+    border: 1px solid var(--form-line);
+    border-radius: .8rem;
+    background: #fff;
+    box-shadow: 0 3px 11px rgba(30,58,86,.035);
+  }
+  .commerce-form-modal .commerce-form-body > .form-group.col-md-12 { max-width: 100%; }
+  .commerce-form-modal .form-group > label,
+  .commerce-form-modal .form-group > label > span:first-child {
+    color: #587087;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+  }
+  .commerce-form-modal .form-control,
+  .commerce-form-modal .ts-control {
+    min-height: 38px;
+    border: 1px solid #cad8e4;
+    border-radius: .55rem;
+    background: #fbfdff;
+    color: var(--form-ink);
+    font-size: .86rem;
+  }
+  .commerce-form-modal textarea.form-control { min-height: 70px; resize: vertical; }
+  .commerce-form-modal .form-control:focus,
+  .commerce-form-modal .ts-control.focus {
+    border-color: #70a7d1;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(40,109,168,.1);
+  }
+  .commerce-form-modal .form-check {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    padding: .35rem .45rem .35rem 1.75rem;
+    border-radius: .45rem;
+  }
+  .commerce-form-modal .form-check:hover { background: #eef5fa; }
+  .commerce-form-modal .form-check-input { margin-top: 0; }
+  .commerce-form-modal .form-check-label { color: #3d5368; font-size: .82rem; }
+  .commerce-form-modal .commerce-documentation-panel {
+    padding: .9rem;
+    border: 1px solid #cddde9;
+    border-radius: .85rem;
+    background: #fff;
+    box-shadow: 0 5px 16px rgba(30,58,86,.055);
+  }
+  .commerce-form-modal .commerce-documentation-panel h6 {
+    color: var(--form-navy);
+    font-size: .95rem;
+    font-weight: 800;
+  }
+  .commerce-form-modal .btn { border-radius: .55rem; font-weight: 700; }
+  .commerce-form-modal .btn-primary { border-color: var(--form-blue); background: var(--form-blue); }
+  .commerce-form-modal .btn-success { border-color: var(--form-green); background: var(--form-green); }
+  .commerce-form-modal .commerce-form-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    min-height: 66px;
+    padding: .75rem 1.1rem;
+    border-top: 1px solid var(--form-line);
+    background: rgba(255,255,255,.96);
+    box-shadow: 0 -6px 18px rgba(30,58,86,.06);
+    backdrop-filter: blur(7px);
+  }
+  .commerce-form-modal .commerce-form-footer .btn { min-width: 112px; min-height: 39px; }
+  .commerce-form-modal .alert-danger {
+    margin: .8rem 1rem 0;
+    border: 1px solid #f1b7bb;
+    border-radius: .7rem;
+    font-size: .82rem;
+  }
+  @media (max-width: 767.98px) {
+    .commerce-form-modal .modal-dialog { max-width: calc(100vw - 1rem) !important; margin: .5rem auto; }
+    .commerce-form-modal .commerce-form-content { max-height: calc(100vh - 1rem); border-radius: .8rem; }
+    .commerce-form-modal .commerce-form-header { min-height: 72px; padding: .85rem 1rem; }
+    .commerce-form-modal .commerce-form-heading-icon { display: none; }
+    .commerce-form-modal .commerce-form-subtitle { max-width: 230px; }
+    .commerce-form-modal .commerce-form-body { padding: .7rem !important; }
+    .commerce-form-modal .commerce-form-body > .form-row,
+    .commerce-form-modal .commerce-form-body > .form-group { padding: .65rem .5rem .05rem; }
+    .commerce-form-modal .commerce-form-footer { justify-content: stretch; }
+    .commerce-form-modal .commerce-form-footer .btn { flex: 1 1 50%; min-width: 0; }
+  }
 </style>
