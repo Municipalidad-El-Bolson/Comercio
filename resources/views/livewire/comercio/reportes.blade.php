@@ -447,6 +447,9 @@
   }
   .modern-admin-page select.form-control:focus { border-color:#65a2ce !important; box-shadow:0 0 0 3px rgba(40,109,168,.12) !important; }
   .modern-admin-page select.form-control option { padding:.55rem; background:#fff; color:#29445d; }
+  .modern-admin-page .card:has(.ts-wrapper) { overflow:visible !important; position:relative; z-index:20; }
+  .modern-admin-page .ts-wrapper.dropdown-active { z-index:1002; }
+  .modern-admin-page .ts-dropdown { z-index:1003 !important; }
   .rubros-pie-chart svg { display:block; width:100%; max-width:290px; margin:auto; filter:drop-shadow(0 8px 12px rgba(23,56,95,.12)); }
   .rubros-pie-chart .pie-total { fill:#17385f; font-size:22px; font-weight:800; }
   .rubros-pie-chart .pie-caption { fill:#718399; font-size:10px; }

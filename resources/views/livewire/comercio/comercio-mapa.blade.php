@@ -826,6 +826,13 @@
     font-weight: 700;
   }
   .commerce-map-page .map-filter-card .card-body { padding: 1rem 1.1rem .35rem !important; }
+  .commerce-map-page .map-filter-card { position:relative; z-index:30; overflow:visible !important; }
+  .commerce-map-page .map-filter-card .card-body { overflow:visible !important; }
+  .commerce-map-page .map-filter-card .form-group { position:relative; }
+  .commerce-map-page .map-filter-card .ts-wrapper { position:relative; z-index:31; }
+  .commerce-map-page .map-filter-card .ts-wrapper.dropdown-active { z-index:1002; }
+  .commerce-map-page .map-filter-card .ts-dropdown { z-index:1003 !important; }
+  .commerce-map-page .map-shell-card { position:relative; z-index:1; }
   .commerce-map-page .map-filter-card label {
     color: #5f7184;
     font-size: .72rem;
