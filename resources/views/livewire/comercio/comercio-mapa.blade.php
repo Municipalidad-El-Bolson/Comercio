@@ -164,12 +164,14 @@
         <div class="card map-shell-card">
           <div class="card-header map-shell-header d-flex align-items-center justify-content-between">
             <strong><i class="fas fa-map-marked-alt mr-2"></i>Ubicaciones comerciales</strong>
-            <span class="map-result-count"><i class="fas fa-store mr-1"></i>{{ count($ubicaciones) }} comercios</span>
+            <div class="d-flex align-items-center map-shell-actions">
+              <button id="btnMapFiltersHeader" type="button" class="btn btn-sm map-header-filter-button">
+                <i class="fas fa-sliders-h mr-1"></i> Abrir filtros
+              </button>
+              <span class="map-result-count"><i class="fas fa-store mr-1"></i>{{ count($ubicaciones) }} comercios</span>
+            </div>
           </div>
           <div class="card-body map-shell-body">
-            <button id="btnMapFiltersOverlay" type="button" class="btn map-filters-overlay">
-              <i class="fas fa-sliders-h mr-1"></i> Mostrar filtros
-            </button>
             <div id="map" wire:ignore></div>
             <div class="map-legend" aria-label="Referencias del mapa">
               <span><i class="map-dot dot-active"></i>021/90</span>
@@ -260,10 +262,10 @@
     };
     apply(collapsed);
     btn.addEventListener('click',()=>{ collapsed = !collapsed; apply(collapsed); });
-    const overlay=document.getElementById('btnMapFiltersOverlay');
-    if(overlay && !overlay._bound){
-      overlay._bound=true;
-      overlay.addEventListener('click',()=>{
+    const headerFilter=document.getElementById('btnMapFiltersHeader');
+    if(headerFilter && !headerFilter._bound){
+      headerFilter._bound=true;
+      headerFilter.addEventListener('click',()=>{
         collapsed=false;
         apply(false);
         document.getElementById('filtros-card')?.scrollIntoView({behavior:'smooth',block:'center'});
@@ -907,14 +909,9 @@
     font-weight: 800;
   }
   .commerce-map-page .map-shell-body { position: relative; padding: .55rem !important; background: #eaf1f6; }
-  .commerce-map-page .map-filters-overlay {
-    position:absolute; top:1rem; left:1rem; z-index:5;
-    border:1px solid rgba(255,255,255,.8) !important; border-radius:10px !important;
-    background:rgba(17,43,70,.92) !important; color:#fff !important;
-    font-size:.78rem; font-weight:800; box-shadow:0 8px 22px rgba(11,31,52,.24);
-    backdrop-filter:blur(7px);
-  }
-  .commerce-map-page .map-filters-overlay:hover { background:#286da8 !important; transform:translateY(-1px); }
+  .commerce-map-page .map-shell-actions { gap:.55rem; }
+  .commerce-map-page .map-header-filter-button { border:1px solid #b8d2e4 !important; border-radius:9px !important; background:#e7f2f9 !important; color:#205f8d !important; font-weight:800; }
+  .commerce-map-page .map-header-filter-button:hover { border-color:#286da8 !important; background:#286da8 !important; color:#fff !important; }
   .commerce-map-page select.form-control {
     min-height:40px !important; padding: .42rem 2.2rem .42rem .7rem !important;
     appearance:none; border:1px solid #c6d6e2 !important; border-radius:.65rem !important;
