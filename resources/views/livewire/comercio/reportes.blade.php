@@ -470,13 +470,16 @@
     const element = document.getElementById(id);
     if (!element || element.tomselect) return;
     let ready = false;
+    element.dataset.livewireFilterValue = String(element.value ?? '');
     new TomSelect(element, {
       allowEmptyOption: true,
       create: false,
       maxOptions: 8000,
       plugins: ['dropdown_input'],
       onChange(value) {
-        if (!ready) return;
+        const nextValue = String(value ?? '');
+        if (!ready || nextValue === element.dataset.livewireFilterValue) return;
+        element.dataset.livewireFilterValue = nextValue;
         $wire.set(property, value === '' ? null : (numeric ? parseInt(value, 10) : value));
       }
     });
@@ -490,7 +493,10 @@
   window.addEventListener('reportFiltersCleared', () => {
     ['select-report-rubro-general','select-rubro-filtro','select-report-estado','select-report-proximos'].forEach((id) => {
       const element = document.getElementById(id);
-      if (element?.tomselect) element.tomselect.clear(true);
+      if (element?.tomselect) {
+        element.dataset.livewireFilterValue = '';
+        element.tomselect.clear(true);
+      }
     });
   });
 

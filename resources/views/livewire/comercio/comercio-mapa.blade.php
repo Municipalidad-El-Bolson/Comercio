@@ -221,13 +221,16 @@
       const el = document.getElementById(id);
       if (!el || el.tomselect) return;
       let ready = false;
+      el.dataset.livewireFilterValue = String(el.value ?? '');
       new TomSelect(el, {
         allowEmptyOption: true,
         create: false,
         maxOptions: 5000,
         plugins: ['dropdown_input'],
         onChange(value) {
-          if (!ready) return;
+          const nextValue = String(value ?? '');
+          if (!ready || nextValue === el.dataset.livewireFilterValue) return;
+          el.dataset.livewireFilterValue = nextValue;
           @this.set(property, value === '' ? null : (numeric ? parseInt(value, 10) : value));
         }
       });
@@ -534,7 +537,10 @@
   window.addEventListener('mapFiltersCleared', () => {
     ['select-map-barrio','select-map-estado','select-map-rubro-general','select-map-rubro'].forEach((id) => {
       const select = document.getElementById(id);
-      if (select?.tomselect) select.tomselect.clear(true);
+      if (select?.tomselect) {
+        select.dataset.livewireFilterValue = '';
+        select.tomselect.clear(true);
+      }
       else if (select) select.value = '';
     });
 
