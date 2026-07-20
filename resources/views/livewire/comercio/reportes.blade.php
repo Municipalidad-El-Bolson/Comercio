@@ -226,7 +226,7 @@
       {{-- FILA: abajo de las listas, las dos tarjetas de estado y próximos vtos --}}
       <div class="row mt-3">
         {{-- Comercios por estado --}}
-        <div class="col-12">
+        <div class="col-lg-6">
           <div class="card border-secondary">
             <div class="card-header">Comercios por estado</div>
             <div class="card-body">
@@ -262,7 +262,7 @@
         </div>
 
         {{-- Gráfico de comercios por rubro --}}
-        <div class="col-12 mt-3">
+        <div class="col-lg-6">
           <div class="card border-secondary">
             <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
               <div><strong>Gráficos</strong><small class="d-block text-muted">Distribución de comercios por rubro</small></div>
@@ -436,17 +436,17 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.12);
   }
 
-  .rubros-pie-layout { display:grid; grid-template-columns:minmax(280px,.7fr) minmax(360px,1.3fr); gap:1.5rem; align-items:start; }
+  .rubros-pie-layout { display:grid; grid-template-columns:minmax(210px,.85fr) minmax(220px,1.15fr); gap:1rem; align-items:center; }
   .rubros-pie-chart svg { display:block; width:100%; max-width:290px; margin:auto; filter:drop-shadow(0 8px 12px rgba(23,56,95,.12)); }
   .rubros-pie-chart .pie-total { fill:#17385f; font-size:22px; font-weight:800; }
   .rubros-pie-chart .pie-caption { fill:#718399; font-size:10px; }
-  .rubros-pie-legend { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 .9rem; padding-right:.25rem; }
+  .rubros-pie-legend { display:block; max-height:300px; overflow:auto; padding-right:.25rem; }
   .pie-legend-row { display:grid; grid-template-columns:10px minmax(0,1fr) 34px 54px; gap:.45rem; align-items:center; padding:.38rem .2rem; border-bottom:1px solid #edf1f5; font-size:.75rem; }
   .pie-legend-color { width:10px; height:10px; border-radius:3px; }
   .pie-legend-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pie-legend-row strong,.pie-legend-row small { text-align:right; }
   .pie-legend-row small { color:#718399; }
-  @media(max-width:767.98px) { .rubros-pie-layout { grid-template-columns:1fr; } .rubros-pie-legend { grid-template-columns:1fr; } }
+  @media(max-width:767.98px) { .rubros-pie-layout { grid-template-columns:1fr; } .rubros-pie-legend { max-height:230px; } }
 
 </style>
 @endpush
