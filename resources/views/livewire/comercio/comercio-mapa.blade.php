@@ -22,12 +22,9 @@
         <div class="card map-filter-card mb-3" id="filtros-card">
           <div class="card-header d-flex align-items-center justify-content-between py-2">
             <strong class="mb-0"><i class="fas fa-sliders-h mr-2"></i>Filtros del mapa</strong>
-            <button id="btnToggleFilters" type="button" class="btn btn-sm btn-outline-secondary">
-              <i id="icoToggleFilters" class="fas fa-chevron-down"></i>
-            </button>
           </div>
 
-          <div class="card-body py-2" id="filtros-body" style="display:none;opacity:0">
+          <div class="card-body py-2" id="filtros-body">
             <div class="mb-2">
               <div class="form-row">
                 <div class="form-group col-md-3 mb-2">
@@ -164,12 +161,7 @@
         <div class="card map-shell-card">
           <div class="card-header map-shell-header d-flex align-items-center justify-content-between">
             <strong><i class="fas fa-map-marked-alt mr-2"></i>Ubicaciones comerciales</strong>
-            <div class="d-flex align-items-center map-shell-actions">
-              <button id="btnMapFiltersHeader" type="button" class="btn btn-sm map-header-filter-button">
-                <i class="fas fa-sliders-h mr-1"></i> Abrir filtros
-              </button>
-              <span class="map-result-count"><i class="fas fa-store mr-1"></i>{{ count($ubicaciones) }} comercios</span>
-            </div>
+            <span class="map-result-count"><i class="fas fa-store mr-1"></i>{{ count($ubicaciones) }} comercios</span>
           </div>
           <div class="card-body map-shell-body">
             <div id="map" wire:ignore></div>
@@ -231,53 +223,11 @@
       @this.set('selectedRubroId', this.value || null);
     });
 
-    setTimeout(() => {
-      document.getElementById('map')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      try { map.resize(); } catch {}
-    }, 350);
-
-
   });
 
   // ======== Helpers comunes ========
   const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
   const esc = (s)=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#39;");
-
-  // Minimizar filtros (idempotente y a prueba de re-renders)
-  function bindCollapsibleFilters(){
-    const KEY='map.filters.collapsed';
-    const body=document.getElementById('filtros-body');
-    const btn=document.getElementById('btnToggleFilters');
-    const ico=document.getElementById('icoToggleFilters');
-    if(!body||!btn||!ico) return;
-    if(btn._bound) return; btn._bound = true;
-
-    let collapsed = true;
-    const apply = (v)=>{
-      body.style.display = v ? 'none' : '';
-      ico.classList.toggle('fa-chevron-up', !v);
-      ico.classList.toggle('fa-chevron-down', v);
-      try{ localStorage.setItem(KEY, v ? '1':'0'); }catch{}
-      setTimeout(()=>{ try{ map.resize(); }catch{} }, 120);
-    };
-    apply(collapsed);
-    btn.addEventListener('click',()=>{ collapsed = !collapsed; apply(collapsed); });
-    const headerFilter=document.getElementById('btnMapFiltersHeader');
-    if(headerFilter && !headerFilter._bound){
-      headerFilter._bound=true;
-      headerFilter.addEventListener('click',()=>{
-        collapsed=false;
-        apply(false);
-        document.getElementById('filtros-card')?.scrollIntoView({behavior:'smooth',block:'center'});
-      });
-    }
-  }
-
-  // Re-vincular después de render de Livewire
-  document.addEventListener('livewire:init', () => {
-    Livewire.hook('message.processed', bindCollapsibleFilters);
-    bindCollapsibleFilters();
-  });
 
   // ======== Fuentes y capas ========
   let GEO_CATASTRO=null, GEO_CPU=null, NOM_KEY=null, CPU_NAME_KEY='CPU_NOMBRE', CPU_CODE_KEY='CPU_COD';
@@ -894,12 +844,6 @@
     background: var(--map-blue);
     color: #fff;
   }
-  .commerce-map-page #btnToggleFilters {
-    width: 34px;
-    height: 34px;
-    margin-left: auto;
-    border-radius: .6rem;
-  }
   .commerce-map-page .map-result-count {
     padding: .42rem .72rem;
     border-radius: 999px;
@@ -909,9 +853,6 @@
     font-weight: 800;
   }
   .commerce-map-page .map-shell-body { position: relative; padding: .55rem !important; background: #eaf1f6; }
-  .commerce-map-page .map-shell-actions { gap:.55rem; }
-  .commerce-map-page .map-header-filter-button { border:1px solid #b8d2e4 !important; border-radius:9px !important; background:#e7f2f9 !important; color:#205f8d !important; font-weight:800; }
-  .commerce-map-page .map-header-filter-button:hover { border-color:#286da8 !important; background:#286da8 !important; color:#fff !important; }
   .commerce-map-page select.form-control {
     min-height:40px !important; padding: .42rem 2.2rem .42rem .7rem !important;
     appearance:none; border:1px solid #c6d6e2 !important; border-radius:.65rem !important;
