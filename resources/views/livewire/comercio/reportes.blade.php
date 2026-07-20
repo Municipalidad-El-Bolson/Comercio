@@ -445,9 +445,6 @@
     background-size:5px 5px,5px 5px !important; background-repeat:no-repeat !important;
     color:#29445d; box-shadow:0 3px 10px rgba(30,58,86,.06) !important;
   }
-  .modern-admin-page .report-modern-select:not(.tomselected) { visibility:hidden; }
-  .modern-admin-page .report-modern-select:not(.tomselected) + .ts-wrapper { visibility:visible; }
-  .modern-admin-page [wire\:ignore]:has(> .report-modern-select) { min-height:68px; }
   .modern-admin-page select.form-control:focus { border-color:#65a2ce !important; box-shadow:0 0 0 3px rgba(40,109,168,.12) !important; }
   .modern-admin-page select.form-control option { padding:.55rem; background:#fff; color:#29445d; }
   .modern-admin-page .card:has(.ts-wrapper) { overflow:visible !important; position:relative; z-index:20; }
@@ -472,15 +469,18 @@
   const initReportSelect = (id, property, numeric = false) => {
     const element = document.getElementById(id);
     if (!element || element.tomselect) return;
+    let ready = false;
     new TomSelect(element, {
       allowEmptyOption: true,
       create: false,
       maxOptions: 8000,
       plugins: ['dropdown_input'],
       onChange(value) {
+        if (!ready) return;
         $wire.set(property, value === '' ? null : (numeric ? parseInt(value, 10) : value));
       }
     });
+    ready = true;
   };
   initReportSelect('select-report-rubro-general', 'rubroGeneral');
   initReportSelect('select-rubro-filtro', 'rubro_id', true);

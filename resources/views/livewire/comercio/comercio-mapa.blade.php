@@ -220,15 +220,18 @@
     const initModernSelect = (id, property, numeric = false) => {
       const el = document.getElementById(id);
       if (!el || el.tomselect) return;
+      let ready = false;
       new TomSelect(el, {
         allowEmptyOption: true,
         create: false,
         maxOptions: 5000,
         plugins: ['dropdown_input'],
         onChange(value) {
+          if (!ready) return;
           @this.set(property, value === '' ? null : (numeric ? parseInt(value, 10) : value));
         }
       });
+      ready = true;
     };
     initModernSelect('select-map-barrio', 'selectedBarrio');
     initModernSelect('select-map-estado', 'selectedEstado');
