@@ -19,7 +19,7 @@
             {{-- 🌟 Rubro General --}}
             <div class="d-flex flex-column" style="min-width:220px;" wire:ignore>
               <label class="text-muted small mb-1">Rubro general</label>
-              <select id="select-report-rubro-general" class="form-control form-control-sm shadow-sm">
+              <select id="select-report-rubro-general" class="form-control form-control-sm shadow-sm report-modern-select">
                   <option value="">-- Todos los rubros --</option>
                   @foreach($rubroGenerales as $general)
                     <option value="{{ $general }}">{{ $general }}</option>
@@ -30,7 +30,7 @@
             {{-- Rubro específico con TomSelect --}}
             <div class="d-flex flex-column" style="min-width:250px;" wire:ignore>
               <label class="text-muted small mb-1">Rubro (específico)</label>
-              <select id="select-rubro-filtro" class="form-control form-control-sm shadow-sm">
+              <select id="select-rubro-filtro" class="form-control form-control-sm shadow-sm report-modern-select">
                 <option value="">-- Todos --</option>
                 @foreach($rubroOpts as $op)
                   <option value="{{ $op['id'] }}">{{ $op['subrubro'] }}</option>
@@ -41,7 +41,7 @@
             {{-- Estado --}}
             <div class="d-flex flex-column" style="min-width:180px;" wire:ignore>
               <label class="text-muted small mb-1">Estado</label>
-              <select id="select-report-estado" class="form-control form-control-sm shadow-sm">
+              <select id="select-report-estado" class="form-control form-control-sm shadow-sm report-modern-select">
                 <option value="">-- Todos --</option>
                 <option value="todas_bajas">Todas las bajas</option>
                 <option value="entramite">021/90</option>
@@ -68,7 +68,7 @@
             {{-- Próximos a vencer --}}
             <div class="d-flex flex-column" style="min-width:180px;" wire:ignore>
               <label class="text-muted small mb-1">Próx. a vencer (días)</label>
-              <select id="select-report-proximos" class="form-control form-control-sm shadow-sm">
+              <select id="select-report-proximos" class="form-control form-control-sm shadow-sm report-modern-select">
                 <option value="">-- Todos --</option>
                 <option value="30">30</option>
                 <option value="60">60</option>
@@ -445,6 +445,9 @@
     background-size:5px 5px,5px 5px !important; background-repeat:no-repeat !important;
     color:#29445d; box-shadow:0 3px 10px rgba(30,58,86,.06) !important;
   }
+  .modern-admin-page .report-modern-select:not(.tomselected) { visibility:hidden; }
+  .modern-admin-page .report-modern-select:not(.tomselected) + .ts-wrapper { visibility:visible; }
+  .modern-admin-page [wire\:ignore]:has(> .report-modern-select) { min-height:68px; }
   .modern-admin-page select.form-control:focus { border-color:#65a2ce !important; box-shadow:0 0 0 3px rgba(40,109,168,.12) !important; }
   .modern-admin-page select.form-control option { padding:.55rem; background:#fff; color:#29445d; }
   .modern-admin-page .card:has(.ts-wrapper) { overflow:visible !important; position:relative; z-index:20; }
