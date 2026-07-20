@@ -167,6 +167,9 @@
             <span class="map-result-count"><i class="fas fa-store mr-1"></i>{{ count($ubicaciones) }} comercios</span>
           </div>
           <div class="card-body map-shell-body">
+            <button id="btnMapFiltersOverlay" type="button" class="btn map-filters-overlay">
+              <i class="fas fa-sliders-h mr-1"></i> Mostrar filtros
+            </button>
             <div id="map" wire:ignore></div>
             <div class="map-legend" aria-label="Referencias del mapa">
               <span><i class="map-dot dot-active"></i>021/90</span>
@@ -257,6 +260,15 @@
     };
     apply(collapsed);
     btn.addEventListener('click',()=>{ collapsed = !collapsed; apply(collapsed); });
+    const overlay=document.getElementById('btnMapFiltersOverlay');
+    if(overlay && !overlay._bound){
+      overlay._bound=true;
+      overlay.addEventListener('click',()=>{
+        collapsed=false;
+        apply(false);
+        document.getElementById('filtros-card')?.scrollIntoView({behavior:'smooth',block:'center'});
+      });
+    }
   }
 
   // Re-vincular después de render de Livewire
@@ -895,6 +907,25 @@
     font-weight: 800;
   }
   .commerce-map-page .map-shell-body { position: relative; padding: .55rem !important; background: #eaf1f6; }
+  .commerce-map-page .map-filters-overlay {
+    position:absolute; top:1rem; left:1rem; z-index:5;
+    border:1px solid rgba(255,255,255,.8) !important; border-radius:10px !important;
+    background:rgba(17,43,70,.92) !important; color:#fff !important;
+    font-size:.78rem; font-weight:800; box-shadow:0 8px 22px rgba(11,31,52,.24);
+    backdrop-filter:blur(7px);
+  }
+  .commerce-map-page .map-filters-overlay:hover { background:#286da8 !important; transform:translateY(-1px); }
+  .commerce-map-page select.form-control {
+    min-height:40px !important; padding: .42rem 2.2rem .42rem .7rem !important;
+    appearance:none; border:1px solid #c6d6e2 !important; border-radius:.65rem !important;
+    background-color:#fbfdff !important;
+    background-image:linear-gradient(45deg,transparent 50%,#52718a 50%),linear-gradient(135deg,#52718a 50%,transparent 50%) !important;
+    background-position:calc(100% - 16px) 17px,calc(100% - 11px) 17px !important;
+    background-size:5px 5px,5px 5px !important; background-repeat:no-repeat !important;
+    color:#29445d; box-shadow:0 3px 10px rgba(30,58,86,.06);
+  }
+  .commerce-map-page select.form-control:focus { border-color:#65a2ce !important; box-shadow:0 0 0 3px rgba(40,109,168,.12) !important; }
+  .commerce-map-page select.form-control option { padding:.55rem; background:#fff; color:#29445d; }
   .commerce-map-page #map {
     width: 100%;
     min-width: 200px;

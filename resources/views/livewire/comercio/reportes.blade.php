@@ -437,6 +437,17 @@
   }
 
   .rubros-pie-layout { display:grid; grid-template-columns:minmax(210px,.85fr) minmax(220px,1.15fr); gap:1rem; align-items:center; }
+  .modern-admin-page select.form-control {
+    min-height:42px !important; padding:.45rem 2.25rem .45rem .75rem !important;
+    appearance:none; border:1px solid #c6d6e2 !important; border-radius:.68rem !important;
+    background-color:#fbfdff !important;
+    background-image:linear-gradient(45deg,transparent 50%,#52718a 50%),linear-gradient(135deg,#52718a 50%,transparent 50%) !important;
+    background-position:calc(100% - 17px) 18px,calc(100% - 12px) 18px !important;
+    background-size:5px 5px,5px 5px !important; background-repeat:no-repeat !important;
+    color:#29445d; box-shadow:0 3px 10px rgba(30,58,86,.06) !important;
+  }
+  .modern-admin-page select.form-control:focus { border-color:#65a2ce !important; box-shadow:0 0 0 3px rgba(40,109,168,.12) !important; }
+  .modern-admin-page select.form-control option { padding:.55rem; background:#fff; color:#29445d; }
   .rubros-pie-chart svg { display:block; width:100%; max-width:290px; margin:auto; filter:drop-shadow(0 8px 12px rgba(23,56,95,.12)); }
   .rubros-pie-chart .pie-total { fill:#17385f; font-size:22px; font-weight:800; }
   .rubros-pie-chart .pie-caption { fill:#718399; font-size:10px; }
