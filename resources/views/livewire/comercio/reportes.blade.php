@@ -17,10 +17,9 @@
           <div class="d-flex flex-column flex-md-row flex-wrap align-items-md-center gap-4">
 
             {{-- 🌟 Rubro General --}}
-            <div class="d-flex flex-column" style="min-width:220px;">
+            <div class="d-flex flex-column" style="min-width:220px;" wire:ignore>
               <label class="text-muted small mb-1">Rubro general</label>
-              <select class="form-control form-control-sm shadow-sm"
-                      wire:model.live="rubroGeneral">
+              <select id="select-report-rubro-general" class="form-control form-control-sm shadow-sm">
                   <option value="">-- Todos los rubros --</option>
                   @foreach($rubroGenerales as $general)
                     <option value="{{ $general }}">{{ $general }}</option>
@@ -29,9 +28,9 @@
             </div>
 
             {{-- Rubro específico con TomSelect --}}
-            <div class="d-flex flex-column" style="min-width:250px;">
+            <div class="d-flex flex-column" style="min-width:250px;" wire:ignore>
               <label class="text-muted small mb-1">Rubro (específico)</label>
-              <select id="select-rubro-filtro" class="form-control form-control-sm shadow-sm" wire:model.live="rubro_id">
+              <select id="select-rubro-filtro" class="form-control form-control-sm shadow-sm">
                 <option value="">-- Todos --</option>
                 @foreach($rubroOpts as $op)
                   <option value="{{ $op['id'] }}">{{ $op['subrubro'] }}</option>
@@ -40,9 +39,9 @@
             </div>
 
             {{-- Estado --}}
-            <div class="d-flex flex-column" style="min-width:180px;">
+            <div class="d-flex flex-column" style="min-width:180px;" wire:ignore>
               <label class="text-muted small mb-1">Estado</label>
-              <select class="form-control form-control-sm shadow-sm" wire:model.live="estado">
+              <select id="select-report-estado" class="form-control form-control-sm shadow-sm">
                 <option value="">-- Todos --</option>
                 <option value="todas_bajas">Todas las bajas</option>
                 <option value="entramite">021/90</option>
@@ -67,9 +66,9 @@
             </div>
 
             {{-- Próximos a vencer --}}
-            <div class="d-flex flex-column" style="min-width:180px;">
+            <div class="d-flex flex-column" style="min-width:180px;" wire:ignore>
               <label class="text-muted small mb-1">Próx. a vencer (días)</label>
-              <select class="form-control form-control-sm shadow-sm" wire:model.live="proximosVtos">
+              <select id="select-report-proximos" class="form-control form-control-sm shadow-sm">
                 <option value="">-- Todos --</option>
                 <option value="30">30</option>
                 <option value="60">60</option>
@@ -464,6 +463,31 @@
 
 @script
 <script>
+  const initReportSelect = (id, property, numeric = false) => {
+    const element = document.getElementById(id);
+    if (!element || element.tomselect) return;
+    new TomSelect(element, {
+      allowEmptyOption: true,
+      create: false,
+      maxOptions: 8000,
+      plugins: ['dropdown_input'],
+      onChange(value) {
+        $wire.set(property, value === '' ? null : (numeric ? parseInt(value, 10) : value));
+      }
+    });
+  };
+  initReportSelect('select-report-rubro-general', 'rubroGeneral');
+  initReportSelect('select-rubro-filtro', 'rubro_id', true);
+  initReportSelect('select-report-estado', 'estado');
+  initReportSelect('select-report-proximos', 'proximosVtos', true);
+
+  window.addEventListener('reportFiltersCleared', () => {
+    ['select-report-rubro-general','select-rubro-filtro','select-report-estado','select-report-proximos'].forEach((id) => {
+      const element = document.getElementById(id);
+      if (element?.tomselect) element.tomselect.clear(true);
+    });
+  });
+
   window.descargarGraficoRubros = function () {
     const svg = document.querySelector('.rubros-pie-chart svg');
     if (!svg) return;

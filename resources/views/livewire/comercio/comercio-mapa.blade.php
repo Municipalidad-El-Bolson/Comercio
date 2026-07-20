@@ -27,9 +27,9 @@
           <div class="card-body py-2" id="filtros-body">
             <div class="mb-2">
               <div class="form-row">
-                <div class="form-group col-md-3 mb-2">
+                <div class="form-group col-md-3 mb-2" wire:ignore>
                   <label class="mb-1">Barrio</label>
-                  <select class="form-control form-control-sm" wire:model.live="selectedBarrio">
+                  <select id="select-map-barrio" class="form-control form-control-sm">
                     <option value="">-- Todos --</option>
                     @foreach($barrios as $b)
                       <option value="{{ $b }}">{{ $b }}</option>
@@ -37,9 +37,9 @@
                   </select>
                 </div>
 
-                <div class="form-group col-md-3 mb-2">
+                <div class="form-group col-md-3 mb-2" wire:ignore>
                   <label class="mb-1">Estado</label>
-                  <select class="form-control form-control-sm" wire:model.live="selectedEstado">
+                  <select id="select-map-estado" class="form-control form-control-sm">
                     <option value="">-- Todos --</option>
                     @foreach($estados as $value => $label)
                       <option value="{{ $value }}">{{ $label }}</option>
@@ -70,9 +70,9 @@
             {{-- Rubro (combo buscable) + Nomenclatura --}}
             <div class="mb-3">
               <div class="form-row">
-                <div class="form-group col-md-4 mb-2">
+                <div class="form-group col-md-4 mb-2" wire:ignore>
                   <label class="mb-1">Rubro General</label>
-                  <select class="form-control form-control-sm" wire:model.live="rubroGeneral">
+                  <select id="select-map-rubro-general" class="form-control form-control-sm">
                       <option value="">-- Todos los rubros --</option>
                       <option value="ALOJAMIENTO DE ALQUILER TURISTICO">Alojamiento de alquiler turistico</option>
                       <option value="GASTRONOMIA">Gastronomía</option>
@@ -217,11 +217,23 @@
   map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
 
   document.addEventListener('DOMContentLoaded', function () {
-    const sel = document.getElementById('select-map-rubro');
-
-    sel.addEventListener('change', function () {
-      @this.set('selectedRubroId', this.value || null);
-    });
+    const initModernSelect = (id, property, numeric = false) => {
+      const el = document.getElementById(id);
+      if (!el || el.tomselect) return;
+      new TomSelect(el, {
+        allowEmptyOption: true,
+        create: false,
+        maxOptions: 5000,
+        plugins: ['dropdown_input'],
+        onChange(value) {
+          @this.set(property, value === '' ? null : (numeric ? parseInt(value, 10) : value));
+        }
+      });
+    };
+    initModernSelect('select-map-barrio', 'selectedBarrio');
+    initModernSelect('select-map-estado', 'selectedEstado');
+    initModernSelect('select-map-rubro-general', 'rubroGeneral');
+    initModernSelect('select-map-rubro', 'selectedRubroId', true);
 
   });
 
@@ -517,9 +529,11 @@
   });
 
   window.addEventListener('mapFiltersCleared', () => {
-    const rubro = document.getElementById('select-map-rubro');
-    if (rubro?.tomselect) rubro.tomselect.clear(true);
-    else if (rubro) rubro.value = '';
+    ['select-map-barrio','select-map-estado','select-map-rubro-general','select-map-rubro'].forEach((id) => {
+      const select = document.getElementById(id);
+      if (select?.tomselect) select.tomselect.clear(true);
+      else if (select) select.value = '';
+    });
 
     const hl = map.getSource('catastro-hl-src');
     if (hl) hl.setData({ type:'FeatureCollection', features:[] });

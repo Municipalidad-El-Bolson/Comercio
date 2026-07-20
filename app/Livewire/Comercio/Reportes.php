@@ -54,6 +54,7 @@ class Reportes extends Component
         $this->reset(['solo_clausurados', 'solo_baja_temporaria', 'rubro_id', 'rubroGeneral', 'estado', 'desde', 'hasta', 'proximosVtos']);
         $this->resetPage();
         $this->dispatch('autosave-clear');
+        $this->dispatch('reportFiltersCleared');
     }
 
     private function filters(): array
