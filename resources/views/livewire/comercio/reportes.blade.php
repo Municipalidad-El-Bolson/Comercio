@@ -1,5 +1,14 @@
 <section class="content" data-autosave="off">
-<div class="modern-admin-page">
+<style>
+  .reports-page.reports-booting { min-height:65vh; }
+  .reports-page.reports-booting > :not(.reports-loader) { visibility:hidden !important; }
+  .reports-loader { display:none; min-height:55vh; align-items:center; justify-content:center; flex-direction:column; gap:.8rem; color:#526d84; }
+  .reports-booting > .reports-loader { display:flex; }
+  .reports-loader-icon { width:42px; height:42px; border:4px solid #dce8f1; border-top-color:#286da8; border-radius:50%; animation:reports-spin .7s linear infinite; }
+  @keyframes reports-spin { to { transform:rotate(360deg); } }
+</style>
+<div class="modern-admin-page reports-page reports-booting">
+  <div class="reports-loader" aria-live="polite"><span class="reports-loader-icon"></span><strong>Preparando reportes…</strong></div>
   <div class="content-header">
     <div class="container-fluid">
       <div class="text-center mb-3">
@@ -489,6 +498,10 @@
   initReportSelect('select-rubro-filtro', 'rubro_id', true);
   initReportSelect('select-report-estado', 'estado');
   initReportSelect('select-report-proximos', 'proximosVtos', true);
+
+  const revealReports = () => document.querySelector('.reports-page')?.classList.remove('reports-booting');
+  requestAnimationFrame(() => requestAnimationFrame(revealReports));
+  setTimeout(revealReports, 1200);
 
   window.addEventListener('reportFiltersCleared', () => {
     ['select-report-rubro-general','select-rubro-filtro','select-report-estado','select-report-proximos'].forEach((id) => {
