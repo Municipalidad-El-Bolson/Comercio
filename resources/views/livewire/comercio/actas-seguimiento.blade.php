@@ -2,7 +2,7 @@
   <div class="content-header px-0">
     <h1 class="mb-3">Seguimiento de actas</h1>
     <input type="search" class="form-control" style="max-width:420px"
-           wire:model.live.debounce.300ms="search" placeholder="Buscar comercio o acta…">
+           wire:model.live.debounce.300ms="search" placeholder="Buscar por HC, titular, comercio o acta…">
   </div>
   <div class="card">
     <div class="card-body p-0 table-responsive">
@@ -19,11 +19,18 @@
                 $dias <= 7 => ['info', 'Próxima: '.$dias.' día(s)'],
                 default => ['secondary', $dias.' día(s)'],
               };
-              $nombre = $acta->ubicacion?->nombre_comercial ?: ($acta->ubicacion?->razon_social ?: 'Comercio #'.$acta->ubicacion_id);
+              $titular = $acta->ubicacion?->razon_social ?: trim(($acta->ubicacion?->apellido ?? '').' '.($acta->ubicacion?->nombres ?? ''));
+              $nombre = $acta->ubicacion?->nombre_comercial ?: ($titular ?: 'Comercio #'.$acta->ubicacion_id);
+              $hc = $acta->ubicacion?->hc ?: $acta->ubicacion?->numero_habilitacion;
             @endphp
             <tr>
               <td><span class="badge badge-{{ $badge }}">{{ $prioridad }}</span></td>
-              <td>{{ $acta->fecha_vencimiento?->format('d/m/Y') }}</td><td>{{ $nombre }}</td><td>{{ $acta->titulo }}</td>
+              <td>{{ $acta->fecha_vencimiento?->format('d/m/Y') }}</td>
+              <td>
+                {{ $nombre }}
+                <div class="small text-muted">HC {{ $hc ?: '—' }} · {{ $titular ?: 'Titular sin cargar' }}</div>
+              </td>
+              <td>{{ $acta->titulo }}</td>
               <td>{{ $acta->tipo_acta ? ucfirst($acta->tipo_acta) : '—' }}</td><td>{{ $acta->estado ?: '—' }}</td>
               <td><a class="btn btn-sm btn-outline-primary" href="{{ route('comercio.data', $acta->ubicacion_id) }}">Ver comercio</a></td>
             </tr>

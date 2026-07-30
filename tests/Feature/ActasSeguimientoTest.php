@@ -41,4 +41,60 @@ class ActasSeguimientoTest extends TestCase
             ->assertSeeInOrder(['Acta vencida', 'Acta próxima'])
             ->assertDontSee('Acta sin plazo');
     }
+
+    public function test_permite_buscar_actas_por_hc_y_nombre_del_titular(): void
+    {
+        $this->withoutMiddleware(SingleSession::class);
+        $user = User::factory()->create(['role' => 'writer']);
+
+        $ubicacionBuscada = Ubicacion::query()->create([
+            'hc' => '7777',
+            'apellido' => 'Perez',
+            'nombres' => 'Maria Laura',
+            'nombre_comercial' => 'Kiosco Norte',
+            'dni_cuit' => '20123456789',
+            'estado' => 'entramite',
+            'estado_base' => '021',
+            'tipo_hab' => 'prev',
+        ]);
+
+        $otraUbicacion = Ubicacion::query()->create([
+            'hc' => '8888',
+            'apellido' => 'Gomez',
+            'nombres' => 'Carlos',
+            'nombre_comercial' => 'Despensa Sur',
+            'dni_cuit' => '20987654321',
+            'estado' => 'entramite',
+            'estado_base' => '021',
+            'tipo_hab' => 'prev',
+        ]);
+
+        Movimiento::query()->create([
+            'ubicacion_id' => $ubicacionBuscada->id,
+            'tipo' => 'acta',
+            'titulo' => 'Acta buscada',
+            'fecha' => now(),
+            'fecha_vencimiento' => today()->addDays(5),
+        ]);
+
+        Movimiento::query()->create([
+            'ubicacion_id' => $otraUbicacion->id,
+            'tipo' => 'acta',
+            'titulo' => 'Acta de otro comercio',
+            'fecha' => now(),
+            'fecha_vencimiento' => today()->addDays(5),
+        ]);
+
+        Livewire::actingAs($user)->test(ActasSeguimiento::class)
+            ->set('search', '7777')
+            ->assertSee('Acta buscada')
+            ->assertSee('HC 7777')
+            ->assertSee('Perez Maria Laura')
+            ->assertDontSee('Acta de otro comercio');
+
+        Livewire::actingAs($user)->test(ActasSeguimiento::class)
+            ->set('search', 'Maria')
+            ->assertSee('Acta buscada')
+            ->assertDontSee('Acta de otro comercio');
+    }
 }

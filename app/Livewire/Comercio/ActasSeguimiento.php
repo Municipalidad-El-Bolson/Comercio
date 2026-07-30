@@ -26,7 +26,11 @@ class ActasSeguimiento extends Component
                 $query->where(function ($q) use ($term) {
                     $q->where('titulo', 'like', $term)
                         ->orWhereHas('ubicacion', fn ($u) => $u->where('nombre_comercial', 'like', $term)
-                            ->orWhere('razon_social', 'like', $term));
+                            ->orWhere('razon_social', 'like', $term)
+                            ->orWhere('apellido', 'like', $term)
+                            ->orWhere('nombres', 'like', $term)
+                            ->orWhere('hc', 'like', $term)
+                            ->orWhere('numero_habilitacion', 'like', $term));
                 });
             })
             ->orderBy('fecha_vencimiento')
